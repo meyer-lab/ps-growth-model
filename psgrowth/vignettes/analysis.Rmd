@@ -1,0 +1,45 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+require(tidyverse)
+require(reshape2)
+
+data <- read_csv("091916_H1299_cytotoxic_confluence_confl.csv") %>% 
+  melt(id.vars = c("Time", "Elapsed"), value.name = "Confl", variable.name = "Condition")
+data_green <- read_csv("091916_H1299_cytotoxic_confluence_green.csv") %>% 
+  melt(id.vars = c("Time", "Elapsed"), value.name = "Annexin", variable.name = "Condition") %>%
+  select(Annexin)
+
+data <- cbind(data, data_green) %>%
+  separate(Condition, c("Drug", "Conc", "Units"), fill = "right", convert = T, sep = " ") %>%
+  select(-Units) %>% mutate(Drug = as.factor(Drug)) %>%
+  filter(Drug != "blank")
+rm(data_green)
+
+dataM <- group_by(data, Elapsed, Drug, Conc) %>% summarise(Annexin = mean(Annexin), Confl = mean(Confl))
+```
+
+```{r}
+ggplot(filter(dataM, Drug == "Cis"), aes(x = Elapsed, color = factor(Conc), group = interaction(Drug, factor(Conc)))) + 
+  geom_line(aes(y = Confl)) + geom_line(aes(y = Annexin), linetype = 2) + 
+  scale_y_log10()
+```
+
+
+
+```{r}
+dataS <- dataM %>% ungroup %>% filter(Elapsed == 8 | Elapsed == 40 | Elapsed == 72)
+
+dataS <- melt(dataS, id.vars = c("Elapsed", "Drug", "Conc")) %>%
+  dcast(Drug + Conc ~ Elapsed + variable, value.var = "value")
+```
+
+
+```{r}
+
+ggplot(dataS, aes(x = `72_Annexin`, y = `72_Confl`, color = Drug)) + geom_line() + geom_point()
+```
+
