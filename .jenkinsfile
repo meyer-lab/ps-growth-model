@@ -1,16 +1,29 @@
 pipeline {
-    agent any
-
-    stages {
-        stage('Build') {
-            steps {
-                sh 'echo Building'
-            }
-        }
-        stage('Test'){
-            steps {
-                sh 'echo Testing'
-            }
-        }
+  agent any
+  environment {
+    PATH = "/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/texlive/2016/bin/x86_64-darwin/"
+  }
+  stages {
+    stage('Build') {
+      steps {
+        sh 'echo Building'
+      }
     }
-}
+    stage('Test'){
+      steps {
+        sh 'coverage run -m unittest discover'
+        sh '(pylint --rcfile=.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
+        step([
+          $class: 'WarningsPublisher',
+          parserConfigurations: [[parserName: 'PYLint', pattern: 'pylint.log']],
+          unstableTotalAll: '1000',
+          usePreviousBuildAsReference: true])
+        }
+      }
+      stage('Deploy') {
+        steps {
+          sh 'echo "Deploy step"'
+        }
+      }
+    }
+  }
