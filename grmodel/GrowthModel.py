@@ -60,21 +60,24 @@ class GrowthModel(object):
 	#y0 	list with the initial values for each state 
     def simulate(self, params, t_interval, y0):
     		out = odeint(self.ODEfun, y0, t_interval, args = (params,))
+    		#put values and time into pandas datatable
+    		out_table = pd.DataFrame(data=out, index=t, columns = ['Live', 'Dead', 'EarlyApoptosis', 'Gone'])
+    		out_table.insert(0, 'Time', t)
     		return out
 
 	#plots the results from a simulation
 	#if animate is True then the line plot over time 
 	#plots the results from a simulation
 	#if animate is True then the line plot over time
-    def plotSimulation(self, state, t_interval):
+    def plotSimulation(self, state):
     		figure()
     		xlabel('Time')
     		ylabel('Number of Cells')
-    
-    		plot(t_interval, state[:, 0], 'b-', label="live")
-    		plot(t_interval, state[:, 1], 'r-', label="dead")
-    		plot(t_interval, state[:, 2], 'g-', label="early apoptosis")
-    		plot(t_interval, state[:, 3], 'k-', label="gone")
+    		t_interval = state.iloc[:,0].values
+    		plot(t_interval, state[:, 1], 'b-', label="live")
+    		plot(t_interval, state[:, 2], 'r-', label="dead")
+    		plot(t_interval, state[:, 3], 'g-', label="early apoptosis")
+    		plot(t_interval, state[:, 4], 'k-', label="gone")
     
     		legend(loc='upper right')
     
@@ -86,4 +89,4 @@ if __name__ == '__main__':
     init_state = [10000, 0, 0, 0]
     params = GrowthModel.mcFormat([.0009, -.016, .01, .008, .0007, .005, -.001,-.0071, .0008, .005])
     out = GrowthModel().simulate(params, t, init_state)
-    GrowthModel().plotSimulation(out, t)
+    GrowthModel().plotSimulation(out)
