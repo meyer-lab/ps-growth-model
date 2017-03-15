@@ -1,7 +1,7 @@
 import matplotlib.animation as animation
 from scipy.integrate import odeint
 from numpy import arange
-from pylab import *
+from pylab import plot, figure, xlabel, ylabel, legend, show
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 
@@ -12,7 +12,7 @@ class GrowthModel(object):
 	#state	the number of cells in a particular state (LIVE, DEAD, EARLY_APOPTOSIS, GONE)
 	#t 	time
 	#a 	function describing the parameter between LIVE -> LIVE (cell division)
-	#b 	function describing the parameter between LIVE -> DEAD 
+	#b 	function describing the parameter between LIVE -> DEAD
 	#c 	function describing the parameter between LIVE -> EARLY_APOPTOSIS
 	#d 	function describing the parameter between EARLY_APOPTOSIS -> DEATH
 	#e 	function describing the parameter between DEATH -> GONE
@@ -28,49 +28,37 @@ class GrowthModel(object):
 		dydt[3] = e(t)*DEAD
 		return dydt
 
-	#solves the ODE function given a set of initial values (y0), 
+	#solves the ODE function given a set of initial values (y0),
 	#over a time interval (t_interval)
 	#
 	#params:
 	#params	list of parameters for model (a, b, c, d, e)
 	#t_interval 	time interval over which to solve the function
-	#y0 	list with the initial values for each state 
+	#y0 	list with the initial values for each state
 	def simulate(self, params, t_interval, y0):
 		out = odeint(self.ODEfun, y0, t_interval, args = tuple(params))
 		return out
 
 	#plots the results from a simulation
-	#if animate is True then the line plot over time 
-	def plotSimulation(self, state, t_interval, animate):
+	#if animate is True then the line plot over time
+	def plotSimulation(self, state, t_interval):
 		fig = figure()
 		xlabel('Time')
 		ylabel('Number of Cells')
-		if animate:
-			plot(t_interval, state[:, 0], 'b-', alpha = 0.2, label = "live")
-			plot(t_interval, state[:, 1], 'r-', alpha = 0.2,label = "dead")
-			plot(t_interval, state[:, 2], 'g-', alpha = 0.2,label = "early apoptosis")
-			plot(t_interval, state[:, 3], 'k-', alpha = 0.2,label = "gone")
-		else:
-			plot(t_interval, state[:, 0], 'b-', label = "live")
-			plot(t_interval, state[:, 1], 'r-', label = "dead")
-			plot(t_interval, state[:, 2], 'g-', label = "early apoptosis")
-			plot(t_interval, state[:, 3], 'k-', label = "gone")
-		legend(loc='upper right')
-		#show()
-		if animate:
-			def animate(i):
-			     plot(t_interval[0:i], state[0:i,0], 'b-')
-			     plot(t_interval[0:i], state[0:i,1], 'r-')
-			     plot(t_interval[0:i], state[0:i,2], 'g-')
-			     plot(t_interval[0:i], state[0:i,3], 'k-')
 
-			ani = animation.FuncAnimation(fig, animate, interval=1)
+		plot(t_interval, state[:, 0], 'b-', label = "live")
+		plot(t_interval, state[:, 1], 'r-', label = "dead")
+		plot(t_interval, state[:, 2], 'g-', label = "early apoptosis")
+		plot(t_interval, state[:, 3], 'k-', label = "gone")
+
+		legend(loc='upper right')
+
 		show()
 
 
 if __name__ == '__main__':
-	t = arange(0, 200, 0.1)
+	t = arange(0, 200, 0.2)
 	init_state = [10000, 0, 0, 0]
 	params = [lambda t: 0.2, lambda t: 0.2, lambda t: 0.1,lambda t: 0.7, lambda t: .5]
 	out = GrowthModel().simulate(params, t, init_state)
-	GrowthModel().plotSimulation(out, t, True)
+	GrowthModel().plotSimulation(out, t)
