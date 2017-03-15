@@ -1,4 +1,6 @@
 import scipy.stats
+import pandas as pd
+import numpy as np
 
 def logpdf_sum(x, loc, scale):
     root2 = np.sqrt(2)
@@ -7,16 +9,16 @@ def logpdf_sum(x, loc, scale):
     summand = -np.square((x - loc)/(root2 * scale))
     return  prefactor + np.nansum(summand)
 
-# Calculates the log likelihood of a simulation given the experimental data. 
-#  
+# Calculates the log likelihood of a simulation given the experimental data.
+#
 #
 # parameters:
 # table_sim			pandas datatable containing the simulated data for cells over time
-#					assumes the table has rows with columns with the timepoints, the number of live, dead, early 
+#					assumes the table has rows with columns with the timepoints, the number of live, dead, early
 #					apoptosis, and "gone" cells
 # sigma_sim_live	the sigma used for the normal distribution for live cells
 # sigma_sim_dead	the sigma used for the normal distribution for dead cells
-# table_exp	a pandas datatable containing the experimental values for live/dead cells over time (can have 
+# table_exp	a pandas datatable containing the experimental values for live/dead cells over time (can have
 #						multiple values for the same timepoint)
 #						assumes that the table columns in the following order: time elapsed, live cells, dead cells
 def likelihood(table_sim, sigma_sim_live, sigma_sim_dead, table_exp):
@@ -45,7 +47,7 @@ def likelihood(table_sim, sigma_sim_live, sigma_sim_dead, table_exp):
 ##simple example using one set of the experimental data as the simulated data
 
 #load the data (took code from load_data.py)
-import pandas as pd
+
 data_confl = pd.read_csv("./091916_H1299_cytotoxic_confluence_confl.csv", infer_datetime_format=True)
 #data_confl.shape #(111, 21)
 data_confl = data_confl.ix[:, 0:19] #remove "blank" column
