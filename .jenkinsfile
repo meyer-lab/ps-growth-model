@@ -1,16 +1,27 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Build') {
-            steps {
-                sh 'echo Building'
-            }
-        }
-        stage('Test'){
-            steps {
-                sh 'echo Testing'
-            }
-        }
+  stages {
+    stage('Build') {
+      steps {
+        sh 'echo Building'
+      }
     }
-}
+    stage('Test'){
+      steps {
+        sh 'coverage run -m unittest discover'
+        sh '(pylint --rcfile=.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
+        step([
+          $class: 'WarningsPublisher',
+          parserConfigurations: [[parserName: 'PYLint', pattern: 'pylint.log']],
+          unstableTotalAll: '1000',
+          usePreviousBuildAsReference: true])
+        }
+      }
+      stage('Deploy') {
+        steps {
+          sh 'Deploy step'
+        }
+      }
+    }
+  }
