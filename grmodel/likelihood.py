@@ -23,19 +23,19 @@ def logpdf_sum(x, loc, scale):
 #						assumes that the table columns in the following order: time elapsed, live cells, dead cells
 def likelihood(table_sim, sigma_sim_live, sigma_sim_dead, table_exp):
 	#get time points (time points should be in first column of table_exp)
-	timepoints = pd.Series.unique(table_exp.iloc[:,0])
+	timepoints = pd.Series.unique(table_exp.iloc[:, 0])
 	#for each time point, calculate likelihood of simulated data given experimental data at that time point.
 	logSqrErr = 0
 	for time in timepoints:
 		#get simulated values at time point
-		sim_at_timepoint = table_sim.loc[table_sim.iloc[:,0] == time,:]
-		mean_live = table_sim.iloc[:,1]
-		mean_dead = table_sim.iloc[:,2]
+		sim_at_timepoint = table_sim.loc[table_sim.iloc[:, 0] == time,:]
+		mean_live = table_sim.iloc[:, 1]
+		mean_dead = table_sim.iloc[:, 2]
 
 		#get observed values at time point
-		exp_at_timepoint = table_exp.loc[table_exp.iloc[:,0] == time,:]
-		observed_live = exp_at_timepoint.iloc[:,1]
-		observed_dead = exp_at_timepoint.iloc[:,2]
+		exp_at_timepoint = table_exp.loc[table_exp.iloc[:, 0] == time,:]
+		observed_live = exp_at_timepoint.iloc[:, 1]
+		observed_dead = exp_at_timepoint.iloc[:, 2]
 
 		#calculate the density of the distribution and sum up across all observed values
 		logSqrErr += logpdf_sum(observed_live, loc=mean_live, scale=sigma_sim_live)
@@ -56,9 +56,9 @@ data_green = pd.read_csv("./091916_H1299_cytotoxic_confluence_green.csv", infer_
 data_green = data_green.ix[:, 0:19]
 
 #get one experiment, in this case CTL 0 nM
-frames = [data_green.iloc[:,1], data_green.iloc[:,3], data_confl.iloc[:,3]]
+frames = [data_green.iloc[:, 1], data_green.iloc[:, 3], data_confl.iloc[:, 3]]
 table_exp = pd.concat(frames, axis =1)
 
-table_sim = table_exp.iloc[0:31,:]
+table_sim = table_exp.iloc[0:31, :]
 
 likelihood(table_sim, 1,1,table_exp)
