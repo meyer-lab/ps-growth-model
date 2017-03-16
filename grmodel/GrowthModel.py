@@ -3,21 +3,21 @@ from numpy import arange
 from pylab import plot, figure, xlabel, ylabel, legend, show
 import matplotlib.patches as mpatches
 
+#calculates rate at the given time
+def rate_values(parameters, time):
+    from math import exp
+
+    list_of_rates = []
+    for rate_equation in parameters:
+        poly_sum = 0
+        for i, item in enumerate(rate_equation):
+            poly_sum += item*time**i
+        poly_sum = exp(poly_sum)
+        list_of_rates.append(poly_sum)
+
+    return list_of_rates
 
 class GrowthModel(object):
-    
-    #calculates rate at the given time
-    def rate_values(self, parameters, time):    
-        from math import exp
-        list_of_rates = []
-        for rate_equation in parameters:
-            poly_sum = 0
-            for i in range(len(rate_equation)):
-                poly_sum += rate_equation[i]*time**i
-            poly_sum = exp(poly_sum)
-            list_of_rates.append(poly_sum)
-        return list_of_rates
-
     #takes in mc data of list and returns equal length list of lists
     def mcFormat(mcParams):
         interval = len(mcParams)//5
@@ -26,7 +26,7 @@ class GrowthModel(object):
         for i in range(extra):
             params[i].append(mcParams[5*interval+i])
         return params
-    
+
 	#ODE function of cells living/dying/undergoing early apoptosis
 	#
 	#params:
@@ -43,7 +43,7 @@ class GrowthModel(object):
         EARLY_APOPTOSIS = state[2]
         GONE = state[3]
         dydt = [0] * 4
-        a,b,c,d,e = self.rate_values(params, t)
+        a,b,c,d,e = rate_values(params, t)
         dydt[0] = a*LIVE - b*LIVE - c*LIVE
         dydt[1] = b*LIVE - e*DEAD + d*EARLY_APOPTOSIS
         dydt[2] = c*LIVE - d*EARLY_APOPTOSIS
@@ -57,7 +57,7 @@ class GrowthModel(object):
 	#params	list of parameters for model (a, b, c, d, e)
 	#t_interval 	time interval over which to solve the function
 
-	#y0 	list with the initial values for each state 
+	#y0 	list with the initial values for each state
     def simulate(self, params, t_interval, y0):
     		out = odeint(self.ODEfun, y0, t_interval, args = (params,))
     		#put values and time into pandas datatable
@@ -66,7 +66,7 @@ class GrowthModel(object):
     		return out
 
 	#plots the results from a simulation
-	#if animate is True then the line plot over time 
+	#if animate is True then the line plot over time
 	#plots the results from a simulation
 	#if animate is True then the line plot over time
     def plotSimulation(self, state):
@@ -78,9 +78,9 @@ class GrowthModel(object):
     		plot(t_interval, state[:, 2], 'r-', label="dead")
     		plot(t_interval, state[:, 3], 'g-', label="early apoptosis")
     		plot(t_interval, state[:, 4], 'k-', label="gone")
-    
+
     		legend(loc='upper right')
-    
+
     		show()
 
 
