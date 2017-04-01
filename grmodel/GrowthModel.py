@@ -2,11 +2,15 @@ from scipy.integrate import odeint
 from numpy import arange
 from pylab import plot, figure, xlabel, ylabel, legend, show
 import matplotlib.patches as mpatches
+import pandas as pd
 
 #calculates rate at the given time
 def rate_values(parameters, time):
     from math import exp
-
+    
+    if time < 0:
+        raise ValueError
+        
     list_of_rates = []
     for rate_equation in parameters:
         poly_sum = 0
@@ -61,9 +65,9 @@ class GrowthModel(object):
     def simulate(self, params, t_interval, y0):
     		out = odeint(self.ODEfun, y0, t_interval, args = (params,))
     		#put values and time into pandas datatable
-    		out_table = pd.DataFrame(data=out, index=t, columns = ['Live', 'Dead', 'EarlyApoptosis', 'Gone'])
-    		out_table.insert(0, 'Time', t)
-    		return out
+    		out_table = pd.DataFrame(data=out, index=t_interval, columns = ['Live', 'Dead', 'EarlyApoptosis', 'Gone'])
+    		out_table.insert(0, 'Time', t_interval)
+    		return out_table
 
 	#plots the results from a simulation
 	#if animate is True then the line plot over time
@@ -74,10 +78,10 @@ class GrowthModel(object):
     		xlabel('Time')
     		ylabel('Number of Cells')
     		t_interval = state.iloc[:,0].values
-    		plot(t_interval, state[:, 1], 'b-', label="live")
-    		plot(t_interval, state[:, 2], 'r-', label="dead")
-    		plot(t_interval, state[:, 3], 'g-', label="early apoptosis")
-    		plot(t_interval, state[:, 4], 'k-', label="gone")
+    		plot(t_interval, state.iloc[:, 1], 'b-', label="live")
+    		plot(t_interval, state.iloc[:, 2], 'r-', label="dead")
+    		plot(t_interval, state.iloc[:, 3], 'g-', label="early apoptosis")
+    		plot(t_interval, state.iloc[:, 4], 'k-', label="gone")
 
     		legend(loc='upper right')
 
