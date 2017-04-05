@@ -1,16 +1,32 @@
+import os
 from scipy.integrate import odeint
-from numpy import arange
 from pylab import plot, figure, xlabel, ylabel, legend, show
-import matplotlib.patches as mpatches
 import pandas as pd
+import numpy as np
 
-#calculates rate at the given time
 def rate_values(parameters, time):
+    '''Calculates the rates of each cellular process at a given time
+
+    Returns a list of values of e raised to the power of teh calculated rate
+    (for each set of parameters) as to ensure no negative value. The input is
+    a list of lists, each index of the inner list a coeficient of time to the power
+    of that index. The outer list represents the number of functions.
+
+    Arguments:
+        parameters (list of lists): contains number of functions and parameters of each funciton
+        time (float): time at which rate is calculated
+
+    Returns:
+        list of the rates for each each function
+
+    >>> rate_values([[.01, 1, .9,],[3, .7, 1, -2], [-7, -1, 1]], 2)
+    [273.14423800475663, 0.0005004514334406108, 0.006737946999085467]
+    '''
     from math import exp
-    
+
     if time < 0:
         raise ValueError
-        
+
     list_of_rates = []
     for rate_equation in parameters:
         poly_sum = 0
@@ -21,76 +37,167 @@ def rate_values(parameters, time):
 
     return list_of_rates
 
-class GrowthModel(object):
-    #takes in mc data of list and returns equal length list of lists
-    def mcFormat(mcParams):
-        interval = len(mcParams)//5
-        extra = len(mcParams)%5
-        params = [mcParams[0:interval]] + [mcParams[interval:2*interval]] + [mcParams[2*interval:3*interval]] + [mcParams[3*interval:4*interval]] + [mcParams[4*interval:5*interval]]
-        for i in range(extra):
-            params[i].append(mcParams[5*interval+i])
+def logpdf_sum(x, loc, scale):
+    """ Calculate the likelihood of a set of observations applied to a normal distribution. """
+    root2 = np.sqrt(2)
+    root2pi = np.sqrt(2*np.pi)
+    prefactor = - x.size * np.log(scale * root2pi)
+    summand = -np.square((x - loc)/(root2 * scale))
+    return  prefactor + np.nansum(summand)
+
+def likelihood(table_sim, sigma_sim_live, sigma_sim_dead, table_exp):
+    """
+    Calculates the log likelihood of a simulation given the experimental data.
+
+    parameters:
+    table_sim	pandas datatable containing the simulated data for cells over time
+    			assumes the table has rows with columns with the timepoints, the number of live, dead, early
+    			apoptosis, and "gone" cells
+    sigma_sim_live	the sigma used for the normal distribution for live cells
+    sigma_sim_dead	the sigma used for the normal distribution for dead cells
+    table_exp	a pandas datatable containing the experimental values for
+                live/dead cells over time (can have multiple values for the same timepoint)
+    			assumes that the table columns in the following order: time elapsed, live cells, dead cells
+    """
+
+    #get time points (time points should be in first column of table_exp)
+    timepoints = pd.Series.unique(table_exp.iloc[:, 0])
+    #for each time point, calculate likelihood of simulated data given experimental data at that time point.
+    logSqrErr = 0
+    for time in timepoints:
+        #get simulated values at time point
+        sim_at_timepoint = table_sim.loc[table_sim.iloc[:, 0] == time, :]
+        mean_live = sim_at_timepoint.iloc[:, 1]
+        mean_dead = sim_at_timepoint.iloc[:, 2]
+
+        #get observed values at time point
+        exp_at_timepoint = table_exp.loc[table_exp.iloc[:, 0] == time, :]
+        observed_live = exp_at_timepoint.iloc[:, 1]
+        observed_dead = exp_at_timepoint.iloc[:, 2]
+
+        #calculate the density of the distribution and sum up across all observed values
+        logSqrErr += logpdf_sum(observed_live, loc=mean_live, scale=sigma_sim_live)
+        logSqrErr += logpdf_sum(observed_dead, loc=mean_dead, scale=sigma_sim_dead)
+
+        return logSqrErr
+
+def ODEfun(state, t, params):
+    """
+    ODE function of cells living/dying/undergoing early apoptosis
+
+    params:
+    state	the number of cells in a particular state (LIVE, DEAD, EARLY_APOPTOSIS, GONE)
+    t 	time
+    a 	parameter between LIVE -> LIVE (cell division)
+    b 	parameter between LIVE -> DEAD
+    c 	parameter between LIVE -> EARLY_APOPTOSIS
+    d 	parameter between EARLY_APOPTOSIS -> DEATH
+    e 	parameter between DEATH -> GONE
+    """
+
+    ## If we don't have the right number of parameters, then panic
+    if len(params) < 5:
+        raise ValueError
+
+    LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2]
+    dydt = np.full(4, 0.0, dtype=np.float)
+
+    rates = rate_values(params, t)
+
+    dydt[0] = rates[0]*LIVE - rates[1]*LIVE - rates[2]*LIVE
+    dydt[1] = rates[1]*LIVE - rates[4]*DEAD + rates[3]*EARLY_APOPTOSIS
+    dydt[2] = rates[2]*LIVE - rates[3]*EARLY_APOPTOSIS
+    dydt[3] = rates[4]*DEAD
+    return dydt
+
+def mcFormat(mcParams):
+    """ takes in mc data of list and returns equal length list of lists """
+    interval = len(mcParams)//5
+    extra = len(mcParams)%5
+    params = [mcParams[0:interval]] + [mcParams[interval:2*interval]] + [mcParams[2*interval:3*interval]] + [mcParams[3*interval:4*interval]] + [mcParams[4*interval:5*interval]]
+    for i in range(extra):
+        params[i].append(mcParams[5*interval+i])
         return params
 
-	#ODE function of cells living/dying/undergoing early apoptosis
-	#
-	#params:
-	#state	the number of cells in a particular state (LIVE, DEAD, EARLY_APOPTOSIS, GONE)
-	#t 	time
-	#a 	function describing the parameter between LIVE -> LIVE (cell division)
-	#b 	function describing the parameter between LIVE -> DEAD
-	#c 	function describing the parameter between LIVE -> EARLY_APOPTOSIS
-	#d 	function describing the parameter between EARLY_APOPTOSIS -> DEATH
-	#e 	function describing the parameter between DEATH -> GONE
-    def ODEfun(self, state, t, params):
-        LIVE = state[0]
-        DEAD = state[1]
-        EARLY_APOPTOSIS = state[2]
-        GONE = state[3]
-        dydt = [0] * 4
-        a,b,c,d,e = rate_values(params, t)
-        dydt[0] = a*LIVE - b*LIVE - c*LIVE
-        dydt[1] = b*LIVE - e*DEAD + d*EARLY_APOPTOSIS
-        dydt[2] = c*LIVE - d*EARLY_APOPTOSIS
-        dydt[3] = e*DEAD
-        return dydt
+def simulate(params, t_interval, y0):
+    """
+    #solves the ODE function given a set of initial values (y0),
+    #over a time interval (t_interval)
+    #
+    #params:
+    #params	list of parameters for model (a, b, c, d, e)
+    #t_interval 	time interval over which to solve the function
 
-	#solves the ODE function given a set of initial values (y0),
-	#over a time interval (t_interval)
-	#
-	#params:
-	#params	list of parameters for model (a, b, c, d, e)
-	#t_interval 	time interval over which to solve the function
+    #y0 	list with the initial values for each state
+    """
+    out = odeint(ODEfun, y0, t_interval, args=(params,))
+    #put values and time into pandas datatable
+    out_table = pd.DataFrame(data=out,
+                             index=t_interval,
+                             columns=['Live', 'Dead', 'EarlyApoptosis', 'Gone'])
+    out_table.insert(0, 'Time', t_interval)
+    return out_table
 
-	#y0 	list with the initial values for each state
-    def simulate(self, params, t_interval, y0):
-    		out = odeint(self.ODEfun, y0, t_interval, args = (params,))
-    		#put values and time into pandas datatable
-    		out_table = pd.DataFrame(data=out, index=t_interval, columns = ['Live', 'Dead', 'EarlyApoptosis', 'Gone'])
-    		out_table.insert(0, 'Time', t_interval)
-    		return out_table
+class GrowthModel:
+    def plotSimulation(self, paramV, selCol = None):
+        """
+        Plots the results from a simulation.
+        TODO: Run simulation when this is called, and also plot observations.
+        TODO: If selCol is None, then plot simulation but not observations.
+        """
 
-	#plots the results from a simulation
-	#if animate is True then the line plot over time
-	#plots the results from a simulation
-	#if animate is True then the line plot over time
-    def plotSimulation(self, state):
-    		figure()
-    		xlabel('Time')
-    		ylabel('Number of Cells')
-    		t_interval = state.iloc[:,0].values
-    		plot(t_interval, state.iloc[:, 1], 'b-', label="live")
-    		plot(t_interval, state.iloc[:, 2], 'r-', label="dead")
-    		plot(t_interval, state.iloc[:, 3], 'g-', label="early apoptosis")
-    		plot(t_interval, state.iloc[:, 4], 'k-', label="gone")
+        figure()
+        xlabel('Time')
+        ylabel('Number of Cells')
+        t_interval = state.iloc[:, 0].values
+        plot(t_interval, state.iloc[:, 1], 'b-', label="live")
+        plot(t_interval, state.iloc[:, 2], 'r-', label="dead")
+        plot(t_interval, state.iloc[:, 3], 'g-', label="early apoptosis")
+        plot(t_interval, state.iloc[:, 4], 'k-', label="gone")
 
-    		legend(loc='upper right')
+        legend(loc='upper right')
 
-    		show()
+        show()
 
+    def logL(self, paramV):
+        """
+        TODO: Run simulation using paramV, and compare results to observations in self.selCol
+        """
 
-if __name__ == '__main__':
-    t = arange(0, 10, 0.005)
-    init_state = [10000, 0, 0, 0]
-    params = GrowthModel.mcFormat([.0009, -.016, .01, .008, .0007, .005, -.001,-.0071, .0008, .005])
-    out = GrowthModel().simulate(params, t, init_state)
-    GrowthModel().plotSimulation(out)
+        if self.selCol is None:
+            raise ValueError
+
+        logL = None
+
+        return logL
+
+    def __init__(self, loadFile=None, complexity=3, selCol = None):
+        import itertools
+
+        # If no filename is given use a default
+        if loadFile is None:
+            loadFile = "091916_H1299_cytotoxic_confluence"
+
+        # Find path for csv files, on any machine wherein the repository exists.
+        path = os.path.dirname(os.path.abspath(__file__))
+        # Read in both observation files. Return as formatted pandas tables.
+        # Data tables to be kept within class.
+        self.data_confl = pd.read_csv(os.path.join(path, ('data/' + loadFile + '_confl.csv')), infer_datetime_format=True)
+        self.data_green = pd.read_csv(os.path.join(path, ('data/' + loadFile + '_green.csv')), infer_datetime_format=True)
+
+        # Parameter names
+        ps = ['a', 'b', 'c', 'd', 'e']
+        self.pNames = list(itertools.chain.from_iterable(itertools.repeat(x, complexity) for x in ps))
+        self.pNames = self.pNames + ['conv_confl', 'conv_green', 'err_confl', 'err_green']
+
+        # Specify lower bounds on parameters (log space)
+        self.lb = np.full(len(self.pNames), 5, dtype=np.float64)
+
+        # Specify upper bounds on parameters (log space)
+        self.ub = np.full(len(self.pNames), -5, dtype=np.float64)
+
+        # Set number of parameters
+        self.Nparams = len(self.ub)
+
+        # Save selected data column in class
+        self.selCol = selCol
