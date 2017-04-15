@@ -18,9 +18,6 @@ def rate_values(parameters, time):
 
     Returns:
         list of the rates for each each function
-
-    >>> rate_values([[.01, 1, .9,],[3, .7, 1, -2], [-7, -1, 1]], 2)
-    [273.14423800475663, 0.0005004514334406108, 0.006737946999085467]
     '''
     from math import exp
 
@@ -121,14 +118,14 @@ def mcFormat(mcParams):
 
 def simulate(params, t_interval, y0):
     """
-    #solves the ODE function given a set of initial values (y0),
-    #over a time interval (t_interval)
-    #
-    #params:
-    #params	list of parameters for model (a, b, c, d, e)
-    #t_interval 	time interval over which to solve the function
+    Solves the ODE function given a set of initial values (y0),
+    over a time interval (t_interval)
+    
+    params:
+    params	list of parameters for model (a, b, c, d, e)
+    t_interval 	time interval over which to solve the function
 
-    #y0 	list with the initial values for each state
+    y0 	list with the initial values for each state
     """
     out = odeint(ODEfun, y0, t_interval, args=(params,))
     #put values and time into pandas datatable
