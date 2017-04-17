@@ -96,7 +96,7 @@ def ODEfun(state, t, params):
     if len(params) < 5:
         raise ValueError
 
-    LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2]
+    LIVE, DEAD, EARLY_APOPTOSIS, GONE = state[0], state[1], state[2], state[3]
     dydt = np.full(4, 0.0, dtype=np.float)
 
     rates = rate_values(params, t)
@@ -114,7 +114,7 @@ def mcFormat(mcParams):
     params = [mcParams[0:interval]] + [mcParams[interval:2*interval]] + [mcParams[2*interval:3*interval]] + [mcParams[3*interval:4*interval]] + [mcParams[4*interval:5*interval]]
     for i in range(extra):
         params[i].append(mcParams[5*interval+i])
-        return params
+    return params
 
 def simulate(params, t_interval, y0):
     """
@@ -136,13 +136,22 @@ def simulate(params, t_interval, y0):
     return out_table
 
 class GrowthModel:
-    def plotSimulation(self, paramV, selCol = None):
+    def plotSimulation(self, paramV):
         """
         Plots the results from a simulation.
         TODO: Run simulation when this is called, and also plot observations.
         TODO: If selCol is None, then plot simulation but not observations.
         """
-
+        #calculate model data table
+        params = mcFormat(paramV[:-4])
+        t_interval = np.arange(0, self.data_confl.iloc[-1, 1], (self.data_confl.iloc[2, 1] - self.data_confl.iloc[1,1]))
+        if self.selCol:
+            y0 = [self.data_confl.iloc[0, self.selCol], self.data_green.iloc[0, self.selCol], 0, 0]
+        else:
+            y0 = [10000, 0, 0, 0] 
+        state = simulate(params, t_interval, y0)
+        
+        #plot model data table
         figure()
         xlabel('Time')
         ylabel('Number of Cells')
@@ -164,9 +173,28 @@ class GrowthModel:
         if self.selCol is None:
             raise ValueError
 
-        logL = None
-
+        #format parameters to list of lists (excpet last 4 entries)
+        params = mcFormat(paramV[:-4])
+        
+        #match time range and interval to experimental time range and interval
+        t_interval = np.arange(min(self.data_confl.iloc[:, 1]), max(self.data_confl.iloc[:, 1]), (self.data_confl.iloc[2, 1] - self.data_confl.iloc[1,1]))
+        
+        #match initial cell numbers to experimental data
+        #####DO I MATCH STARTING VALUE WITH IT? IS THIS WHERE CELL # PARAMS COME IN?
+        y0 = [self.data_confl.iloc[0, self.selCol], self.data_green.iloc[0, self.selCol], 0, 0]
+        
+        #calculate model data table
+        model = simulate(params, t_interval, y0)
+        
+        #make experimental data table
+        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol], self.data_green.iloc[:, self.selCol]]
+        data = pd.concat(data_frames, axis = 1)
+        
+        #run likelihood function with modeled and experiemental data, with standard 
+        #deviation given by last two entries in paramV
+        logL = likelihood(model, paramV[-2], paramV[-1], data)
         return logL
+
 
     def __init__(self, loadFile=None, complexity=3, selCol = None):
         import itertools
