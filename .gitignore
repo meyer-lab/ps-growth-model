@@ -3,3 +3,4 @@
 .RData
 .Ruserdata
 **/__pycache__
+mcmc_chain.h5
