@@ -19,18 +19,15 @@ def rate_values(parameters, time):
     Returns:
         list of the rates for each each function
     '''
-    from math import exp
+    from numpy.polynomial.polynomial import polyval
+    np.seterr(over='raise')
 
     if time < 0:
         raise ValueError
+    if len(parameters) == 0:
+        return []
 
-    list_of_rates = []
-    for rate_equation in parameters:
-        poly_sum = 0
-        for i, item in enumerate(rate_equation):
-            poly_sum += item*time**i
-        poly_sum = exp(poly_sum)
-        list_of_rates.append(poly_sum)
+    list_of_rates = np.exp(polyval(time, np.asmatrix(parameters).T))
 
     return list_of_rates
 
@@ -177,7 +174,7 @@ class GrowthModel:
         params = mcFormat(paramV[:-4])
         
         #match time range and interval to experimental time range and interval
-        t_interval = np.arange(min(self.data_confl.iloc[:, 1]), max(self.data_confl.iloc[:, 1]), (self.data_confl.iloc[2, 1] - self.data_confl.iloc[1,1]))
+        t_interval = np.sort(np.unique(self.data_confl.iloc[:, 1].as_matrix()))
         
         #match initial cell numbers to experimental data
         #####DO I MATCH STARTING VALUE WITH IT? IS THIS WHERE CELL # PARAMS COME IN?
@@ -216,10 +213,10 @@ class GrowthModel:
         self.pNames = self.pNames + ['conv_confl', 'conv_green', 'err_confl', 'err_green']
 
         # Specify lower bounds on parameters (log space)
-        self.lb = np.full(len(self.pNames), 5, dtype=np.float64)
+        self.lb = np.full(len(self.pNames), -9, dtype=np.float64)
 
         # Specify upper bounds on parameters (log space)
-        self.ub = np.full(len(self.pNames), -5, dtype=np.float64)
+        self.ub = np.full(len(self.pNames), 5, dtype=np.float64)
 
         # Set number of parameters
         self.Nparams = len(self.ub)

@@ -8,7 +8,7 @@ class TestgrMethods(unittest.TestCase):
     def setUp(self):
         self.startTime = time.time()
 
-        self.GR = GrowthModel()
+        self.GR = GrowthModel(selCol=5)
 
     def tearDown(self):
         t = time.time() - self.startTime
@@ -22,6 +22,11 @@ class TestgrMethods(unittest.TestCase):
 
         #test to make sure returned object is pandas DataFrame
         self.assertTrue(isinstance(self.GR.data_green, pandas.core.frame.DataFrame))
+
+    def test_logL(self):
+        """ Test logL run """
+        self.GR.logL(self.GR.lb)
+
 
     def test_rate_pnumbers(self):
         """ TODO: describe test """
