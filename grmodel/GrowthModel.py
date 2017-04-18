@@ -125,12 +125,16 @@ def simulate(params, t_interval):
 
     y0 	list with the initial values for each state
     """
-    out = odeint(ODEfun, [1.0, 0.0, 0.0, 0.0], t_interval, args=(params,))
+    out, infodict = odeint(ODEfun, [1.0, 0.0, 0.0, 0.0], t_interval, args=(params,), full_output=True, printmessg=False)
     #put values and time into pandas datatable
     out_table = pd.DataFrame(data=out,
                              index=t_interval,
                              columns=['Live', 'Dead', 'EarlyApoptosis', 'Gone'])
     out_table.insert(0, 'Time', t_interval)
+
+    if infodict['message'] != 'Integration successful.':
+        raise FloatingPointError(infodict['message'])
+
     return out_table
 
 class GrowthModel:
@@ -168,6 +172,10 @@ class GrowthModel:
         if self.selCol is None:
             raise ValueError
 
+        # Return -inf for parameters out of bounds
+        if np.any(np.isinf(paramV)) or np.any(np.isnan(paramV)) or np.any(np.less(paramV, self.lb)) or np.any(np.greater(paramV, self.ub)):
+            return -np.inf
+
         #format parameters to list of lists (except last 4 entries)
         params = mcFormat(paramV[:-4])
         
@@ -192,8 +200,7 @@ class GrowthModel:
         logL = likelihood(model, paramV[-2], paramV[-1], data)
         return logL
 
-
-    def __init__(self, loadFile=None, complexity=3, selCol = None):
+    def __init__(self, loadFile=None, complexity=1, selCol = None):
         import itertools
 
         # If no filename is given use a default
@@ -216,7 +223,7 @@ class GrowthModel:
         self.lb = np.full(len(self.pNames), -9, dtype=np.float64)
 
         # Specify upper bounds on parameters (log space)
-        self.ub = np.full(len(self.pNames), 5, dtype=np.float64)
+        self.ub = np.full(len(self.pNames), 3, dtype=np.float64)
 
         # Set number of parameters
         self.Nparams = len(self.ub)
