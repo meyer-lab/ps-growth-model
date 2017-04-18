@@ -177,14 +177,15 @@ class GrowthModel:
         t_interval = np.sort(np.unique(self.data_confl.iloc[:, 1].as_matrix()))
         
         #match initial cell numbers to experimental data
-        #####DO I MATCH STARTING VALUE WITH IT? IS THIS WHERE CELL # PARAMS COME IN?
-        y0 = [self.data_confl.iloc[0, self.selCol], self.data_green.iloc[0, self.selCol], 0, 0]
+        y0 = [self.data_confl.iloc[0, self.selCol]*paramV[-4], self.data_green.iloc[0, self.selCol]*paramV[-3], 0, 0]
         
         #calculate model data table
         model = simulate(params, t_interval, y0)
         
         #make experimental data table
-        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol], self.data_green.iloc[:, self.selCol]]
+        if paramV[-4] < 0 or paramV[-3] < 0:
+            raise ValueError
+        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol]*paramV[-4], self.data_green.iloc[:, self.selCol]*paramV[-3]]
         data = pd.concat(data_frames, axis = 1)
         
         #run likelihood function with modeled and experiemental data, with standard 
