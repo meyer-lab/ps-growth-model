@@ -91,9 +91,8 @@ class TestgrMethods(unittest.TestCase):
         """ TODO: describe test """
         params = [[0.0009, -0.016], [0.01, 0.008], [0.0007, 0.005], [-0.001, -0.0071], [0.0008, 0.005]]
         t_interval = np.arange(0, 10, .005)
-        y0 = [10000, 0, 0, 0]
 
-        output = simulate(params, t_interval, y0)
+        output = simulate(params, t_interval)
 
         #test to make sure returned object is pandas DataFrame
         self.assertTrue(isinstance(output, pandas.core.frame.DataFrame))

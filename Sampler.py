@@ -18,7 +18,7 @@ grM.selCol = selCol
 p0, ndims, nwalkers = getUniformStart(grM)
 
 ## Set up sampler
-sampler = EnsembleSampler(nwalkers, ndims, grM.logL, 2.0, [], {}, None, 16)
+sampler = EnsembleSampler(nwalkers, ndims, grM.logL, 2.0, [], {}, None, 1)
 
 f, dset = startH5File(grM, "mcmc_chain.h5")
 thinTrack = 0

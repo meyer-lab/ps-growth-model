@@ -4,6 +4,8 @@ from pylab import plot, figure, xlabel, ylabel, legend, show
 import pandas as pd
 import numpy as np
 
+np.seterr(over='raise')
+
 def rate_values(parameters, time):
     '''Calculates the rates of each cellular process at a given time
 
@@ -20,7 +22,6 @@ def rate_values(parameters, time):
         list of the rates for each each function
     '''
     from numpy.polynomial.polynomial import polyval
-    np.seterr(over='raise')
 
     if time < 0:
         raise ValueError
@@ -93,7 +94,7 @@ def ODEfun(state, t, params):
     if len(params) < 5:
         raise ValueError
 
-    LIVE, DEAD, EARLY_APOPTOSIS, GONE = state[0], state[1], state[2], state[3]
+    LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2] # GONE is state[3]
     dydt = np.full(4, 0.0, dtype=np.float)
 
     rates = rate_values(params, t)
@@ -113,7 +114,7 @@ def mcFormat(mcParams):
         params[i].append(mcParams[5*interval+i])
     return params
 
-def simulate(params, t_interval, y0):
+def simulate(params, t_interval):
     """
     Solves the ODE function given a set of initial values (y0),
     over a time interval (t_interval)
@@ -124,7 +125,7 @@ def simulate(params, t_interval, y0):
 
     y0 	list with the initial values for each state
     """
-    out = odeint(ODEfun, y0, t_interval, args=(params,))
+    out = odeint(ODEfun, [1.0, 0.0, 0.0, 0.0], t_interval, args=(params,))
     #put values and time into pandas datatable
     out_table = pd.DataFrame(data=out,
                              index=t_interval,
@@ -142,11 +143,8 @@ class GrowthModel:
         #calculate model data table
         params = mcFormat(paramV[:-4])
         t_interval = np.arange(0, self.data_confl.iloc[-1, 1], (self.data_confl.iloc[2, 1] - self.data_confl.iloc[1,1]))
-        if self.selCol:
-            y0 = [self.data_confl.iloc[0, self.selCol], self.data_green.iloc[0, self.selCol], 0, 0]
-        else:
-            y0 = [10000, 0, 0, 0] 
-        state = simulate(params, t_interval, y0)
+        
+        state = simulate(params, t_interval)
         
         #plot model data table
         figure()
@@ -176,11 +174,11 @@ class GrowthModel:
         #match time range and interval to experimental time range and interval
         t_interval = np.sort(np.unique(self.data_confl.iloc[:, 1].as_matrix()))
         
-        #match initial cell numbers to experimental data
-        y0 = [self.data_confl.iloc[0, self.selCol]*paramV[-4], self.data_green.iloc[0, self.selCol]*paramV[-3], 0, 0]
-        
-        #calculate model data table
-        model = simulate(params, t_interval, y0)
+        # Calculate model data table
+        try:
+            model = simulate(params, t_interval)
+        except FloatingPointError as error:
+            return -np.inf
         
         # Power transform conversion constants
         paramV[-4:] = np.power(10, paramV[-4:])
