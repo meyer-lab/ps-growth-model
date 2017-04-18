@@ -170,7 +170,7 @@ class GrowthModel:
         if self.selCol is None:
             raise ValueError
 
-        #format parameters to list of lists (excpet last 4 entries)
+        #format parameters to list of lists (except last 4 entries)
         params = mcFormat(paramV[:-4])
         
         #match time range and interval to experimental time range and interval
@@ -182,9 +182,10 @@ class GrowthModel:
         #calculate model data table
         model = simulate(params, t_interval, y0)
         
+        # Power transform conversion constants
+        paramV[-4:] = np.power(10, paramV[-4:])
+
         #make experimental data table
-        if paramV[-4] < 0 or paramV[-3] < 0:
-            raise ValueError
         data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol]*paramV[-4], self.data_green.iloc[:, self.selCol]*paramV[-3]]
         data = pd.concat(data_frames, axis = 1)
         
