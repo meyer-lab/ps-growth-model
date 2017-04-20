@@ -221,9 +221,13 @@ class GrowthModel:
         
         # Power transform conversion constants
         paramV[-4:] = np.power(10, paramV[-4:])
+        
+        #scale model data table with conversion constants
+        model.iloc[:,1] /= paramV[-4]
+        model.iloc[:,2] /= paramV[-3]
 
         #make experimental data table
-        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol]*paramV[-4], self.data_green.iloc[:, self.selCol]*paramV[-3]]
+        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol], self.data_green.iloc[:, self.selCol]]
         data = pd.concat(data_frames, axis = 1)
         
         #run likelihood function with modeled and experiemental data, with standard 
