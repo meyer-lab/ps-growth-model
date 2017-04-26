@@ -38,43 +38,30 @@ def logpdf_sum(x, loc, scale):
     root2pi = np.sqrt(2*np.pi)
     prefactor = - x.size * np.log(scale * root2pi)
     summand = -np.square((x - loc)/(root2 * scale))
-    return  prefactor + np.nansum(summand)
+    return prefactor + np.nansum(summand)
 
-def likelihood(table_sim, sigma_sim_live, sigma_sim_dead, table_exp):
+def likelihood(table_merge, sigma_sim_live, sigma_sim_dead):
     """
     Calculates the log likelihood of a simulation given the experimental data.
 
     parameters:
-    table_sim	pandas datatable containing the simulated data for cells over time
-    			assumes the table has rows with columns with the timepoints, the number of live, dead, early
-    			apoptosis, and "gone" cells
+    table_sim	merged table with the transformed simulation predictions
     sigma_sim_live	the sigma used for the normal distribution for live cells
     sigma_sim_dead	the sigma used for the normal distribution for dead cells
-    table_exp	a pandas datatable containing the experimental values for
-                live/dead cells over time (can have multiple values for the same timepoint)
-    			assumes that the table columns in the following order: time elapsed, live cells, dead cells
     """
 
-    #get time points (time points should be in first column of table_exp)
-    timepoints = pd.Series.unique(table_exp.iloc[:, 0])
-    #for each time point, calculate likelihood of simulated data given experimental data at that time point.
-    logSqrErr = 0
-    for time in timepoints:
-        #get simulated values at time point
-        sim_at_timepoint = table_sim.loc[table_sim.iloc[:, 0] == time, :]
-        mean_live = sim_at_timepoint.iloc[:, 1]
-        mean_dead = sim_at_timepoint.iloc[:, 2]
+    def lik_func(row):
+        logSqrErr = 0
 
-        #get observed values at time point
-        exp_at_timepoint = table_exp.loc[table_exp.iloc[:, 0] == time, :]
-        observed_live = exp_at_timepoint.iloc[:, 1]
-        observed_dead = exp_at_timepoint.iloc[:, 2]
-
-        #calculate the density of the distribution and sum up across all observed values
-        logSqrErr += logpdf_sum(observed_live, loc=mean_live, scale=sigma_sim_live)
-        logSqrErr += logpdf_sum(observed_dead, loc=mean_dead, scale=sigma_sim_dead)
+        try:
+            logSqrErr += logpdf_sum(row.Confl_data, loc=row.Confl_model, scale=sigma_sim_live)
+            logSqrErr += logpdf_sum(row.Green_data, loc=row.Green_model, scale=sigma_sim_dead)
+        except:
+            logSqrErr = -np.inf
 
         return logSqrErr
+
+    return np.sum(table_merge.apply(lik_func, axis = 1))
 
 def ODEfun(state, t, params):
     """
@@ -210,12 +197,9 @@ class GrowthModel:
         #format parameters to list of lists (except last 4 entries)
         params = mcFormat(paramV[:-4])
         
-        #match time range and interval to experimental time range and interval
-        t_interval = np.sort(np.unique(self.data_confl.iloc[:, 1].as_matrix()))
-        
         # Calculate model data table
         try:
-            model = simulate(params, t_interval)
+            model = simulate(params, self.uniqueT)
         except FloatingPointError as error:
             return -np.inf
         
@@ -223,17 +207,27 @@ class GrowthModel:
         paramV[-4:] = np.power(10, paramV[-4:])
         
         #scale model data table with conversion constants
-        model.iloc[:,1] /= paramV[-4]
-        model.iloc[:,2] /= paramV[-3]
+        model['Confl'] = paramV[-4]*model['Live']
+        model['Green'] = paramV[-3]*(model['Dead'] + model['EarlyApoptosis'])
 
-        #make experimental data table
-        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol], self.data_green.iloc[:, self.selCol]]
-        data = pd.concat(data_frames, axis = 1)
+        data_merge = self.expTable.merge(model, how='left', on='Time', suffixes=['_data', '_model'])
         
         #run likelihood function with modeled and experiemental data, with standard 
         #deviation given by last two entries in paramV
-        logL = likelihood(model, paramV[-2], paramV[-1], data)
-        return logL
+        return likelihood(data_merge, paramV[-2], paramV[-1])
+
+    def setselCol(self, inV):
+        self.selCol = inV
+
+        # Make experimental data table
+        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol], self.data_green.iloc[:, self.selCol]]
+        data = pd.concat(data_frames, axis = 1)
+        data.columns = ['Time', 'Confl', 'Green']
+
+        self.expTable = data
+
+        #match time range and interval to experimental time range and interval
+        self.uniqueT = np.sort(np.unique(self.expTable['Time'].as_matrix()))
 
     def __init__(self, loadFile=None, complexity=1, selCol = None):
         import itertools
@@ -264,4 +258,5 @@ class GrowthModel:
         self.Nparams = len(self.ub)
 
         # Save selected data column in class
-        self.selCol = selCol
+        if not selCol is None:
+            self.setselCol(selCol)

@@ -3,7 +3,6 @@ import numpy as np
 from grmodel import GrowthModel
 from grmodel.fitFuncs import getUniformStart, startH5File
 
-newData = True
 bestLL = -np.inf
 
 ## Load model
@@ -11,14 +10,13 @@ grM = GrowthModel.GrowthModel()
 
 #### Run simulation
 niters = 100000
-selCol = 4
-grM.selCol = selCol
+grM.setselCol(4)
 
 # Get uniform distribution of positions for start
 p0, ndims, nwalkers = getUniformStart(grM)
 
 ## Set up sampler
-sampler = EnsembleSampler(nwalkers, ndims, grM.logL, 2.0, [], {}, None, 1)
+sampler = EnsembleSampler(nwalkers, ndims, grM.logL, 2.0, [], {}, None, 16)
 
 f, dset = startH5File(grM, "mcmc_chain.h5")
 thinTrack = 0
