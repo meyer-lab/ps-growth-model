@@ -11,15 +11,33 @@ pipeline {
     }
     stage('Test'){
       steps {
-        sh 'coverage run -m unittest discover'
+        sh 'make testcover'
         sh '(pylint --rcfile=.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
         step([
           $class: 'WarningsPublisher',
           parserConfigurations: [[parserName: 'PYLint', pattern: 'pylint.log']],
           unstableTotalAll: '1000',
           usePreviousBuildAsReference: true])
+        step([
+          $class: 'CoberturaPublisher',
+          autoUpdateHealth: true,
+          autoUpdateStability: true,
+          coberturaReportFile: 'coverage.xml',
+          failNoReports: true,
+          failUnhealthy: true,
+          failUnstable: true,
+          maxNumberOfBuilds: 0,
+          onlyStable: false,
+          sourceEncoding: 'UTF_8',
+          zoomCoverageChart: true])
         }
       }
+    stage('Profile') {
+      steps {
+        sh 'make profile'
+        archiveArtifacts artifacts: 'profile.png', onlyIfSuccessful: true
+      }
+    }
       stage('Deploy') {
         steps {
           sh 'echo "Deploy step"'

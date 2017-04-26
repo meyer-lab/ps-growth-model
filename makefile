@@ -4,14 +4,17 @@ pan_common = -F pandoc-crossref -F pandoc-citeproc -f markdown ./Manuscript/Text
 fdir = ./Manuscript/Figures
 tdir = ./Manuscript/Templates
 
-.PHONY: clean upload test profile
+.PHONY: clean upload test profile testcover
 
 clean:
 	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html
 	rm -f $(fdir)/Figure*
 
 test:
-	python3 -m unittest discover
+	nosetests -s --with-timer --timer-top-n 5
+
+testcover:
+	nosetests --with-xunit --with-xcoverage --cover-package=grmodel -s --with-timer --timer-top-n 5
 
 upload:
 	echo "Upload stub"
