@@ -9,6 +9,7 @@ tdir = ./Manuscript/Templates
 clean:
 	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html
 	rm -f $(fdir)/Figure*
+	rm -f profile.png profile.pstats
 
 test:
 	nosetests -s --with-timer --timer-top-n 5

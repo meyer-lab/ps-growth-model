@@ -1,6 +1,5 @@
 import os
 from scipy.integrate import odeint
-from pylab import plot, figure, xlabel, ylabel, legend, show
 import pandas as pd
 import numpy as np
 
@@ -85,9 +84,6 @@ def ODEfun(state, t, params):
     dydt = np.full(4, 0.0, dtype=np.float)
 
     rates = rate_values(params, t)
-    for rate in rates:
-        if rate > 100:
-            raise ValueError
 
     dydt[0] = rates[0]*LIVE - rates[1]*LIVE - rates[2]*LIVE
     dydt[1] = rates[1]*LIVE - rates[4]*DEAD + rates[3]*EARLY_APOPTOSIS
@@ -127,6 +123,32 @@ def simulate(params, t_interval):
 
     return out_table
 
+def paramsWithinLimits(params, t_int, maxVal):
+    """
+    This only checks that the parameters don't pass through the bound in the duration.
+    It's still possible they start too high, which is handled by the lower and upper
+    bounds hopefully.
+    """
+
+    # Iterate over the parameters
+    for ii in params:
+        # Copy so we don't mess with the original
+        pval = ii.copy()
+
+        # Move by offset so roots tell us when we pass over limit
+        pval[-1] -= maxVal
+
+        # Find roots
+        outt = np.roots(pval)
+
+        # If any of the roots fall within the time interval and are real, fail
+        for jj in outt:
+            if np.isreal(jj) and jj > t_int[0] and jj < t_int[1]:
+                return False
+
+    return True
+
+
 class GrowthModel:
     def plotSimulation(self, paramV):
         """
@@ -134,6 +156,8 @@ class GrowthModel:
         TODO: Run simulation when this is called, and also plot observations.
         TODO: If selCol is None, then plot simulation but not observations.
         """
+        from pylab import plot, figure, xlabel, ylabel, legend, show
+
         #calculate model data table
         params = mcFormat(paramV[:-4])
         t_interval = np.arange(0, self.data_confl.iloc[-1, 1], (self.data_confl.iloc[2, 1] - self.data_confl.iloc[1,1]))
@@ -194,11 +218,17 @@ class GrowthModel:
             raise ValueError
 
         # Return -inf for parameters out of bounds
-        if np.any(np.isinf(paramV)) or np.any(np.isnan(paramV)) or np.any(np.less(paramV, self.lb)) or np.any(np.greater(paramV, self.ub)):
+        if not np.all(np.isfinite(paramV)):
+            return -np.inf
+        elif np.any(np.less(paramV, self.lb)) or np.any(np.greater(paramV, self.ub)):
             return -np.inf
 
         #format parameters to list of lists (except last 4 entries)
         params = mcFormat(paramV[:-4])
+
+        # Check that the parameter values are reasonable over the interval
+        if not paramsWithinLimits(params, (np.min(self.uniqueT), np.max(self.uniqueT)), 10.0):
+            return -np.inf
         
         # Calculate model data table
         try:
@@ -232,7 +262,7 @@ class GrowthModel:
         #match time range and interval to experimental time range and interval
         self.uniqueT = np.sort(np.unique(self.expTable['Time'].as_matrix()))
 
-    def __init__(self, loadFile=None, complexity=1, selCol = None):
+    def __init__(self, loadFile=None, complexity=3, selCol = None):
         import itertools
 
         # If no filename is given use a default
@@ -255,7 +285,8 @@ class GrowthModel:
         self.lb = np.full(len(self.pNames), -9, dtype=np.float64)
 
         # Specify upper bounds on parameters (log space)
-        self.ub = np.full(len(self.pNames), 3, dtype=np.float64)
+        self.ub = np.full(len(self.pNames), 1, dtype=np.float64)
+        self.ub[-4:] = 4
 
         # Set number of parameters
         self.Nparams = len(self.ub)
