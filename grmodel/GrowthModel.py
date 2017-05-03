@@ -2,6 +2,7 @@ import os
 from scipy.integrate import odeint
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 np.seterr(over='raise')
 
@@ -156,18 +157,20 @@ class GrowthModel:
         TODO: Run simulation when this is called, and also plot observations.
         TODO: If selCol is None, then plot simulation but not observations.
         """
-        from pylab import plot, figure, xlabel, ylabel, legend, show
-
+        
+        import matplotlib.pyplot as plt
+        
         #calculate model data table
         params = mcFormat(paramV[:-4])
         t_interval = np.arange(0, self.data_confl.iloc[-1, 1], (self.data_confl.iloc[2, 1] - self.data_confl.iloc[1,1]))
         
         state = simulate(params, t_interval)
-    
+        
         #plot simulation results; if selCol is not None, also plot observations
         if self.selCol is not None:
-            data_confl_selCol = self.data_confl.iloc[:,selCol]
-            data_green_selCol = self.data_green.iloc[:,selCol]
+            #print(self.selCol)
+            data_confl_selCol = self.data_confl.iloc[:,self.selCol]
+            data_green_selCol = self.data_green.iloc[:,self.selCol]
             t_interval_observ = self.data_confl.iloc[:,1]
             
             #get conversion constants
@@ -188,12 +191,14 @@ class GrowthModel:
             axarr[0].legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
             
             axarr[1].set_title('Observed: data_confl')
-            axarr[1].plot(t_interval_observ, data_confl_selCol)
-            axarr[1].plot(t_interval_observ, simulation_confl)
+            axarr[1].plot(t_interval_observ, data_confl_selCol, label = 'data_confl')
+            axarr[1].plot(t_interval, simulation_confl, label = 'simulation_confl')
+            axarr[1].legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
             
             axarr[2].set_title('Observed: data_green')
-            axarr[2].plot(t_interval_observ, data_green_selCol)
-            axarr[2].plot(t_interval_observ, simulation_green)
+            axarr[2].plot(t_interval_observ, data_green_selCol, label = 'data_green')
+            axarr[2].plot(t_interval, simulation_green, label = 'simulation_green')
+            axarr[2].legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
             plt.tight_layout()
             plt.show()
         else:
