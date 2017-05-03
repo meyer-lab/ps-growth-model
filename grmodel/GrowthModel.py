@@ -85,6 +85,9 @@ def ODEfun(state, t, params):
     dydt = np.full(4, 0.0, dtype=np.float)
 
     rates = rate_values(params, t)
+    for rate in rates:
+        if rate > 100:
+            raise ValueError
 
     dydt[0] = rates[0]*LIVE - rates[1]*LIVE - rates[2]*LIVE
     dydt[1] = rates[1]*LIVE - rates[4]*DEAD + rates[3]*EARLY_APOPTOSIS
