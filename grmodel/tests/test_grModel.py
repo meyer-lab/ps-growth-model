@@ -30,43 +30,37 @@ class TestgrMethods(unittest.TestCase):
 
     def test_rate_pnumbers(self):
         """ TODO: describe test """
-        inputt = [[1, 2], [3, 4], [5, 6]]
+        inputt = np.full((3, 5), 1.0)
 
         output = rate_values(inputt, 1.0)
-        output2 = rate_values([], 5)
+
+        # Test that the function raises an exception with empty
+        with self.assertRaises(IndexError):
+            rate_values([], 5)
 
         # Test that the output list of parameters equals the expected length
-        self.assertEqual(len(output), 3)
+        self.assertEqual(len(output), 5)
 
         # Test that the parameters output are all positive
         for _, item in enumerate(output):
             self.assertGreaterEqual(item, 0)
 
         # Test that the function raises an exception with a negative time
-
         with self.assertRaises(ValueError):
             rate_values(inputt, -1.0)
 
-        # What should happen with, say, an empty list?
-        self.assertEqual(output2, [])
-
-        #if empty params values --> returns 1? is this a problem
-
     def test_mcFormat(self):
         """ TODO: describe test """
-        inputt = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        inputt = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 
         output = mcFormat(inputt)
 
         #Test that output list of lists is correct length
-        self.assertEqual(len(output), 5)
-
-        #Test correctly distributed number of values in inner lists
-        self.assertEqual(len(output[0]), 2)
+        self.assertEqual(output.shape, (2, 5))
 
     def test_ODE(self):
         """ TODO: describe test """
-        inputt = [[0.0009, -0.016], [0.01, 0.008], [0.0007, 0.005], [-0.001, -0.0071], [0.0008, 0.005]]
+        inputt = mcFormat(np.array([0.0009, -0.016, 0.01, 0.008, 0.0007, 0.005, -0.001, -0.0071, 0.0008, 0.005]))
         input_state = [100, 10, 10, 5]
 
         output = ODEfun(input_state, 2.0, inputt)
@@ -84,12 +78,12 @@ class TestgrMethods(unittest.TestCase):
             ODEfun(input_state, -2.0, inputt)
 
         #if params is an empty list
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AttributeError):
             ODEfun(input_state, 2.0, [])
 
     def test_integral_data(self):
         """ TODO: describe test """
-        params = [[0.0009, -0.016], [0.01, 0.008], [0.0007, 0.005], [-0.001, -0.0071], [0.0008, 0.005]]
+        params = mcFormat(np.array([0.0009, -0.016, 0.01, 0.008, 0.0007, 0.005, -0.001, -0.0071, 0.0008, 0.005]))
         t_interval = np.arange(0, 10, .005)
 
         output = simulate(params, t_interval)

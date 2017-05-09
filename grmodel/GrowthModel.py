@@ -25,12 +25,8 @@ def rate_values(parameters, time):
 
     if time < 0:
         raise ValueError
-    if len(parameters) == 0:
-        return []
 
-    list_of_rates = np.exp(polyval(time, np.asmatrix(parameters).T))
-
-    return list_of_rates
+    return np.exp(polyval(time, parameters))
 
 def logpdf_sum(x, loc, scale):
     """ Calculate the likelihood of a set of observations applied to a normal distribution. """
@@ -78,7 +74,7 @@ def ODEfun(state, t, params):
     """
 
     ## If we don't have the right number of parameters, then panic
-    if len(params) < 5:
+    if params.shape[1] != 5:
         raise ValueError
 
     LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2] # GONE is state[3]
@@ -94,12 +90,10 @@ def ODEfun(state, t, params):
 
 def mcFormat(mcParams):
     """ takes in mc data of list and returns equal length list of lists """
-    interval = len(mcParams)//5
-    extra = len(mcParams)%5
-    params = [mcParams[0:interval]] + [mcParams[interval:2*interval]] + [mcParams[2*interval:3*interval]] + [mcParams[3*interval:4*interval]] + [mcParams[4*interval:5*interval]]
-    for i in range(extra):
-        params[i].append(mcParams[5*interval+i])
-    return params
+    if len(mcParams) % 5 > 0:
+        raise ValueError("Length of mcParams must be a multiple of 5.")
+
+    return np.reshape(mcParams, (-1, 5), order='F')
 
 def simulate(params, t_interval):
     """
@@ -132,9 +126,9 @@ def paramsWithinLimits(params, t_int, maxVal):
     """
 
     # Iterate over the parameters
-    for ii in params:
+    for ii in range(params.shape[1]):
         # Copy so we don't mess with the original
-        pval = ii.copy()
+        pval = params[:, ii].copy()
 
         # Move by offset so roots tell us when we pass over limit
         pval[-1] -= maxVal
