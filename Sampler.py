@@ -2,6 +2,7 @@ from emcee import EnsembleSampler
 import numpy as np
 from grmodel import GrowthModel
 from grmodel.fitFuncs import getUniformStart, startH5File
+import tqdm
 
 bestLL = -np.inf
 
@@ -11,6 +12,8 @@ grM = GrowthModel.GrowthModel()
 #### Run simulation
 niters = 100000
 grM.setselCol(4)
+
+qq = tqdm.tqdm(total=niters)
 
 # Get uniform distribution of positions for start
 p0, ndims, nwalkers = getUniformStart(grM)
@@ -23,11 +26,15 @@ thinTrack = 0
 thin = 200
 
 for p, lnprob, lnlike in sampler.sample(p0, iterations=niters, storechain=False):
+    qq.update()
+
     if thinTrack < thin:
         thinTrack += 1
     else:
         if np.max(lnprob) > bestLL:
             bestLL = np.max(lnprob)
+            qq.set_description("Best LL: " + str(bestLL))
+            qq.refresh()
 
         matOut = np.concatenate((lnprob.reshape(nwalkers, 1),
                                  np.arange(0, nwalkers).reshape(nwalkers, 1),
@@ -38,5 +45,4 @@ for p, lnprob, lnlike in sampler.sample(p0, iterations=niters, storechain=False)
         dset[fShape[0]:, :] = matOut
         f.flush()
 
-        print((dset.shape, bestLL))
         thinTrack = 1
