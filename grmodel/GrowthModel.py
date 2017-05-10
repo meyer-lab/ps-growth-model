@@ -226,7 +226,7 @@ class GrowthModel:
         params = mcFormat(paramV[:-4])
 
         # Check that the parameter values are reasonable over the interval
-        if not paramsWithinLimits(params, (np.min(self.uniqueT), np.max(self.uniqueT)), 10.0):
+        if not paramsWithinLimits(params, (np.min(self.uniqueT), np.max(self.uniqueT)), 2.0):
             return -np.inf
         
         # Calculate model data table
