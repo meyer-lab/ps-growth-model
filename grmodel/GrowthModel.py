@@ -268,8 +268,9 @@ class GrowthModel:
         if loadFile is None:
             loadFile = "091916_H1299_cytotoxic_confluence"
 
-        # Find path for csv files, on any machine wherein the repository exists.
-        path = os.path.dirname(os.path.abspath(__file__))
+#        # Find path for csv files, on any machine wherein the repository exists.
+#        path = os.path.dirname(os.path.abspath(__file__))
+        
         # Read in both observation files. Return as formatted pandas tables.
         # Data tables to be kept within class.
         self.data_confl = pd.read_csv(os.path.join(path, ('data/' + loadFile + '_confl.csv')), infer_datetime_format=True)
@@ -293,3 +294,6 @@ class GrowthModel:
         # Save selected data column in class
         if not selCol is None:
             self.setselCol(selCol)
+
+# Find path for csv files, on any machine wherein the repository exists.
+path = os.path.dirname(os.path.abspath(__file__))
