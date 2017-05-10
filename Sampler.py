@@ -10,8 +10,8 @@ bestLL = -np.inf
 grM = GrowthModel.GrowthModel()
 
 #### Simulation Constants
-niters = 30000
-thinTrack, thin = 0, 20
+niters = 100000
+thinTrack, thin = 0, 50
 
 ### Make file
 f = startH5File("mcmc_chain.h5")
@@ -27,6 +27,8 @@ qq = tqdm(total=niters*len(cols))
 
 #in this case, it is column 3 to column 20, go through each
 for i in cols:
+    nGood, nInf = 0, 0
+
     grM.setselCol(i)
     
     ## Set up sampler
@@ -41,9 +43,12 @@ for i in cols:
         if thinTrack < thin:
             thinTrack += 1
         else:
+            nGood += np.sum(np.isfinite(lnprob))
+            nInf += np.sum(np.isinf(lnprob))
+
             if np.max(lnprob) > bestLL:
                 bestLL = np.max(lnprob)
-                qq.set_description("Col " + str(i) + ", Best LL: " + str(bestLL))
+                qq.set_description("InfFrac " + str(nInf/(nGood + nInf)) + ", Col " + str(i) + ", Best LL: " + str(bestLL))
                 qq.refresh()
     
             matOut = np.concatenate((lnprob.reshape(nwalkers, 1),
