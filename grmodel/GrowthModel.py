@@ -23,7 +23,7 @@ def rate_values(parameters, time):
     if time < 0:
         raise ValueError
 
-    tt = np.power(time, np.arange(0, parameters.shape[0], dtype=np.float)).T
+    tt = np.power(time, np.arange(parameters.shape[0], 0, -1, dtype=np.float)).T
 
     return np.exp(np.matmul(parameters.T, tt))
 
@@ -132,7 +132,7 @@ def paramsWithinLimits(params, t_int, maxVal):
         pval = params[:, ii].copy()
 
         # Move by offset so roots tell us when we pass over limit
-        pval[0] -= maxVal
+        pval[-1] -= maxVal
 
         # Find roots
         outt = np.roots(pval)
