@@ -6,13 +6,7 @@ from ..GrowthModel import rate_values, GrowthModel, mcFormat, simulate, ODEfun
 
 class TestgrMethods(unittest.TestCase):
     def setUp(self):
-        self.startTime = time.time()
-
         self.GR = GrowthModel(selCol=5)
-
-    def tearDown(self):
-        t = time.time() - self.startTime
-        print("%s: %.3f" % (self.id(), t*1000))
 
     def test_load_data(self):
         """ Test data import. """

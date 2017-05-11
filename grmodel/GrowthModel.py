@@ -73,15 +73,14 @@ def ODEfun(state, t, params):
         raise ValueError
 
     LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2] # GONE is state[3]
-    dydt = np.full(4, 0.0, dtype=np.float)
 
     rates = rate_values(params, t)
 
-    dydt[0] = rates[0]*LIVE - rates[1]*LIVE - rates[2]*LIVE
-    dydt[1] = rates[1]*LIVE - rates[4]*DEAD + rates[3]*EARLY_APOPTOSIS
-    dydt[2] = rates[2]*LIVE - rates[3]*EARLY_APOPTOSIS
-    dydt[3] = rates[4]*DEAD
-    return dydt
+    return np.array([rates[0]*LIVE - rates[1]*LIVE - rates[2]*LIVE,
+                     rates[1]*LIVE - rates[4]*DEAD + rates[3]*EARLY_APOPTOSIS,
+                     rates[2]*LIVE - rates[3]*EARLY_APOPTOSIS,
+                     rates[4]*DEAD], dtype=np.float64)
+
 
 def mcFormat(mcParams):
     """ takes in mc data of list and returns equal length list of lists """
@@ -101,7 +100,14 @@ def simulate(params, t_interval):
 
     y0 	list with the initial values for each state
     """
-    out, infodict = odeint(ODEfun, [1.0, 0.0, 0.0, 0.0], t_interval, args=(params,), full_output=True, printmessg=False)
+    out, infodict = odeint(ODEfun,
+                           [1.0, 0.0, 0.0, 0.0],
+                           t_interval,
+                           args=(params,),
+                           full_output=True,
+                           printmessg=False,
+                           mxstep=2000)
+
     #put values and time into pandas datatable
     out_table = pd.DataFrame(data=out,
                              index=t_interval,
@@ -126,7 +132,7 @@ def paramsWithinLimits(params, t_int, maxVal):
         pval = params[:, ii].copy()
 
         # Move by offset so roots tell us when we pass over limit
-        pval[-1] -= maxVal
+        pval[0] -= maxVal
 
         # Find roots
         outt = np.roots(pval)
@@ -224,7 +230,7 @@ class GrowthModel:
         self.lb = np.full(len(self.pNames), -9, dtype=np.float64)
 
         # Specify upper bounds on parameters (log space)
-        self.ub = np.full(len(self.pNames), 1, dtype=np.float64)
+        self.ub = np.full(len(self.pNames), 2.0, dtype=np.float64)
         self.ub[-4:] = 4
 
         # Set number of parameters

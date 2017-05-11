@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 from emcee import EnsembleSampler
 import numpy as np
 from tqdm import tqdm
@@ -11,7 +13,7 @@ grM = GrowthModel.GrowthModel()
 
 #### Simulation Constants
 niters = 100000
-thinTrack, thin = -1000, 100
+thinTrack, thin = -1000, 200
 
 ### Make file
 f = startH5File("mcmc_chain.h5")
@@ -27,7 +29,7 @@ qq = tqdm(total=niters*len(cols))
 
 #in this case, it is column 3 to column 20, go through each
 for i in cols:
-    nGood, nInf = 0, 0
+    nGood, nInf = 0.0, 0.0
 
     grM.setselCol(i)
     
