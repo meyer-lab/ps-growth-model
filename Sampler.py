@@ -13,7 +13,7 @@ grM = GrowthModel.GrowthModel()
 
 #### Simulation Constants
 niters = 100000
-thinTrack, thin = -1000, 200
+thinTrack, thin = -1000, 2000
 
 ### Make file
 f = startH5File("mcmc_chain.h5")
