@@ -35,7 +35,7 @@ class TestgrMethods(unittest.TestCase):
         output = rate_values(inputt, 1.0)
 
         # Test that the function raises an exception with empty
-        with self.assertRaises(IndexError):
+        with self.assertRaises(AttributeError):
             rate_values([], 5)
 
         # Test that the output list of parameters equals the expected length
