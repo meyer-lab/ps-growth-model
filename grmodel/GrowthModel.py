@@ -1,8 +1,6 @@
-import os
 from scipy.integrate import odeint
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
 np.seterr(over='raise')
 
@@ -21,20 +19,19 @@ def rate_values(parameters, time):
     Returns:
         list of the rates for each each function
     '''
-    from numpy.polynomial.polynomial import polyval
 
     if time < 0:
         raise ValueError
 
-    return np.exp(polyval(time, parameters))
+    tt = np.power(time, np.arange(0, parameters.shape[0], dtype=np.float))
+
+    return np.exp(np.matmul(parameters.T, tt.T))
 
 def logpdf_sum(x, loc, scale):
-    """ Calculate the likelihood of a set of observations applied to a normal distribution. """
-    root2 = np.sqrt(2)
-    root2pi = np.sqrt(2*np.pi)
-    prefactor = - x.size * np.log(scale * root2pi)
-    summand = -np.square((x - loc)/(root2 * scale))
-    return prefactor + np.nansum(summand)
+    """ Calculate the likelihood of an observation applied to a normal distribution. """
+    prefactor = - np.log(scale * np.sqrt(2*np.pi))
+    summand = -np.square((x - loc)/(np.sqrt(2) * scale))
+    return prefactor + summand
 
 def likelihood(table_merge, sigma_sim_live, sigma_sim_dead):
     """
@@ -46,18 +43,16 @@ def likelihood(table_merge, sigma_sim_live, sigma_sim_dead):
     sigma_sim_dead	the sigma used for the normal distribution for dead cells
     """
 
-    def lik_func(row):
-        logSqrErr = 0
+    logSqrErr = 0
 
+    for i, row in table_merge.iterrows():
         try:
             logSqrErr += logpdf_sum(row.Confl_data, loc=row.Confl_model, scale=sigma_sim_live)
             logSqrErr += logpdf_sum(row.Green_data, loc=row.Green_model, scale=sigma_sim_dead)
         except:
-            logSqrErr = -np.inf
+            return -np.inf
 
-        return logSqrErr
-
-    return np.sum(table_merge.apply(lik_func, axis = 1))
+    return logSqrErr
 
 def ODEfun(state, t, params):
     """
@@ -151,7 +146,6 @@ class GrowthModel:
         TODO: Run simulation when this is called, and also plot observations.
         TODO: If selCol is None, then plot simulation but not observations.
         """
-        
         import matplotlib.pyplot as plt
         
         #calculate model data table
@@ -262,14 +256,15 @@ class GrowthModel:
         self.uniqueT = np.sort(np.unique(self.expTable['Time'].as_matrix()))
 
     def __init__(self, loadFile=None, complexity=3, selCol = None):
+        import os
         import itertools
 
         # If no filename is given use a default
         if loadFile is None:
             loadFile = "091916_H1299_cytotoxic_confluence"
 
-#        # Find path for csv files, on any machine wherein the repository exists.
-#        path = os.path.dirname(os.path.abspath(__file__))
+        # Find path for csv files, on any machine wherein the repository exists.
+        path = os.path.dirname(os.path.abspath(__file__))
         
         # Read in both observation files. Return as formatted pandas tables.
         # Data tables to be kept within class.
@@ -294,6 +289,3 @@ class GrowthModel:
         # Save selected data column in class
         if not selCol is None:
             self.setselCol(selCol)
-
-# Find path for csv files, on any machine wherein the repository exists.
-path = os.path.dirname(os.path.abspath(__file__))

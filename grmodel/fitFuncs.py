@@ -20,7 +20,9 @@ def AddDataH5File(StoneM, f):
     dset = grp.create_dataset("data",
                             chunks=True,
                             maxshape=(None, StoneM.Nparams + 2),
-                            data=np.ndarray((0, StoneM.Nparams + 2)))
+                            data=np.ndarray((0, StoneM.Nparams + 2)),
+                            compression="gzip",
+                            compression_opts=9)
     
     dset.attrs["class"] = np.void(StoneMs)
 
