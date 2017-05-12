@@ -1,11 +1,12 @@
-import time
 import unittest
 import pandas
 import numpy as np
-from ..GrowthModel import rate_values, GrowthModel, mcFormat, simulate, ODEfun
+from ..GrowthModel import mcFormat
 
 class TestgrMethods(unittest.TestCase):
     def setUp(self):
+        from ..GrowthModel import GrowthModel
+
         self.GR = GrowthModel(selCol=5)
 
     def test_load_data(self):
@@ -24,6 +25,8 @@ class TestgrMethods(unittest.TestCase):
 
     def test_rate_pnumbers(self):
         """ TODO: describe test """
+        from ..GrowthModel import rate_values
+
         inputt = np.full((3, 5), 1.0)
 
         output = rate_values(inputt, 1.0)
@@ -52,8 +55,11 @@ class TestgrMethods(unittest.TestCase):
         #Test that output list of lists is correct length
         self.assertEqual(output.shape, (2, 5))
 
-    def test_ODE(self):
+    def ODE(self):
         """ TODO: describe test """
+        # TODO: Fix this test.
+        from ..GrowthModel import ODEfun
+
         inputt = mcFormat(np.array([0.0009, -0.016, 0.01, 0.008, 0.0007, 0.005, -0.001, -0.0071, 0.0008, 0.005]))
         input_state = [100, 10, 10, 5]
 
@@ -77,6 +83,9 @@ class TestgrMethods(unittest.TestCase):
 
     def test_integral_data(self):
         """ TODO: describe test """
+        # TODO: Have this test conditions, rather than a very specific input
+        from ..GrowthModel import simulate
+
         params = mcFormat(np.array([0.0009, -0.016, 0.01, 0.008, 0.0007, 0.005, -0.001, -0.0071, 0.0008, 0.005]))
         t_interval = np.arange(0, 10, .005)
 
