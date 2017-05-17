@@ -52,14 +52,15 @@ for i in cols:
                 bestLL = np.max(lnprob)
                 qq.set_description("InfFrac " + str(nInf/(nGood + nInf)) + ", Col " + str(i) + ", Best LL: " + str(bestLL))
                 qq.refresh()
-    
+
             matOut = np.concatenate((lnprob.reshape(nwalkers, 1),
                                      np.arange(0, nwalkers).reshape(nwalkers, 1),
                                      p.reshape(nwalkers, ndims)), axis=1)
-    
+
             fShape = dset.shape
             dset.resize((fShape[0] + np.shape(matOut)[0], fShape[1]))
             dset[fShape[0]:, :] = matOut
+
             f.flush()
 
             thinTrack = 1
