@@ -78,8 +78,7 @@ def ODEfun(state, t, params):
 
     return np.array([rates[0]*LIVE - rates[1]*LIVE - rates[2]*LIVE,
                      rates[1]*LIVE - rates[4]*DEAD + rates[3]*EARLY_APOPTOSIS,
-                     rates[2]*LIVE - rates[3]*EARLY_APOPTOSIS,
-                     rates[4]*DEAD], dtype=np.float64)
+                     rates[2]*LIVE - rates[3]*EARLY_APOPTOSIS], dtype=np.float64)
 
 
 def mcFormat(mcParams):
@@ -101,7 +100,7 @@ def simulate(params, t_interval):
     y0 	list with the initial values for each state
     """
     out, infodict = odeint(ODEfun,
-                           [1.0, 0.0, 0.0, 0.0],
+                           [1.0, 0.0, 0.0],
                            t_interval,
                            args=(params,),
                            full_output=True,
@@ -111,7 +110,7 @@ def simulate(params, t_interval):
     #put values and time into pandas datatable
     out_table = pd.DataFrame(data=out,
                              index=t_interval,
-                             columns=['Live', 'Dead', 'EarlyApoptosis', 'Gone'])
+                             columns=['Live', 'Dead', 'EarlyApoptosis'])
     out_table.insert(0, 'Time', t_interval)
 
     if infodict['message'] != 'Integration successful.':

@@ -94,8 +94,8 @@ class TestgrMethods(unittest.TestCase):
         #test to make sure returned object is pandas DataFrame
         self.assertTrue(isinstance(output, pandas.core.frame.DataFrame))
 
-        #test to make sure there are 5 columns in the dataframe
-        self.assertEqual(len(output.keys()), 5)
+        #test to make sure there are 4 columns in the dataframe
+        self.assertEqual(len(output.keys()), 4)
 
         #test to make sure each column is correct length
         self.assertEqual(len(output), len(t_interval))
