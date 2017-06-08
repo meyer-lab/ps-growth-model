@@ -13,4 +13,4 @@ grM.setselCol(4)
 p0, ndims, nwalkers = getUniformStart(grM)
 
 ## Set up sampler and sample
-EnsembleSampler(nwalkers, ndims, grM.logL).run_mcmc(p0, N=40)
+EnsembleSampler(nwalkers, ndims, grM.logL).run_mcmc(p0, N=2000)

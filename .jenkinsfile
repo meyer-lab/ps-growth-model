@@ -1,7 +1,7 @@
 pipeline {
   agent any
   environment {
-    PATH = "/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/texlive/2016/bin/x86_64-darwin/"
+    PATH = "/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/texlive/2017/bin/x86_64-darwin/"
   }
   stages {
     stage('Build') {

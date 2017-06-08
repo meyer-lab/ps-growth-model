@@ -23,7 +23,7 @@ def rate_values(parameters, time):
     if time < 0:
         raise ValueError
 
-    tt = np.power(time, np.arange(parameters.shape[0], 0, -1, dtype=np.float)).T
+    tt = np.power(time, np.arange(parameters.shape[0], 0, -1, dtype=np.float64)).T
 
     return np.exp(np.matmul(parameters.T, tt))
 
@@ -43,14 +43,11 @@ def likelihood(table_merge, sigma_sim_live, sigma_sim_dead):
     sigma_sim_dead	the sigma used for the normal distribution for dead cells
     """
 
-    logSqrErr = 0
-
-    for i, row in table_merge.iterrows():
-        try:
-            logSqrErr += logpdf_sum(row.Confl_data, loc=row.Confl_model, scale=sigma_sim_live)
-            logSqrErr += logpdf_sum(row.Green_data, loc=row.Green_model, scale=sigma_sim_dead)
-        except:
-            return -np.inf
+    try:
+        logSqrErr  = np.sum(logpdf_sum(table_merge['Confl_data'], loc=table_merge['Confl_model'], scale=sigma_sim_live))
+        logSqrErr += np.sum(logpdf_sum(table_merge['Green_data'], loc=table_merge['Green_model'], scale=sigma_sim_dead))
+    except:
+        return -np.inf
 
     return logSqrErr
 
@@ -59,7 +56,7 @@ def ODEfun(state, t, params):
     ODE function of cells living/dying/undergoing early apoptosis
 
     params:
-    state	the number of cells in a particular state (LIVE, DEAD, EARLY_APOPTOSIS, GONE)
+    state	the number of cells in a particular state (LIVE, DEAD, EARLY_APOPTOSIS)
     t 	time
     a 	parameter between LIVE -> LIVE (cell division)
     b 	parameter between LIVE -> DEAD
@@ -72,7 +69,7 @@ def ODEfun(state, t, params):
     if params.shape[1] != 5:
         raise ValueError
 
-    LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2] # GONE is state[3]
+    LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2]
 
     rates = rate_values(params, t)
 
