@@ -201,7 +201,7 @@ class GrowthModel:
         #match time range and interval to experimental time range and interval
         self.uniqueT = np.sort(np.unique(self.expTable['Time'].as_matrix()))
 
-    def __init__(self, loadFile=None, complexity=3, selCol = None):
+    def __init__(self, loadFile=None, complexity=2, selCol = None):
         import os
         import itertools
 
@@ -231,6 +231,9 @@ class GrowthModel:
 
         # Set number of parameters
         self.Nparams = len(self.ub)
+
+        # Save the specified complexity
+        self.complexity = complexity
 
         # Save selected data column in class
         if not selCol is None:
