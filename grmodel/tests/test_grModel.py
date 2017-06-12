@@ -9,14 +9,6 @@ class TestgrMethods(unittest.TestCase):
 
         self.GR = GrowthModel(selCol=5)
 
-    def test_load_data(self):
-        """ Test data import. """
-
-        #test to make sure returned object is pandas DataFrame
-        self.assertTrue(isinstance(self.GR.data_confl, pandas.core.frame.DataFrame))
-
-        #test to make sure returned object is pandas DataFrame
-        self.assertTrue(isinstance(self.GR.data_green, pandas.core.frame.DataFrame))
 
     def test_logL(self):
         """ Test logL run """
@@ -91,14 +83,11 @@ class TestgrMethods(unittest.TestCase):
 
         output = simulate(params, t_interval)
 
-        #test to make sure returned object is pandas DataFrame
-        self.assertTrue(isinstance(output, pandas.core.frame.DataFrame))
-
         #test to make sure there are 4 columns in the dataframe
-        self.assertEqual(len(output.keys()), 4)
+        self.assertEqual(len(output), 2)
 
         #test to make sure each column is correct length
-        self.assertEqual(len(output), len(t_interval))
+        self.assertEqual(len(output[0]), len(t_interval))
 
 
 if __name__ == '__main__':

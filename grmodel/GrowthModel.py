@@ -1,5 +1,3 @@
-from scipy.integrate import odeint
-import pandas as pd
 import numpy as np
 
 np.seterr(over='raise')
@@ -33,23 +31,6 @@ def logpdf_sum(x, loc, scale):
     summand = -np.square((x - loc)/(np.sqrt(2) * scale))
     return prefactor + summand
 
-def likelihood(table_merge, sigma_sim_live, sigma_sim_dead):
-    """
-    Calculates the log likelihood of a simulation given the experimental data.
-
-    parameters:
-    table_sim	merged table with the transformed simulation predictions
-    sigma_sim_live	the sigma used for the normal distribution for live cells
-    sigma_sim_dead	the sigma used for the normal distribution for dead cells
-    """
-
-    try:
-        logSqrErr  = np.sum(logpdf_sum(table_merge['Confl_data'], loc=table_merge['Confl_model'], scale=sigma_sim_live))
-        logSqrErr += np.sum(logpdf_sum(table_merge['Green_data'], loc=table_merge['Green_model'], scale=sigma_sim_dead))
-    except:
-        return -np.inf
-
-    return logSqrErr
 
 def ODEfun(state, t, params):
     """
@@ -96,6 +77,8 @@ def simulate(params, t_interval):
 
     y0 	list with the initial values for each state
     """
+    from scipy.integrate import odeint
+
     out, infodict = odeint(ODEfun,
                            [1.0, 0.0, 0.0],
                            t_interval,
@@ -104,16 +87,10 @@ def simulate(params, t_interval):
                            printmessg=False,
                            mxstep=2000)
 
-    #put values and time into pandas datatable
-    out_table = pd.DataFrame(data=out,
-                             index=t_interval,
-                             columns=['Live', 'Dead', 'EarlyApoptosis'])
-    out_table.insert(0, 'Time', t_interval)
-
     if infodict['message'] != 'Integration successful.':
         raise FloatingPointError(infodict['message'])
 
-    return out_table
+    return (t_interval, out)
 
 def paramsWithinLimits(params, t_int, maxVal):
     """
@@ -142,13 +119,29 @@ def paramsWithinLimits(params, t_int, maxVal):
 
 
 class GrowthModel:
+    def likelihood(self, confl_model, green_model, sigma_sim_live, sigma_sim_dead):
+        """
+        Calculates the log likelihood of a simulation given the experimental data.
+
+        parameters:
+        table_sim   merged table with the transformed simulation predictions
+        sigma_sim_live  the sigma used for the normal distribution for live cells
+        sigma_sim_dead  the sigma used for the normal distribution for dead cells
+        """
+
+        try:
+            logSqrErr  = np.sum(logpdf_sum(self.expTable[1], loc=confl_model, scale=sigma_sim_live))
+            logSqrErr += np.sum(logpdf_sum(self.expTable[2], loc=green_model, scale=sigma_sim_dead))
+        except FloatingPointError:
+            return -np.inf
+
+        return logSqrErr
+
+
     def logL(self, paramV):
         """
         TODO: Run simulation using paramV, and compare results to observations in self.selCol
         """
-
-        if self.selCol is None:
-            raise ValueError
 
         # Return -inf for parameters out of bounds
         if not np.all(np.isfinite(paramV)):
@@ -173,14 +166,12 @@ class GrowthModel:
         paramV[-4:] = np.power(10, paramV[-4:])
         
         #scale model data table with conversion constants
-        model['Confl'] = paramV[-4]*model['Live']
-        model['Green'] = paramV[-3]*(model['Dead'] + model['EarlyApoptosis'])
-
-        data_merge = self.expTable.merge(model, how='left', on='Time', suffixes=['_data', '_model'])
+        confl_model = paramV[-4]*np.interp(self.expTable[0], model[0], model[1][:, 0])
+        green_model = paramV[-3]*np.interp(self.expTable[0], model[0], model[1][:, 1] + model[1][:, 2])
         
-        #run likelihood function with modeled and experiemental data, with standard 
-        #deviation given by last two entries in paramV
-        likel = likelihood(data_merge, paramV[-2], paramV[-1])
+        # Run likelihood function with modeled and experiemental data, with standard 
+        # deviation given by last two entries in paramV
+        likel = self.likelihood(confl_model, green_model, paramV[-2], paramV[-1])
 
         if np.isnan(likel) is True:
             print('Got a NaN which shouldn\'t happen.')
@@ -188,22 +179,11 @@ class GrowthModel:
 
         return likel
 
-    def setselCol(self, inV):
-        self.selCol = inV
 
-        # Make experimental data table
-        data_frames = [self.data_confl.iloc[:,1], self.data_confl.iloc[:, self.selCol], self.data_green.iloc[:, self.selCol]]
-        data = pd.concat(data_frames, axis = 1)
-        data.columns = ['Time', 'Confl', 'Green']
-
-        self.expTable = data
-
-        #match time range and interval to experimental time range and interval
-        self.uniqueT = np.sort(np.unique(self.expTable['Time'].as_matrix()))
-
-    def __init__(self, loadFile=None, complexity=2, selCol = None):
+    def __init__(self, selCol, loadFile=None, complexity=2):
         import os
         import itertools
+        import pandas
 
         # If no filename is given use a default
         if loadFile is None:
@@ -214,8 +194,17 @@ class GrowthModel:
         
         # Read in both observation files. Return as formatted pandas tables.
         # Data tables to be kept within class.
-        self.data_confl = pd.read_csv(os.path.join(path, ('data/' + loadFile + '_confl.csv')), infer_datetime_format=True)
-        self.data_green = pd.read_csv(os.path.join(path, ('data/' + loadFile + '_green.csv')), infer_datetime_format=True)
+        data_confl = pandas.read_csv(os.path.join(path, ('data/' + loadFile + '_confl.csv')), infer_datetime_format=True)
+        data_green = pandas.read_csv(os.path.join(path, ('data/' + loadFile + '_green.csv')), infer_datetime_format=True)
+
+        # Pull out selected column data
+        self.selCol = selCol
+
+        # Make experimental data table - Time, Confl, Green
+        self.expTable = [data_confl.iloc[:, 1], data_confl.iloc[:, self.selCol], data_green.iloc[:, self.selCol]]
+
+        # Match time range and interval to experimental time range and interval
+        self.uniqueT = np.sort(np.unique(self.expTable[0]))
 
         # Parameter names
         ps = ['a', 'b', 'c', 'd', 'e']
@@ -234,7 +223,3 @@ class GrowthModel:
 
         # Save the specified complexity
         self.complexity = complexity
-
-        # Save selected data column in class
-        if not selCol is None:
-            self.setselCol(selCol)
