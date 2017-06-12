@@ -1,7 +1,5 @@
 import numpy as np
-import scipy as sp
 import pandas as pd
-import scipy.stats
 import matplotlib.pyplot as plt
 
 try:
@@ -15,6 +13,7 @@ def geweke_single_chain(chain1, chain2=None):
     Perform the Geweke Diagnostic between two univariate chains. If two chains are input 
     instead of one, Student's t-test is performed instead. Returns p-value.
     """
+
     from scipy.stats import ttest_ind
 
     len0 = chain1.shape[0]
@@ -120,14 +119,12 @@ def sim_plot(column):
 
         simret = simulate(mparm, t_interval)[1]
 
-        calcset[varr, :] = simret[:, 0]*row[1]['conv_confl']
+        calcset[varr, :] = np.sum(simret, axis=1) * row[1]['conv_confl']
 
         varr = varr + 1
 
     # Get median & 95% confidence interval for each time point
     qqq = np.percentile(calcset, [5, 25, 50, 75, 95], axis=0)
-
-    print(qqq)
 
     plt.figure(figsize=(10, 10))
     plt.plot(t_interval, qqq[2, :])
@@ -193,9 +190,9 @@ def plotSimulation(self, paramV):
         xlabel('Time')
         ylabel('Number of Cells')
         t_interval = state.iloc[:, 0].values
-        plot(t_interval, state.iloc[:, 1], 'b-', label="live")
-        plot(t_interval, state.iloc[:, 2], 'r-', label="dead")
-        plot(t_interval, state.iloc[:, 3], 'g-', label="early apoptosis")
-        plot(t_interval, state.iloc[:, 4], 'k-', label="gone")
-        legend(loc='upper right')
+        plt.plot(t_interval, state.iloc[:, 1], 'b-', label="live")
+        plt.plot(t_interval, state.iloc[:, 2], 'r-', label="dead")
+        plt.plot(t_interval, state.iloc[:, 3], 'g-', label="early apoptosis")
+        plt.plot(t_interval, state.iloc[:, 4], 'k-', label="gone")
+        plt.legend(loc='upper right')
         show()

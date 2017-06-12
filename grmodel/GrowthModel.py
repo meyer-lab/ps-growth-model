@@ -166,7 +166,7 @@ class GrowthModel:
         paramV[-4:] = np.power(10, paramV[-4:])
         
         #scale model data table with conversion constants
-        confl_model = paramV[-4]*np.interp(self.expTable[0], model[0], model[1][:, 0])
+        confl_model = paramV[-4]*np.interp(self.expTable[0], model[0], np.sum(model[1], axis=1))
         green_model = paramV[-3]*np.interp(self.expTable[0], model[0], model[1][:, 1] + model[1][:, 2])
         
         # Run likelihood function with modeled and experiemental data, with standard 
@@ -201,7 +201,9 @@ class GrowthModel:
         self.selCol = selCol
 
         # Make experimental data table - Time, Confl, Green
-        self.expTable = [data_confl.iloc[:, 1], data_confl.iloc[:, self.selCol], data_green.iloc[:, self.selCol]]
+        self.expTable = [data_confl.iloc[:, 1].as_matrix(),
+                         data_confl.iloc[:, self.selCol].as_matrix(),
+                         data_green.iloc[:, self.selCol].as_matrix()]
 
         # Match time range and interval to experimental time range and interval
         self.uniqueT = np.sort(np.unique(self.expTable[0]))
