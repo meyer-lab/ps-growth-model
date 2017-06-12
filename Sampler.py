@@ -8,9 +8,6 @@ from grmodel.fitFuncs import getUniformStart, AddDataH5File, startH5File
 
 bestLL = -np.inf
 
-## Load model
-grM = GrowthModel.GrowthModel()
-
 #### Simulation Constants
 niters = 100000
 thinTrack, thin = -1000, 2000
@@ -18,11 +15,8 @@ thinTrack, thin = -1000, 2000
 ### Make file
 f = startH5File("mcmc_chain.h5")
 
-# Get uniform distribution of positions for start
-p0, ndims, nwalkers = getUniformStart(grM)
-
 # Make iterable of columns
-cols = range(3, len(grM.data_confl.iloc[0,:])-1)
+cols = list(range(3, 21))
 
 # Make a progress bar
 qq = tqdm(total=niters*len(cols))
@@ -31,7 +25,10 @@ qq = tqdm(total=niters*len(cols))
 for i in cols:
     nGood, nInf = 0.0, 0.0
 
-    grM.setselCol(i)
+    grM = GrowthModel.GrowthModel(i)
+
+    # Get uniform distribution of positions for start
+    p0, ndims, nwalkers = getUniformStart(grM)
     
     ## Set up sampler
     sampler = EnsembleSampler(nwalkers, ndims, grM.logL)
