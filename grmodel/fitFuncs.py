@@ -1,33 +1,11 @@
 import numpy as np
-import h5py
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 def startH5File(filename):
-    f = h5py.File(filename, 'w', libver='latest')
-    f.swmr_mode = True
-    return f
-    
-def AddDataH5File(StoneM, f):
-    """ Dump class to a string to store with MCMC chain """
-    StoneMs = pickle.dumps(StoneM, pickle.HIGHEST_PROTOCOL)
-    
-    #adds new group for this column's dataset
-    grp = f.create_group('column' + str(StoneM.selCol))
-    dset = grp.create_dataset("data",
-                            chunks=True,
-                            maxshape=(None, StoneM.Nparams + 2),
-                            data=np.ndarray((0, StoneM.Nparams + 2)),
-                            compression="gzip",
-                            compression_opts=9,
-                            dtype='f2')
-    
-    dset.attrs["class"] = np.void(StoneMs)
+    import h5py
 
-    return (f, dset)
+    return h5py.File(filename, 'w', libver='latest')
+
 
 def getUniformStart(StoneM):
     """ Set up parameters for parallel-tempered Ensemble Sampler """
