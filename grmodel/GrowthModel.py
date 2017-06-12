@@ -216,7 +216,7 @@ class GrowthModel:
 
         # Specify upper bounds on parameters (log space)
         self.ub = np.full(len(self.pNames), 2.0, dtype=np.float64)
-        self.ub[-4:] = 4
+        self.ub[-4:-2] = 4
 
         # Set number of parameters
         self.Nparams = len(self.ub)

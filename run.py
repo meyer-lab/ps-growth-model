@@ -1,3 +1,3 @@
-from grmodel.utils import growth_rate_plot
+from grmodel.utils import sim_plot
 
-growth_rate_plot(3, 3)
+sim_plot(3)
