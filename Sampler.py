@@ -16,7 +16,7 @@ def samplerRun(colI):
     from grmodel import GrowthModel
 
     # Simulation Constants
-    niters, thin = 1E5, 1E3
+    niters, thin = 1E6, 1E3
 
     grM = GrowthModel.GrowthModel(colI)
 
@@ -34,7 +34,8 @@ def samplerRun(colI):
 
 
 # Make iterable of columns
-cols = list(range(3, 21))
+# FIX: Only sampling first few
+cols = list(range(3, 8))
 
 # Setup the parallel pool
 p = Pool()
@@ -51,10 +52,16 @@ for result in tqdm(p.imap_unordered(samplerRun, cols), total=len(cols)):
                                               pickle.HIGHEST_PROTOCOL))
 
     # Dump chain
-    dset = grp.create_dataset("chain", data=result[0].chain, dtype='f2')
+    grp.create_dataset("chain", data=result[0].chain,
+                       compression="gzip",
+                       compression_opts=9,
+                       dtype='f2')
 
     # Dump log-probabilities
-    grp.create_dataset("lnprob", data=result[0].lnprobability, dtype='f2')
+    grp.create_dataset("lnprob", data=result[0].lnprobability,
+                       compression="gzip",
+                       compression_opts=9,
+                       dtype='f2')
 
 # Close after done writing
 f.close()
