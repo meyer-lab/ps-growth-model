@@ -46,7 +46,7 @@ def ODEfun(state, t, params):
     e 	parameter between DEATH -> GONE
     """
 
-    ## If we don't have the right number of parameters, then panic
+    # If we don't have the right number of parameters, then panic
     if params.shape[1] != 5:
         raise ValueError
 
@@ -70,7 +70,7 @@ def simulate(params, t_interval):
     """
     Solves the ODE function given a set of initial values (y0),
     over a time interval (t_interval)
-    
+
     params:
     params	list of parameters for model (a, b, c, d, e)
     t_interval 	time interval over which to solve the function
@@ -140,7 +140,7 @@ class GrowthModel:
 
     def logL(self, paramV):
         """
-        TODO: Run simulation using paramV, and compare results to observations in self.selCol
+        Run simulation using paramV, and compare results to observations in self.selCol
         """
 
         # Return -inf for parameters out of bounds
@@ -149,26 +149,26 @@ class GrowthModel:
         elif np.any(np.less(paramV, self.lb)) or np.any(np.greater(paramV, self.ub)):
             return -np.inf
 
-        #format parameters to list of lists (except last 4 entries)
+        # Format parameters to list of lists (except last 4 entries)
         params = mcFormat(paramV[:-4])
 
         # Check that the parameter values are reasonable over the interval
         if not paramsWithinLimits(params, (np.min(self.uniqueT), np.max(self.uniqueT)), 2.0):
             return -np.inf
-        
+
         # Calculate model data table
         try:
             model = simulate(params, self.uniqueT)
-        except FloatingPointError as error:
+        except FloatingPointError:
             return -np.inf
-        
+
         # Power transform conversion constants
         paramV[-4:] = np.power(10, paramV[-4:])
-        
+
         #scale model data table with conversion constants
         confl_model = paramV[-4]*np.interp(self.expTable[0], model[0], np.sum(model[1], axis=1))
         green_model = paramV[-3]*np.interp(self.expTable[0], model[0], model[1][:, 1] + model[1][:, 2])
-        
+
         # Run likelihood function with modeled and experiemental data, with standard 
         # deviation given by last two entries in paramV
         likel = self.likelihood(confl_model, green_model, paramV[-2], paramV[-1])
@@ -191,7 +191,7 @@ class GrowthModel:
 
         # Find path for csv files, on any machine wherein the repository exists.
         path = os.path.dirname(os.path.abspath(__file__))
-        
+
         # Read in both observation files. Return as formatted pandas tables.
         # Data tables to be kept within class.
         data_confl = pandas.read_csv(os.path.join(path, ('data/' + loadFile + '_confl.csv')), infer_datetime_format=True)
