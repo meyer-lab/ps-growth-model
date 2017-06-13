@@ -39,34 +39,20 @@ def read_dataset(column, filename=None):
     # Read in StoneModel and unpickle
     classM = pickle.loads(f['/column' + str(column)].attrs['class'].tobytes())
 
-    # Read in likelihood and chain
-    dln = np.expand_dims(
-        np.array(f['/column' + str(column) + '/lnprob']), axis=2)
-    dchain = np.array(f['/column' + str(column) + '/chain'])
-
     # Close hdf5 file
     f.close()
 
-    # Merge likelihood and chain, make into panel, then frame
-    dset = pd.Panel(np.dstack((dln, dchain))).swapaxes(0, 2).to_frame()
-
-    # Get names ready
-    pNames = classM.pNames
-    pNames.insert(0, 'LL')
-    dset.columns = pNames
-
-    dset.index.names = ['step', 'walker']
+    # Read in sampling chain
+    dset = pd.read_hdf(filename, key='column' + str(classM.selCol) + '/chain')
 
     return (classM, dset)
 
 
 def growth_rate_plot(column):
-    from .GrowthModel import mcFormat
-
     # Read in dataset to Pandas data frame
     classM, pdset = read_dataset(column)
 
-    pdset = pdset.loc[pdset['LL'] > -3000, :]
+    pdset = pdset.loc[pdset['LL'] > -30000, :]
 
     print(classM.expTable)
 
@@ -98,12 +84,20 @@ def growth_rate_plot(column):
 
 
 def sim_plot(column):
-    from .GrowthModel import mcFormat, simulate
 
     # Read in dataset to Pandas data frame
     classM, pdset = read_dataset(column)
 
-    pdset = pdset.loc[pdset['LL'] > -3000, :]
+    pdset = pdset.loc[pdset['LL'] > (np.amax(pdset['LL']) - 30), :]
+    pdset = pdset.drop('LL', axis=1)
+
+    print(pdset.shape)
+
+    pdset = pdset.sample(1000)
+
+    print(pdset)
+
+    raise
 
     # Time interval to solve over
     t_interval = np.arange(0, np.max(classM.uniqueT), 0.2)
@@ -115,22 +109,54 @@ def sim_plot(column):
     vv = 0
 
     for row in pdset.iterrows():
-        mparm = mcFormat(row[1].as_matrix()[1:-4])
+        mparm = np.power(10, np.copy(row[1].as_matrix()[0:-4]))
 
-        simret = simulate(mparm, t_interval)[1]
+        try:
+            simret = classM.simulate(mparm, t_interval)[1]
 
-        calcset[varr, :] = np.sum(simret, axis=1) * row[1]['conv_confl']
+            calcset[varr, :] = np.sum(simret, axis=1) * np.power(10, row[1]['conv_confl'])
 
-        varr = varr + 1
+            varr = varr + 1
+        except:
+            print('Failed')
+            continue
 
     # Get median & 95% confidence interval for each time point
     qqq = np.percentile(calcset, [5, 25, 50, 75, 95], axis=0)
 
     plt.figure(figsize=(10, 10))
     plt.plot(t_interval, qqq[2, :])
-    plt.fill_between(t_interval, qqq[1, :], qqq[3, :], alpha=0.3)
-    plt.fill_between(t_interval, qqq[0, :], qqq[4, :], alpha=0.3)
+    plt.fill_between(t_interval, qqq[1, :], qqq[3, :], alpha=0.5)
+    plt.fill_between(t_interval, qqq[0, :], qqq[4, :], alpha=0.2)
+    plt.scatter(classM.expTable[0], classM.expTable[1])
+    plt.scatter(classM.expTable[0], classM.expTable[2])
     plt.show()
+
+
+def hist_plot():
+    import seaborn as sns
+    # Read in dataset to Pandas data frame
+    pdsetA = read_dataset(3)[1]
+    pdsetA['Col'] = 3
+    _, pdsetB = read_dataset(4)
+    pdsetB['Col'] = 4
+    _, pdsetC = read_dataset(5)
+    pdsetC['Col'] = 5
+
+    pdset = pd.concat([pdsetA, pdsetB, pdsetC])
+
+    pdset = pdset.loc[pdset['LL'] > -400, :].sample(1000)
+
+    pdset['bc'] = pdset['b'] + pdset['c']
+
+    print(pdset.columns)
+    
+    
+    sns.pairplot(pdset, hue='Col', vars=['a', 'bc'])
+    plt.show()
+    
+
+
 
 
 def plotSimulation(self, paramV):

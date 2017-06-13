@@ -1,3 +1,3 @@
-from grmodel.utils import sim_plot
+from grmodel.utils import hist_plot
 
-sim_plot(3)
+hist_plot()

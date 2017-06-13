@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from grmodel.fitFuncs import getUniformStart, saveSampling
 
-filename = 'mcmc_chain.h5'
+filename = './grmodel/data/first_chain.h5'
 
 
 def samplerRun(colI):
@@ -13,12 +13,12 @@ def samplerRun(colI):
     from grmodel import GrowthModel
 
     # Simulation Constants
-    niters = 1E5
+    niters = 2E4
 
     # Adjust thinning based on number of samples
-    thin = niters / 1000
+    thin = niters / 100
 
-    grM = GrowthModel.GrowthModel(colI, complexity=1)
+    grM = GrowthModel.GrowthModel(colI)
 
     # Get uniform distribution of positions for start
     p0, ndims, nwalkers = getUniformStart(grM)
@@ -41,11 +41,11 @@ def samplerRun(colI):
 
 
 if os.path.exists(filename):
-    os.remove()
+    os.remove(filename)
 
 # Make iterable of columns
 # FIX: Only sampling first few
-cols = list(range(3, 4))
+cols = list(range(3, 6))
 
 for result in map(samplerRun, cols):
-    saveSampling('mcmc_chain.h5', result[1], result[0])
+    saveSampling(filename, result[1], result[0])

@@ -3,32 +3,6 @@ import numpy as np
 np.seterr(over='raise')
 
 
-def rate_values(parameters, time):
-    '''Calculates the rates of each cellular process at a given time
-
-    Returns a list of values of e raised to the power of teh calculated rate
-    (for each set of parameters) as to ensure no negative value. The input is
-    a list of lists, each index of the inner list a coeficient of time to the
-    power of that index. The outer list represents the number of functions.
-
-    Arguments:
-        parameters (list of lists): contains number of functions and
-            parameters of each function
-        time (float): time at which rate is calculated
-
-    Returns:
-        list of the rates for each each function
-    '''
-
-    if time < 0:
-        raise ValueError
-
-    tt = np.power(time,
-                  np.arange(parameters.shape[0], 0, -1, dtype=np.float64)).T
-
-    return np.exp(np.matmul(parameters.T, tt))
-
-
 def logpdf_sum(x, loc, scale):
     """
     Calculate the likelihood of an observation applied to a
@@ -37,42 +11,6 @@ def logpdf_sum(x, loc, scale):
     prefactor = - np.log(scale * np.sqrt(2 * np.pi))
     summand = -np.square((x - loc) / (np.sqrt(2) * scale))
     return prefactor + summand
-
-
-def ODEfun(state, t, params):
-    """
-    ODE function of cells living/dying/undergoing early apoptosis
-
-    params:
-    state   the number of cells in a particular state
-            (LIVE, DEAD, EARLY_APOPTOSIS)
-    t   time
-    a 	parameter between LIVE -> LIVE (cell division)
-    b 	parameter between LIVE -> DEAD
-    c 	parameter between LIVE -> EARLY_APOPTOSIS
-    d 	parameter between EARLY_APOPTOSIS -> DEATH
-    e 	parameter between DEATH -> GONE
-    """
-
-    # If we don't have the right number of parameters, then panic
-    if params.shape[1] != 5:
-        raise ValueError
-
-    LIVE, DEAD, EARLY_APOPTOSIS = state[0], state[1], state[2]
-
-    rates = rate_values(params, t)
-
-    return np.array([(rates[0] - rates[1] - rates[2]) * LIVE,
-                     rates[1] * LIVE - rates[4] * DEAD + rates[3] * EARLY_APOPTOSIS,
-                     rates[2] * LIVE - rates[3] * EARLY_APOPTOSIS], dtype=np.float64)
-
-
-def mcFormat(mcParams):
-    """ takes in mc data of list and returns equal length list of lists """
-    if len(mcParams) % 5 > 0:
-        raise ValueError("Length of mcParams must be a multiple of 5.")
-
-    return np.reshape(mcParams, (-1, 5), order='F')
 
 
 def simulate(params, t_interval):
@@ -88,6 +26,29 @@ def simulate(params, t_interval):
     """
     from scipy.integrate import odeint
 
+    def ODEfun(state, t, rates):
+        """
+        ODE function of cells living/dying/undergoing early apoptosis
+
+        params:
+        state   the number of cells in a particular state
+                (LIVE, DEAD, EARLY_APOPTOSIS)
+        t   time
+        a   parameter between LIVE -> LIVE (cell division)
+        b   parameter between LIVE -> DEAD
+        c   parameter between LIVE -> EARLY_APOPTOSIS
+        d   parameter between EARLY_APOPTOSIS -> DEATH
+        e   parameter between DEATH -> GONE
+        """
+        LIVE, DEAD, EARLY_APOP = state[0], state[1], state[2]
+
+        outt = np.empty((3,))
+        outt[0] = (rates[0] - rates[1] - rates[2]) * LIVE
+        outt[1] = rates[1] * LIVE - rates[4] * DEAD + rates[3] * EARLY_APOP
+        outt[2] = rates[2] * LIVE - rates[3] * EARLY_APOP
+
+        return outt
+
     out, infodict = odeint(ODEfun,
                            [1.0, 0.0, 0.0],
                            t_interval,
@@ -102,59 +63,13 @@ def simulate(params, t_interval):
     return (t_interval, out)
 
 
-def paramsWithinLimits(params, t_int, maxVal):
-    """
-    This only checks that the parameters don't pass through
-    the bound in the duration. It's still possible they start
-    too high, which is handled by the lower and upper
-    bounds hopefully.
-    """
-
-    # Iterate over the parameters
-    for ii in range(params.shape[1]):
-        # Copy so we don't mess with the original
-        pval = params[:, ii].copy()
-
-        # Move by offset so roots tell us when we pass over limit
-        pval[-1] -= maxVal
-
-        # Find roots
-        outt = np.roots(pval)
-
-        # If any of the roots fall within the time interval and are real, fail
-        for jj in outt:
-            if np.isreal(jj) and jj > t_int[0] and jj < t_int[1]:
-                return False
-
-    return True
-
-
 class GrowthModel:
-
-    def likelihood(self, confl_model, green_model, sigma_sim_live, sigma_sim_dead):
-        """
-        Calculates the log likelihood of a simulation given the experimental data.
-
-        parameters:
-        table_sim   merged table with the transformed simulation predictions
-        sigma_sim_live  the sigma used for the normal dist. for live cells
-        sigma_sim_dead  the sigma used for the normal dist. for dead cells
-        """
-
-        try:
-            logSqrErr = np.sum(logpdf_sum(self.expTable[1], loc=confl_model, scale=sigma_sim_live))
-            logSqrErr += np.sum(logpdf_sum(self.expTable[2], loc=green_model, scale=sigma_sim_dead))
-        except FloatingPointError:
-            return -np.inf
-
-        return logSqrErr
 
     def logL(self, paramV):
         """
         Run simulation using paramV, and compare results to observations in
         self.selCol
         """
-        paramV = paramV.copy()
 
         # Return -inf for parameters out of bounds
         if not np.all(np.isfinite(paramV)):
@@ -164,38 +79,37 @@ class GrowthModel:
         elif np.any(np.greater(paramV, self.ub)):
             return -np.inf
 
-        # Format parameters to list of lists (except last 4 entries)
-        params = mcFormat(paramV[:-4])
-
-        if self.complexity > 1:
-            # Check that the parameter values are reasonable over the interval
-            if not paramsWithinLimits(params, self.tRange, 0.0):
-                return -np.inf
+        paramV = np.power(10, paramV.copy())
 
         # Calculate model data table
         try:
-            model = simulate(params, self.uniqueT)
+            model = simulate(paramV, self.uniqueT)
         except FloatingPointError:
             return -np.inf
 
-        # Power transform conversion constants
-        paramV[-4:] = np.power(10, paramV[-4:])
-
         # Scale model data table with conversion constants
-        confl_mod = paramV[-4] * np.interp(self.expTable[0], model[0], np.sum(model[1], axis=1))
-        green_mod = paramV[-3] * np.interp(self.expTable[0], model[0], model[1][:, 1] + model[1][:, 2])
+        confl_mod = paramV[-4] * np.interp(self.expTable[0],
+                                           model[0], np.sum(model[1], axis=1))
+        green_mod = paramV[-3] * np.interp(self.expTable[0],
+                                           model[0],
+                                           model[1][:, 1] + model[1][:, 2])
 
         # Run likelihood function with modeled and experiemental data, with
         # standard deviation given by last two entries in paramV
-        likel = self.likelihood(confl_mod, green_mod, paramV[-2], paramV[-1])
+        try:
+            logSqrErr = np.sum(logpdf_sum(self.expTable[1],
+                                          loc=confl_mod, scale=paramV[-2]))
+            logSqrErr += np.sum(logpdf_sum(self.expTable[2],
+                                           loc=green_mod, scale=paramV[-1]))
 
-        if np.isnan(likel) is True:
-            print('Got a NaN which shouldn\'t happen.')
+            # Specify preference for the conversion constants to be similar
+            logSqrErr += logpdf_sum(np.log(paramV[-3] / paramV[-4]), 0.0, 0.1)
+        except FloatingPointError:
             return -np.inf
 
-        return likel
+        return logSqrErr
 
-    def __init__(self, selCol, loadFile=None, complexity=2):
+    def __init__(self, selCol, loadFile=None):
         """ Initialize class. """
         from os.path import join, dirname, abspath
         import pandas
@@ -227,15 +141,8 @@ class GrowthModel:
         self.tRange = (np.min(self.uniqueT), np.max(self.uniqueT))
 
         # Parameter names
-        ps = ['a', 'b', 'c', 'd', 'e']
-        self.pNames = list()
-
-        for ii in ps:
-            for jj in range(complexity):
-                self.pNames.append(ii + str(jj))
-
-        self.pNames = self.pNames + ['conv_confl', 'conv_green',
-                                     'err_confl', 'err_green']
+        self.pNames = ['a', 'b', 'c', 'd', 'e', 'conv_confl',
+                       'conv_green', 'err_confl', 'err_green']
 
         # Specify lower bounds on parameters (log space)
         self.lb = np.full(len(self.pNames), -6.0, dtype=np.float64)
@@ -247,6 +154,3 @@ class GrowthModel:
 
         # Set number of parameters
         self.Nparams = len(self.ub)
-
-        # Save the specified complexity
-        self.complexity = complexity
