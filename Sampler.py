@@ -1,14 +1,7 @@
 #! /usr/bin/env python3
 
-import numpy as np
 from tqdm import tqdm
-from grmodel.fitFuncs import getUniformStart, startH5File
-from multiprocessing import Pool
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+from grmodel.fitFuncs import getUniformStart, saveSampling
 
 
 def samplerRun(colI):
@@ -16,7 +9,10 @@ def samplerRun(colI):
     from grmodel import GrowthModel
 
     # Simulation Constants
-    niters, thin = 1E6, 1E3
+    niters = 1E3
+
+    # Adjust thinning based on number of samples
+    thin = niters / 100
 
     grM = GrowthModel.GrowthModel(colI)
 
@@ -24,10 +20,11 @@ def samplerRun(colI):
     p0, ndims, nwalkers = getUniformStart(grM)
 
     # Set up sampler
-    sampler = EnsembleSampler(nwalkers, ndims, grM.logL)
+    sampler = EnsembleSampler(nwalkers, ndims, grM.logL, threads=16)
 
     # Run the mcmc walk
-    for _ in sampler.sample(p0, iterations=niters, thin=thin):
+    for _ in tqdm(sampler.sample(p0, iterations=niters, thin=thin),
+                  total=niters, desc='Col: ' + str(colI)):
         continue
 
     return (sampler, grM)
@@ -35,33 +32,7 @@ def samplerRun(colI):
 
 # Make iterable of columns
 # FIX: Only sampling first few
-cols = list(range(3, 8))
+cols = list(range(3, 5))
 
-# Setup the parallel pool
-p = Pool()
-
-# Open the output hdf5 file
-f = startH5File('mcmc_chain.h5')
-
-for result in tqdm(p.imap_unordered(samplerRun, cols), total=len(cols)):
-    # Adds new group for this column's dataset
-    grp = f.create_group('column' + str(result[1].selCol))
-
-    # Dump class to a string to store with MCMC chain
-    grp.attrs["class"] = np.void(pickle.dumps(result[1],
-                                              pickle.HIGHEST_PROTOCOL))
-
-    # Dump chain
-    grp.create_dataset("chain", data=result[0].chain,
-                       compression="gzip",
-                       compression_opts=9,
-                       dtype='f2')
-
-    # Dump log-probabilities
-    grp.create_dataset("lnprob", data=result[0].lnprobability,
-                       compression="gzip",
-                       compression_opts=9,
-                       dtype='f2')
-
-# Close after done writing
-f.close()
+for result in map(samplerRun, cols):
+    saveSampling('mcmc_chain.h5', result[1], result[0])

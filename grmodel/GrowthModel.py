@@ -94,7 +94,7 @@ def simulate(params, t_interval):
                            args=(params,),
                            full_output=True,
                            printmessg=False,
-                           mxstep=2000)
+                           mxstep=5000)
 
     if infodict['message'] != 'Integration successful.':
         raise FloatingPointError(infodict['message'])
@@ -154,6 +154,7 @@ class GrowthModel:
         Run simulation using paramV, and compare results to observations in
         self.selCol
         """
+        paramV = paramV.copy()
 
         # Return -inf for parameters out of bounds
         if not np.all(np.isfinite(paramV)):
@@ -196,7 +197,6 @@ class GrowthModel:
     def __init__(self, selCol, loadFile=None, complexity=2):
         """ Initialize class. """
         from os.path import join, dirname, abspath
-        import itertools as itt
         import pandas
 
         # If no filename is given use a default
@@ -227,8 +227,14 @@ class GrowthModel:
 
         # Parameter names
         ps = ['a', 'b', 'c', 'd', 'e']
-        self.pNames = list(itt.chain.from_iterable(itt.repeat(x, complexity) for x in ps))
-        self.pNames = self.pNames + ['conv_confl', 'conv_green', 'err_confl', 'err_green']
+        self.pNames = list()
+
+        for ii in ps:
+            for jj in range(complexity):
+                self.pNames.append(ii + str(jj))
+
+        self.pNames = self.pNames + ['conv_confl', 'conv_green',
+                                     'err_confl', 'err_green']
 
         # Specify lower bounds on parameters (log space)
         self.lb = np.full(len(self.pNames), -9, dtype=np.float64)
