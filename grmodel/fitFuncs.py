@@ -33,6 +33,8 @@ def saveSampling(filename, classM, sampler):
               key='column' + str(classM.selCol) + '/chain',
               complevel=9, complib='bzip2')
 
+    print('Best LL: ' + str(np.max(sampler.flatlnprobability)))
+
     # Open file to pickle class
     f = h5py.File(filename, 'a', libver='latest')
 

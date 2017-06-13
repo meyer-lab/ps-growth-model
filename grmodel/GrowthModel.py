@@ -167,9 +167,10 @@ class GrowthModel:
         # Format parameters to list of lists (except last 4 entries)
         params = mcFormat(paramV[:-4])
 
-        # Check that the parameter values are reasonable over the interval
-        if not paramsWithinLimits(params, self.tRange, 2.0):
-            return -np.inf
+        if self.complexity > 1:
+            # Check that the parameter values are reasonable over the interval
+            if not paramsWithinLimits(params, self.tRange, 0.0):
+                return -np.inf
 
         # Calculate model data table
         try:
@@ -237,11 +238,12 @@ class GrowthModel:
                                      'err_confl', 'err_green']
 
         # Specify lower bounds on parameters (log space)
-        self.lb = np.full(len(self.pNames), -9, dtype=np.float64)
+        self.lb = np.full(len(self.pNames), -6.0, dtype=np.float64)
+        self.lb[-4:-2] = -2.0
 
         # Specify upper bounds on parameters (log space)
-        self.ub = np.full(len(self.pNames), 2.0, dtype=np.float64)
-        self.ub[-4:-2] = 4
+        self.ub = np.full(len(self.pNames), 0.0, dtype=np.float64)
+        self.ub[-4:-2] = 4.0
 
         # Set number of parameters
         self.Nparams = len(self.ub)
