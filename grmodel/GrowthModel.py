@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit
 
 np.seterr(over='raise')
 
@@ -11,6 +12,32 @@ def logpdf_sum(x, loc, scale):
     prefactor = - np.log(scale * np.sqrt(2 * np.pi))
     summand = -np.square((x - loc) / (np.sqrt(2) * scale))
     return prefactor + summand
+
+
+@jit
+def ODEfun(ss, t, rates):
+    """
+    ODE function of cells living/dying/undergoing early apoptosis
+
+    params:
+    ss   the number of cells in a particular state
+            (LIVE, DEAD, EARLY_APOPTOSIS)
+    t   time
+    a   parameter between LIVE -> LIVE (cell division)
+    b   parameter between LIVE -> DEAD
+    c   parameter between LIVE -> EARLY_APOPTOSIS
+    d   parameter between EARLY_APOPTOSIS -> DEATH
+    e   parameter between DEATH -> GONE
+    """
+    LIVE = np.exp((rates[0] - rates[1] - rates[2]) * t)
+
+    return [rates[1] * LIVE - rates[4] * ss[0] + rates[3] * ss[1],
+            rates[2] * LIVE - rates[3] * ss[1]]
+
+
+@jit
+def jacFun(state, t, rates):
+    return np.array([[-rates[4], rates[3]], [0.0, -rates[3]]])
 
 
 def simulate(params, t_interval):
@@ -26,36 +53,17 @@ def simulate(params, t_interval):
     """
     from scipy.integrate import odeint
 
-    def ODEfun(state, t, rates):
-        """
-        ODE function of cells living/dying/undergoing early apoptosis
+    def liveNum(t):
+        return np.exp(params[0] - params[1] - params[2] * t)
 
-        params:
-        state   the number of cells in a particular state
-                (LIVE, DEAD, EARLY_APOPTOSIS)
-        t   time
-        a   parameter between LIVE -> LIVE (cell division)
-        b   parameter between LIVE -> DEAD
-        c   parameter between LIVE -> EARLY_APOPTOSIS
-        d   parameter between EARLY_APOPTOSIS -> DEATH
-        e   parameter between DEATH -> GONE
-        """
-        LIVE, DEAD, EARLY_APOP = state[0], state[1], state[2]
+    out, infodict = odeint(ODEfun, [0.0, 0.0], t_interval, Dfun=jacFun,
+                           args=(params,), full_output=True, mxstep=5000)
 
-        outt = np.empty((3,))
-        outt[0] = (rates[0] - rates[1] - rates[2]) * LIVE
-        outt[1] = rates[1] * LIVE - rates[4] * DEAD + rates[3] * EARLY_APOP
-        outt[2] = rates[2] * LIVE - rates[3] * EARLY_APOP
+    # Calculate live cell numbers
+    live = np.expand_dims(liveNum(t_interval), axis=1)
 
-        return outt
-
-    out, infodict = odeint(ODEfun,
-                           [1.0, 0.0, 0.0],
-                           t_interval,
-                           args=(params,),
-                           full_output=True,
-                           printmessg=False,
-                           mxstep=5000)
+    # Add numbers to the output matrix
+    out = np.concatenate((live, out), axis=1)
 
     if infodict['message'] != 'Integration successful.':
         raise FloatingPointError(infodict['message'])
