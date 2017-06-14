@@ -57,16 +57,16 @@ def simulate(params, t_interval):
         return np.exp(params[0] - params[1] - params[2] * t)
 
     out, infodict = odeint(ODEfun, [0.0, 0.0], t_interval, Dfun=jacFun,
-                           args=(params,), full_output=True, mxstep=5000)
+                           args=(params,), full_output=True)
+
+    if infodict['message'] != 'Integration successful.':
+        raise FloatingPointError(infodict['message'])
 
     # Calculate live cell numbers
     live = np.expand_dims(liveNum(t_interval), axis=1)
 
     # Add numbers to the output matrix
     out = np.concatenate((live, out), axis=1)
-
-    if infodict['message'] != 'Integration successful.':
-        raise FloatingPointError(infodict['message'])
 
     return (t_interval, out)
 
@@ -146,7 +146,6 @@ class GrowthModel:
 
         # Match time range and interval to experimental time range and interval
         self.uniqueT = np.sort(np.unique(self.expTable[0]))
-        self.tRange = (np.min(self.uniqueT), np.max(self.uniqueT))
 
         # Parameter names
         self.pNames = ['a', 'b', 'c', 'd', 'e', 'conv_confl',
