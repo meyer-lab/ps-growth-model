@@ -4,6 +4,7 @@ from numba import jit
 np.seterr(over='raise')
 
 
+@jit(nopython=True, cache=True)
 def logpdf_sum(x, loc, scale):
     """
     Calculate the likelihood of an observation applied to a
@@ -14,30 +15,20 @@ def logpdf_sum(x, loc, scale):
     return prefactor + summand
 
 
-@jit
-def ODEfun(ss, t, rates):
-    """
-    ODE function of cells living/dying/undergoing early apoptosis
+@jit(nopython=True, cache=True)
+def preCalc(t, params):
+    # Growth rate
+    GR = params[0] - params[1] - params[2]
 
-    params:
-    ss   the number of cells in a particular state
-            (LIVE, DEAD, EARLY_APOPTOSIS)
-    t   time
-    a   parameter between LIVE -> LIVE (cell division)
-    b   parameter between LIVE -> DEAD
-    c   parameter between LIVE -> EARLY_APOPTOSIS
-    d   parameter between EARLY_APOPTOSIS -> DEATH
-    e   parameter between DEATH -> GONE
-    """
-    LIVE = np.exp((rates[0] - rates[1] - rates[2]) * t)
+    liveNum = np.exp(GR * t)
 
-    return [rates[1] * LIVE - rates[4] * ss[0] + rates[3] * ss[1],
-            rates[2] * LIVE - rates[3] * ss[1]]
+    # Number of early apoptosis cells at start is 0.0
+    Cone = -params[2] / (GR + params[3])
 
+    eapop = params[2] / (GR + params[3]) * np.exp(GR * t)
+    eapop = eapop + Cone * np.exp(-params[3] * t)
 
-@jit
-def jacFun(state, t, rates):
-    return np.array([[-rates[4], rates[3]], [0.0, -rates[3]]])
+    return (liveNum, eapop)
 
 
 def simulate(params, ts):
@@ -50,23 +41,35 @@ def simulate(params, ts):
     ts 	time interval over which to solve the function
 
     y0 	list with the initial values for each state
+
+    ODE function of cells living/dying/undergoing early apoptosis
+
+        params:
+        ss   the number of cells in a particular state
+                (LIVE, DEAD, EARLY_APOPTOSIS)
+        t   time
+        a   parameter between LIVE -> LIVE (cell division)
+        b   parameter between LIVE -> DEAD
+        c   parameter between LIVE -> EARLY_APOPTOSIS
+        d   parameter between EARLY_APOPTOSIS -> DEATH
+        e   parameter between DEATH -> GONE
     """
     from scipy.integrate import odeint
 
-    def liveNum(t):
-        return np.exp(params[0] - params[1] - params[2] * t)
+    def ODEfun(ss, t):
+        lnum, eap = preCalc(t, params)
 
-    out, infodict = odeint(ODEfun, [0.0, 0.0], ts, Dfun=jacFun,
-                           args=(params,), full_output=True)
+        return params[1] * lnum - params[4] * ss + params[3] * eap
 
-    if infodict['message'] != 'Integration successful.':
-        raise FloatingPointError(infodict['message'])
+    out = odeint(ODEfun, 0.0, ts)
 
-    # Calculate live cell numbers
-    live = np.expand_dims(liveNum(ts), axis=1)
+    # Calculate precalc cell numbers
+    lnum, eap = preCalc(ts, params)
 
     # Add numbers to the output matrix
-    out = np.concatenate((live, out), axis=1)
+    out = np.concatenate((np.expand_dims(lnum, axis=1),
+                          out,
+                          np.expand_dims(eap, axis=1)), axis=1)
 
     return out
 
