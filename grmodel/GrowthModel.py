@@ -40,14 +40,14 @@ def jacFun(state, t, rates):
     return np.array([[-rates[4], rates[3]], [0.0, -rates[3]]])
 
 
-def simulate(params, t_interval):
+def simulate(params, ts):
     """
     Solves the ODE function given a set of initial values (y0),
-    over a time interval (t_interval)
+    over a time interval (ts)
 
     params:
     params	list of parameters for model (a, b, c, d, e)
-    t_interval 	time interval over which to solve the function
+    ts 	time interval over which to solve the function
 
     y0 	list with the initial values for each state
     """
@@ -56,19 +56,19 @@ def simulate(params, t_interval):
     def liveNum(t):
         return np.exp(params[0] - params[1] - params[2] * t)
 
-    out, infodict = odeint(ODEfun, [0.0, 0.0], t_interval, Dfun=jacFun,
+    out, infodict = odeint(ODEfun, [0.0, 0.0], ts, Dfun=jacFun,
                            args=(params,), full_output=True)
 
     if infodict['message'] != 'Integration successful.':
         raise FloatingPointError(infodict['message'])
 
     # Calculate live cell numbers
-    live = np.expand_dims(liveNum(t_interval), axis=1)
+    live = np.expand_dims(liveNum(ts), axis=1)
 
     # Add numbers to the output matrix
     out = np.concatenate((live, out), axis=1)
 
-    return (t_interval, out)
+    return out
 
 
 class GrowthModel:
@@ -91,16 +91,13 @@ class GrowthModel:
 
         # Calculate model data table
         try:
-            model = simulate(paramV, self.uniqueT)
+            model = simulate(paramV, self.expTable[0])
         except FloatingPointError:
             return -np.inf
 
         # Scale model data table with conversion constants
-        confl_mod = paramV[-4] * np.interp(self.expTable[0],
-                                           model[0], np.sum(model[1], axis=1))
-        green_mod = paramV[-3] * np.interp(self.expTable[0],
-                                           model[0],
-                                           model[1][:, 1] + model[1][:, 2])
+        confl_mod = paramV[-4] * np.sum(model, axis=1)
+        green_mod = paramV[-3] * model[:, 1] + model[:, 2]
 
         # Run likelihood function with modeled and experiemental data, with
         # standard deviation given by last two entries in paramV
@@ -144,8 +141,11 @@ class GrowthModel:
                          data_confl.iloc[:, self.selCol].as_matrix(),
                          data_green.iloc[:, self.selCol].as_matrix()]
 
-        # Match time range and interval to experimental time range and interval
-        self.uniqueT = np.sort(np.unique(self.expTable[0]))
+        # Sort the measurements by time
+        IDXsort = np.argsort(self.expTable[0])
+        self.expTable[0] = self.expTable[0][IDXsort]
+        self.expTable[1] = self.expTable[1][IDXsort]
+        self.expTable[2] = self.expTable[2][IDXsort]
 
         # Parameter names
         self.pNames = ['a', 'b', 'c', 'd', 'e', 'conv_confl',

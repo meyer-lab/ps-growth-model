@@ -22,10 +22,7 @@ class TestgrMethods(unittest.TestCase):
         output = simulate(params, t_interval)
 
         # Test that we get back time and output
-        self.assertEqual(len(output), 2)
-
-        # test to make sure each column is correct length
-        self.assertEqual(len(output[0]), len(t_interval))
+        self.assertEqual(len(output), 2000)
 
 
 if __name__ == '__main__':
