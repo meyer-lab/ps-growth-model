@@ -105,10 +105,18 @@ class GrowthModel:
                                    loc=confl_mod, scale=paramV[-2]))
 
             if 'apop' in self.expTable.keys():
-                green_mod = paramV[-3] * model[:, 1] + model[:, 2]
+                green_mod = paramV[-3] * (model[:, 1] + model[:, 2])
             
                 logSqrErr += np.sum(logpdf_sum(self.expTable['apop'],
                                                loc=green_mod, scale=paramV[-1]))
+
+            if 'dna' in self.expTable.keys():
+                dna_mod = paramV[-3] * model[:, 1]
+            
+                logSqrErr += np.sum(logpdf_sum(self.expTable['dna'],
+                                               loc=dna_mod, scale=paramV[-1]))
+
+            # TODO: Add conversion and scale for DNA
 
             # Specify preference for the conversion constants to be similar
             logSqrErr += logpdf_sum(np.log(paramV[-3] / paramV[-4]), 0.0, 0.1)
@@ -124,12 +132,12 @@ class GrowthModel:
 
         # If no filename is given use a default
         if loadFile is None:
-            loadFile = "091916_H1299_confluence"
+            loadFile = "030317-2_H1299"
 
         # Property list
-        properties = {'confl':'_phase.csv',
-                      'apop':'_green.csv',
-                      'dna':'_red.csv'}
+        properties = {'confl':'_confluence_phase.csv',
+                      'apop':'_confluence_green.csv',
+                      'dna':'_confluence_red.csv'}
 
         # Find path for csv files in the repository.
         pathcsv = join(dirname(abspath(__file__)), 'data/' + loadFile)
@@ -140,18 +148,30 @@ class GrowthModel:
         # Get dict started
         self.expTable = dict()
 
+        # Have we set the time vector
+        timeSet = False
+
         # Read in both observation files. Return as formatted pandas tables.
         # Data tables to be kept within class.
         for key, value in properties.items():
-            # Read input file
             try:
+                # Read input file
                 data = pandas.read_csv(pathcsv + value)
 
                 # Write data into array
                 self.expTable[key] = data.iloc[:, self.selCol].as_matrix()
 
-                # Time should be the same in every file
-                self.timeV = data.iloc[:, 1].as_matrix()
+                if timeSet is True:
+                    # Compare to existing vector
+                    diff = np.max(self.timeV - data.iloc[:, 1].as_matrix())
+
+                    if diff > 0.1:
+                        raise ValueError("Time vectors of different files don't seem to match up.")
+                else:
+                    # Set the time vector
+                    self.timeV = data.iloc[:, 1].as_matrix()
+                    timeSet = True
+
             except FileNotFoundError:
                 continue
 
