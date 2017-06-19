@@ -31,6 +31,13 @@ def preCalc(t, params):
     return (liveNum, eapop)
 
 
+@jit("f8[:](f8[:], f8, f8[:])", nopython=True, cache=True)
+def ODEfun(ss, t, params):
+    lnum, eap = preCalc(t, params)
+
+    return params[1] * lnum - params[4] * ss + params[3] * eap
+
+
 def simulate(params, ts):
     """
     Solves the ODE function given a set of initial values (y0),
@@ -56,12 +63,7 @@ def simulate(params, ts):
     """
     from scipy.integrate import odeint
 
-    def ODEfun(ss, t):
-        lnum, eap = preCalc(t, params)
-
-        return params[1] * lnum - params[4] * ss + params[3] * eap
-
-    out = odeint(ODEfun, 0.0, ts)
+    out = odeint(ODEfun, 0.0, ts, args=(params,))
 
     # Calculate precalc cell numbers
     lnum, eap = preCalc(ts, params)
