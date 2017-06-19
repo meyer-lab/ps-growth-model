@@ -124,42 +124,56 @@ class GrowthModel:
 
         # If no filename is given use a default
         if loadFile is None:
-            loadFile = "091916_H1299_cytotoxic_confluence"
+            loadFile = "091916_H1299_confluence"
+
+        # Property list
+        properties = {'confl':'_phase.csv',
+                      'apop':'_green.csv',
+                      'dna':'_red.csv'}
 
         # Find path for csv files in the repository.
         pathcsv = join(dirname(abspath(__file__)), 'data/' + loadFile)
 
-        # Read in both observation files. Return as formatted pandas tables.
-        # Data tables to be kept within class.
-        data_confl = pandas.read_csv(pathcsv + '_confl.csv',
-                                     infer_datetime_format=True)
-        data_green = pandas.read_csv(pathcsv + '_green.csv',
-                                     infer_datetime_format=True)
-
         # Pull out selected column data
         self.selCol = selCol
 
-        # Make experimental data table - Time, Confl, Green
-        self.expTable = [data_confl.iloc[:, 1].as_matrix(),
-                         data_confl.iloc[:, self.selCol].as_matrix(),
-                         data_green.iloc[:, self.selCol].as_matrix()]
+        # Get dict started
+        self.expTable = dict()
+
+        # Read in both observation files. Return as formatted pandas tables.
+        # Data tables to be kept within class.
+        for key, value in properties.items():
+            # Read input file
+            try:
+                data = pandas.read_csv(pathcsv + value)
+
+                # Write data into array
+                self.expTable[key] = data.iloc[:, self.selCol].as_matrix()
+
+                # Time should be the same in every file
+                self.timeV = data.iloc[:, 1].as_matrix()
+            except FileNotFoundError:
+                continue
 
         # Sort the measurements by time
-        IDXsort = np.argsort(self.expTable[0])
-        self.expTable[0] = self.expTable[0][IDXsort]
-        self.expTable[1] = self.expTable[1][IDXsort]
-        self.expTable[2] = self.expTable[2][IDXsort]
+        IDXsort = np.argsort(self.timeV)
+        self.timeV = self.timeV[IDXsort]
+
+        # Apply sort to the other data
+        for key, value in self.expTable.items():
+            self.expTable[key] = value[IDXsort]
 
         # Parameter names
         self.pNames = ['a', 'b', 'c', 'd', 'e', 'conv_confl',
                        'conv_green', 'err_confl', 'err_green']
 
         # Specify lower bounds on parameters (log space)
-        self.lb = np.full(len(self.pNames), -6.0, dtype=np.float64)
+        self.lb = np.full(len(self.pNames), -6.0)
         self.lb[-4:-2] = -2.0
+        self.lb[0] = -5.0
 
         # Specify upper bounds on parameters (log space)
-        self.ub = np.full(len(self.pNames), 0.0, dtype=np.float64)
+        self.ub = np.full(len(self.pNames), 0.0)
         self.ub[-4:-2] = 4.0
 
         # Set number of parameters

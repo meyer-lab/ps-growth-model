@@ -16,7 +16,7 @@ class TestgrMethods(unittest.TestCase):
         """ TODO: describe test """
         from ..GrowthModel import simulate
 
-        params = np.array([0.0009, -0.016, 0.01, 0.008, 0.0007])
+        params = np.array([0.009, 0.016, 0.01, 0.008, 0.0007])
         t_interval = np.arange(0, 10, .005)
 
         output = simulate(params, t_interval)
