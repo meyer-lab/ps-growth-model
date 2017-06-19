@@ -1,7 +1,7 @@
 import numpy as np
 from numba import jit
 
-np.seterr(over='raise')
+np.seterr(over='raise', divide='raise')
 
 
 @jit(nopython=True, cache=True)
@@ -91,24 +91,24 @@ class GrowthModel:
             return -np.inf
 
         paramV = np.power(10, paramV.copy())
-
-        # Calculate model data table
+        
         try:
-            model = simulate(paramV, self.expTable[0])
-        except FloatingPointError:
-            return -np.inf
+            # Calculate model data table
+            model = simulate(paramV, self.timeV)
 
-        # Scale model data table with conversion constants
-        confl_mod = paramV[-4] * np.sum(model, axis=1)
-        green_mod = paramV[-3] * model[:, 1] + model[:, 2]
+            # Run likelihood function with modeled and experiemental data, with
+            # standard deviation given by last two entries in paramV
+            if 'confl' in self.expTable.keys():
+                confl_mod = paramV[-4] * np.sum(model, axis=1)
 
-        # Run likelihood function with modeled and experiemental data, with
-        # standard deviation given by last two entries in paramV
-        try:
-            logSqrErr = np.sum(logpdf_sum(self.expTable[1],
-                                          loc=confl_mod, scale=paramV[-2]))
-            logSqrErr += np.sum(logpdf_sum(self.expTable[2],
-                                           loc=green_mod, scale=paramV[-1]))
+                logSqrErr = np.sum(logpdf_sum(self.expTable['confl'],
+                                   loc=confl_mod, scale=paramV[-2]))
+
+            if 'apop' in self.expTable.keys():
+                green_mod = paramV[-3] * model[:, 1] + model[:, 2]
+            
+                logSqrErr += np.sum(logpdf_sum(self.expTable['apop'],
+                                               loc=green_mod, scale=paramV[-1]))
 
             # Specify preference for the conversion constants to be similar
             logSqrErr += logpdf_sum(np.log(paramV[-3] / paramV[-4]), 0.0, 0.1)
