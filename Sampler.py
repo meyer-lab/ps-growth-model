@@ -3,9 +3,13 @@
 import os
 import numpy as np
 from tqdm import tqdm
+from emcee.interruptible_pool import InterruptiblePool
 from grmodel.fitFuncs import getUniformStart, saveSampling
 
 filename = './grmodel/data/first_chain.h5'
+
+# Setup the pool so we don't have to restart it each time
+pool = InterruptiblePool()
 
 
 def samplerRun(colI):
@@ -24,7 +28,7 @@ def samplerRun(colI):
     p0, ndims, nwalkers = getUniformStart(grM)
 
     # Set up sampler
-    sampler = EnsembleSampler(nwalkers, ndims, grM.logL, threads=16)
+    sampler = EnsembleSampler(nwalkers, ndims, grM.logL, pool=pool)
 
     LLbest = -np.inf
 
@@ -39,13 +43,12 @@ def samplerRun(colI):
 
     return (sampler, grM)
 
-
+# Remove the sampling file if it already exists
 if os.path.exists(filename):
     os.remove(filename)
 
 # Make iterable of columns
-# FIX: Only sampling first few
-cols = list(range(3, 6))
+cols = list(range(2, 14))
 
 for result in map(samplerRun, cols):
     saveSampling(filename, result[1], result[0])

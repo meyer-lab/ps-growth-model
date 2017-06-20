@@ -24,7 +24,7 @@ def geweke_single_chain(chain1, chain2=None):
     return ttest_ind(chain1, chain2)[1]
 
 
-def read_dataset(column, filename=None):
+def read_dataset(column, filename=None, trim=True):
     ''' Read the specified column from the shared test file. '''
     import os
     import h5py
@@ -43,9 +43,17 @@ def read_dataset(column, filename=None):
     f.close()
 
     # Read in sampling chain
-    dset = pd.read_hdf(filename, key='column' + str(classM.selCol) + '/chain')
+    df = pd.read_hdf(filename, key='column' + str(classM.selCol) + '/chain')
 
-    return (classM, dset)
+    # Add the column this came from
+    df['Col'] = column
+    df['Condition'] = classM.condName
+
+    # Remove unlikely points if chosen
+    if trim:
+        df = df.loc[df['LL'] > (np.max(df['LL']) - 10), :]
+
+    return (classM, df)
 
 
 def growth_rate_plot(column):
@@ -134,29 +142,28 @@ def sim_plot(column):
 
 
 def hist_plot():
+    """
+    Display histograms of parameter values across conditions
+    """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    pdsetA = read_dataset(3)[1]
-    pdsetA['Col'] = 3
-    _, pdsetB = read_dataset(4)
-    pdsetB['Col'] = 4
-    _, pdsetC = read_dataset(5)
-    pdsetC['Col'] = 5
+    df = pd.concat(map(lambda x: read_dataset(x)[1], [2, 3, 4, 6, 8, 10, 12]))
 
-    pdset = pd.concat([pdsetA, pdsetB, pdsetC])
+    print(df.columns)
 
-    pdset = pdset.loc[pdset['LL'] > -400, :].sample(1000)
-
-    pdset['bc'] = pdset['b'] + pdset['c']
-
-    print(pdset.columns)
+    # Reduce the number of data points randomly
+    df = df.sample(1000)
     
-    
-    sns.pairplot(pdset, hue='Col', vars=['a', 'bc'])
+    # Main plot organization
+    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['a', 'b', 'c', 'd', 'LL', 'conv_confl', 'conv_green'],
+                 plot_kws=dict(s=5, linewidth=0),
+                 diag_kws=dict(shade=True))
+
+    # Shuffle positions to show legend
+    plt.tight_layout(w_pad=3)
+
+    # Draw plot
     plt.show()
-    
-
-
 
 
 def plotSimulation(self, paramV):

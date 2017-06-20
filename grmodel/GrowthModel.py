@@ -134,7 +134,7 @@ class GrowthModel:
 
         # If no filename is given use a default
         if loadFile is None:
-            loadFile = "030317-2_H1299"
+            loadFile = "021817_H1299"
 
         # Property list
         properties = {'confl':'_confluence_phase.csv',
@@ -150,32 +150,35 @@ class GrowthModel:
         # Get dict started
         self.expTable = dict()
 
-        # Have we set the time vector
+        # Have we set the time vector and condition name
         timeSet = False
 
         # Read in both observation files. Return as formatted pandas tables.
         # Data tables to be kept within class.
         for key, value in properties.items():
+            # Read input file
             try:
-                # Read input file
                 data = pandas.read_csv(pathcsv + value)
-
-                # Write data into array
-                self.expTable[key] = data.iloc[:, self.selCol].as_matrix()
-
-                if timeSet is True:
-                    # Compare to existing vector
-                    diff = np.max(self.timeV - data.iloc[:, 1].as_matrix())
-
-                    if diff > 0.1:
-                        raise ValueError("Time vectors of different files don't seem to match up.")
-                else:
-                    # Set the time vector
-                    self.timeV = data.iloc[:, 1].as_matrix()
-                    timeSet = True
-
             except FileNotFoundError:
                 continue
+
+            # Write data into array
+            self.expTable[key] = data.iloc[:, self.selCol].as_matrix()
+
+            if timeSet is True:
+                # Compare to existing vector
+                diff = np.max(self.timeV - data.iloc[:, 1].as_matrix())
+
+                if diff > 0.1:
+                    raise ValueError("Time vectors of different files don't seem to match up.")
+            else:
+                # Set the time vector
+                self.timeV = data.iloc[:, 1].as_matrix()
+
+                # Set the name of the condition we're considering
+                self.condName = data.columns.values[self.selCol]
+
+                timeSet = True
 
         # Sort the measurements by time
         IDXsort = np.argsort(self.timeV)
@@ -196,6 +199,7 @@ class GrowthModel:
 
         # Specify upper bounds on parameters (log space)
         self.ub = np.full(len(self.pNames), 0.0)
+        self.ub[4] = -3.0
         self.ub[-4:-2] = 4.0
 
         # Set number of parameters

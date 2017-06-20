@@ -1,2 +1,5 @@
 numpy
 scipy
+numba
+tables
+pandas
