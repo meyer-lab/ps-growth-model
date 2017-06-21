@@ -147,7 +147,7 @@ def hist_plot():
     """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    df = pd.concat(map(lambda x: read_dataset(x)[1], [2, 3, 4, 6, 8, 10, 12]))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], [2, 3, 4, 5]))
 
     print(df.columns)
 
@@ -155,7 +155,7 @@ def hist_plot():
     df = df.sample(1000)
     
     # Main plot organization
-    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['a', 'b', 'c', 'd', 'LL', 'conv_confl', 'conv_green'],
+    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['a', 'b', 'c', 'd', 'LL', 'conv'],
                  plot_kws=dict(s=5, linewidth=0),
                  diag_kws=dict(shade=True))
 

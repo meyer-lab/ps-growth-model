@@ -31,11 +31,11 @@ def preCalc(t, params):
     return (liveNum, eapop)
 
 
-@jit("f8[:](f8[:], f8, f8[:])", nopython=True, cache=True)
+@jit("f8(f8[:], f8, f8[:])", nopython=True, cache=True)
 def ODEfun(ss, t, params):
     lnum, eap = preCalc(t, params)
 
-    return params[1] * lnum - params[4] * ss + params[3] * eap
+    return params[1] * lnum + params[3] * eap
 
 
 def simulate(params, ts):
@@ -93,7 +93,7 @@ class GrowthModel:
             return -np.inf
 
         paramV = np.power(10, paramV.copy())
-        
+
         try:
             # Calculate model data table
             model = simulate(paramV, self.timeV)
@@ -101,27 +101,24 @@ class GrowthModel:
             # Run likelihood function with modeled and experiemental data, with
             # standard deviation given by last two entries in paramV
             if 'confl' in self.expTable.keys():
-                confl_mod = paramV[-4] * np.sum(model, axis=1)
+                confl_mod = paramV[-3] * np.sum(model, axis=1)
 
                 logSqrErr = np.sum(logpdf_sum(self.expTable['confl'],
                                    loc=confl_mod, scale=paramV[-2]))
 
             if 'apop' in self.expTable.keys():
                 green_mod = paramV[-3] * (model[:, 1] + model[:, 2])
-            
+
                 logSqrErr += np.sum(logpdf_sum(self.expTable['apop'],
                                                loc=green_mod, scale=paramV[-1]))
 
             if 'dna' in self.expTable.keys():
                 dna_mod = paramV[-3] * model[:, 1]
-            
+
                 logSqrErr += np.sum(logpdf_sum(self.expTable['dna'],
                                                loc=dna_mod, scale=paramV[-1]))
 
-            # TODO: Add conversion and scale for DNA
-
-            # Specify preference for the conversion constants to be similar
-            logSqrErr += logpdf_sum(np.log(paramV[-3] / paramV[-4]), 0.0, 0.1)
+            # TODO: Add scale for DNA
         except FloatingPointError:
             return -np.inf
 
@@ -134,12 +131,12 @@ class GrowthModel:
 
         # If no filename is given use a default
         if loadFile is None:
-            loadFile = "021817_H1299"
+            loadFile = "030317-2_H1299"
 
         # Property list
-        properties = {'confl':'_confluence_phase.csv',
-                      'apop':'_confluence_green.csv',
-                      'dna':'_confluence_red.csv'}
+        properties = {'confl': '_confluence_phase.csv',
+                      'apop': '_confluence_green.csv',
+                      'dna': '_confluence_red.csv'}
 
         # Find path for csv files in the repository.
         pathcsv = join(dirname(abspath(__file__)), 'data/' + loadFile)
@@ -160,6 +157,7 @@ class GrowthModel:
             try:
                 data = pandas.read_csv(pathcsv + value)
             except FileNotFoundError:
+                print("Didn't find a file for key: " + key)
                 continue
 
             # Write data into array
@@ -189,8 +187,7 @@ class GrowthModel:
             self.expTable[key] = value[IDXsort]
 
         # Parameter names
-        self.pNames = ['a', 'b', 'c', 'd', 'e', 'conv_confl',
-                       'conv_green', 'err_confl', 'err_green']
+        self.pNames = ['a', 'b', 'c', 'd', 'conv', 'err_confl', 'err_green']
 
         # Specify lower bounds on parameters (log space)
         self.lb = np.full(len(self.pNames), -6.0)
@@ -199,7 +196,6 @@ class GrowthModel:
 
         # Specify upper bounds on parameters (log space)
         self.ub = np.full(len(self.pNames), 0.0)
-        self.ub[4] = -3.0
         self.ub[-4:-2] = 4.0
 
         # Set number of parameters

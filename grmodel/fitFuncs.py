@@ -4,7 +4,7 @@ import numpy as np
 def getUniformStart(StoneM):
     """ Set up parameters for parallel-tempered Ensemble Sampler """
 
-    ndims, nwalkers = StoneM.Nparams, 2 * StoneM.Nparams + 2
+    ndims, nwalkers = StoneM.Nparams, 4 * StoneM.Nparams
 
     p0 = np.random.uniform(low=0, high=1, size=(nwalkers, ndims))
 

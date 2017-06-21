@@ -43,12 +43,13 @@ def samplerRun(colI):
 
     return (sampler, grM)
 
+
 # Remove the sampling file if it already exists
 if os.path.exists(filename):
     os.remove(filename)
 
 # Make iterable of columns
-cols = list(range(2, 14))
+cols = list(range(2, 6))
 
 for result in map(samplerRun, cols):
     saveSampling(filename, result[1], result[0])
