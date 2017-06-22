@@ -16,27 +16,6 @@ def logpdf_sum(x, loc, scale):
 
 
 @jit(nopython=True, cache=True)
-def preCalc(t, params):
-    # Growth rate
-    GR = params[0] - params[1] - params[2]
-
-    liveNum = np.exp(GR * t)
-
-    # Number of early apoptosis cells at start is 0.0
-    Cone = -params[2] / (GR + params[3])
-
-    eapop = params[2] / (GR + params[3]) * np.exp(GR * t)
-    eapop = eapop + Cone * np.exp(-params[3] * t)
-    
-    dead = (params[1] / GR * np.exp(GR*t) +
-            params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * t) +
-            params[2] / (GR + params[3]) * np.exp(-params[3] * t) -
-            params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
-            params[2] / (GR + params[3]))
-
-    return (liveNum, dead, eapop)
-
-
 def simulate(params, ts):
     """
     Solves the ODE function given a set of initial values (y0),
@@ -60,9 +39,21 @@ def simulate(params, ts):
         d   parameter between EARLY_APOPTOSIS -> DEATH
         e   parameter between DEATH -> GONE
     """
+    GR = params[0] - params[1] - params[2]
+
+    lnum = np.exp(GR * ts)
+
+    # Number of early apoptosis cells at start is 0.0
+    Cone = -params[2] / (GR + params[3])
+
+    eap = params[2] / (GR + params[3]) * np.exp(GR * ts)
+    eap = eap + Cone * np.exp(-params[3] * ts)
     
-    # Calculate precalc cell numbers
-    lnum, dead, eap = preCalc(ts, params)
+    dead = (params[1] / GR * np.exp(GR*ts) +
+            params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * ts) +
+            params[2] / (GR + params[3]) * np.exp(-params[3] * ts) -
+            params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
+            params[2] / (GR + params[3]))
 
     # Add numbers to the output matrix
     out = np.concatenate((np.expand_dims(lnum, axis=1),
