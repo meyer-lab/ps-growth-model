@@ -1,15 +1,11 @@
 #! /usr/bin/env python3
 
 import os
-import numpy as np
+from multiprocessing import Pool
 from tqdm import tqdm
-from emcee.interruptible_pool import InterruptiblePool
 from grmodel.fitFuncs import getUniformStart, saveSampling
 
 filename = './grmodel/data/first_chain.h5'
-
-# Setup the pool so we don't have to restart it each time
-pool = InterruptiblePool()
 
 
 def samplerRun(colI):
@@ -28,18 +24,11 @@ def samplerRun(colI):
     p0, ndims, nwalkers = getUniformStart(grM)
 
     # Set up sampler
-    sampler = EnsembleSampler(nwalkers, ndims, grM.logL, pool=pool)
-
-    LLbest = -np.inf
-
-    qq = tqdm(total=niters)
+    sampler = EnsembleSampler(nwalkers, ndims, grM.logL)
 
     # Run the mcmc walk
     for _, lnn, _ in sampler.sample(p0, iterations=niters, thin=thin):
-        LLbest = np.maximum(LLbest, np.amax(lnn))
-
-        qq.set_description('Col: ' + str(colI) + ' LL: ' + str(LLbest))
-        qq.update()
+        continue
 
     return (sampler, grM)
 
@@ -49,7 +38,11 @@ if os.path.exists(filename):
     os.remove(filename)
 
 # Make iterable of columns
-cols = list(range(2, 6))
+cols = list(range(2, 16))
 
-for result in map(samplerRun, cols):
+# Setup the progress bar
+qq = tqdm(total=len(cols))
+
+for result in Pool().map(samplerRun, cols):
+    qq.update()
     saveSampling(filename, result[1], result[0])
