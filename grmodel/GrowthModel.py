@@ -27,15 +27,14 @@ def preCalc(t, params):
 
     eapop = params[2] / (GR + params[3]) * np.exp(GR * t)
     eapop = eapop + Cone * np.exp(-params[3] * t)
+    
+    dead = (params[1] / GR * np.exp(GR*t) +
+            params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * t) +
+            params[2] / (GR + params[3]) * np.exp(-params[3] * t) -
+            params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
+            params[2] / (GR + params[3]))
 
-    return (liveNum, eapop)
-
-
-@jit("f8(f8[:], f8, f8[:])", nopython=True, cache=True)
-def ODEfun(ss, t, params):
-    lnum, eap = preCalc(t, params)
-
-    return params[1] * lnum + params[3] * eap
+    return (liveNum, dead, eapop)
 
 
 def simulate(params, ts):
@@ -61,16 +60,13 @@ def simulate(params, ts):
         d   parameter between EARLY_APOPTOSIS -> DEATH
         e   parameter between DEATH -> GONE
     """
-    from scipy.integrate import odeint
-
-    out = odeint(ODEfun, 0.0, ts, args=(params,))
-
+    
     # Calculate precalc cell numbers
-    lnum, eap = preCalc(ts, params)
+    lnum, dead, eap = preCalc(ts, params)
 
     # Add numbers to the output matrix
     out = np.concatenate((np.expand_dims(lnum, axis=1),
-                          out,
+                          np.expand_dims(dead, axis=1),
                           np.expand_dims(eap, axis=1)), axis=1)
 
     return out
@@ -103,26 +99,26 @@ class GrowthModel:
             if 'confl' in self.expTable.keys():
                 confl_mod = paramV[-3] * np.sum(model, axis=1)
 
-                logSqrErr = np.sum(logpdf_sum(self.expTable['confl'],
+                log_likelihood = np.sum(logpdf_sum(self.expTable['confl'],
                                    loc=confl_mod, scale=paramV[-2]))
 
             if 'apop' in self.expTable.keys():
                 green_mod = paramV[-3] * (model[:, 1] + model[:, 2])
 
-                logSqrErr += np.sum(logpdf_sum(self.expTable['apop'],
+                log_likelihood += np.sum(logpdf_sum(self.expTable['apop'],
                                                loc=green_mod, scale=paramV[-1]))
 
             if 'dna' in self.expTable.keys():
                 dna_mod = paramV[-3] * model[:, 1]
 
-                logSqrErr += np.sum(logpdf_sum(self.expTable['dna'],
+                log_likelihood += np.sum(logpdf_sum(self.expTable['dna'],
                                                loc=dna_mod, scale=paramV[-1]))
 
             # TODO: Add scale for DNA
         except FloatingPointError:
             return -np.inf
 
-        return logSqrErr
+        return log_likelihood
 
     def __init__(self, selCol, loadFile=None):
         """ Initialize class. """
@@ -191,12 +187,12 @@ class GrowthModel:
 
         # Specify lower bounds on parameters (log space)
         self.lb = np.full(len(self.pNames), -6.0)
-        self.lb[-4:-2] = -2.0
+        self.lb[-3] = -2.0
         self.lb[0] = -5.0
 
         # Specify upper bounds on parameters (log space)
         self.ub = np.full(len(self.pNames), 0.0)
-        self.ub[-4:-2] = 4.0
+        self.ub[-3] = 4.0
 
         # Set number of parameters
         self.Nparams = len(self.ub)
