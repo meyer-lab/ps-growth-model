@@ -92,7 +92,7 @@ def growth_rate_plot(column):
 
 
 def sim_plot(column):
-
+    from .GrowthModel import simulate
     # Read in dataset to Pandas data frame
     classM, pdset = read_dataset(column)
 
@@ -108,7 +108,7 @@ def sim_plot(column):
     raise
 
     # Time interval to solve over
-    t_interval = np.arange(0, np.max(classM.uniqueT), 0.2)
+    t_interval = np.arange(0, np.max(classM.timeV), 0.2)
 
     # Evaluate each of the growth rates over the time interval
     calcset = np.full((pdset.shape[0], len(t_interval)), np.inf)
@@ -117,12 +117,12 @@ def sim_plot(column):
     vv = 0
 
     for row in pdset.iterrows():
-        mparm = np.power(10, np.copy(row[1].as_matrix()[0:-4]))
-
+        mparm = np.power(10, np.copy(row[1].as_matrix()[0:4]))
+        
         try:
-            simret = classM.simulate(mparm, t_interval)[1]
+            simret = simulate(list(mparm), t_interval)[1]
 
-            calcset[varr, :] = np.sum(simret, axis=1) * np.power(10, row[1]['conv_confl'])
+            calcset[varr, :] = np.sum(simret) * np.power(10, row[1]['conv'])
 
             varr = varr + 1
         except:
@@ -136,8 +136,8 @@ def sim_plot(column):
     plt.plot(t_interval, qqq[2, :])
     plt.fill_between(t_interval, qqq[1, :], qqq[3, :], alpha=0.5)
     plt.fill_between(t_interval, qqq[0, :], qqq[4, :], alpha=0.2)
-    plt.scatter(classM.expTable[0], classM.expTable[1])
-    plt.scatter(classM.expTable[0], classM.expTable[2])
+    plt.scatter(classM.expTable['confl'], classM.expTable['apop'])
+    plt.scatter(classM.expTable['confl'], classM.expTable['dna'])
     plt.show()
 
 
