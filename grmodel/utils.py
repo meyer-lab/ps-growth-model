@@ -120,9 +120,9 @@ def sim_plot(column):
         mparm = np.power(10, np.copy(row[1].as_matrix()[0:4]))
         
         try:
-            simret = simulate(list(mparm), t_interval)[1]
+            simret = simulate(list(mparm), t_interval)
 
-            calcset[varr, :] = np.sum(simret) * np.power(10, row[1]['conv'])
+            calcset[varr, :] = np.sum(simret, axis = 1) * np.power(10, row[1]['conv'])
 
             varr = varr + 1
         except:
@@ -136,8 +136,8 @@ def sim_plot(column):
     plt.plot(t_interval, qqq[2, :])
     plt.fill_between(t_interval, qqq[1, :], qqq[3, :], alpha=0.5)
     plt.fill_between(t_interval, qqq[0, :], qqq[4, :], alpha=0.2)
-    plt.scatter(classM.expTable['confl'], classM.expTable['apop'])
-    plt.scatter(classM.expTable['confl'], classM.expTable['dna'])
+    plt.scatter(classM.timeV, classM.expTable['apop'])
+    plt.scatter(classM.timeV, classM.expTable['dna'])
     plt.show()
 
 
@@ -166,6 +166,48 @@ def hist_plot():
     plt.show()
 
 
+def dose_response_plot():
+    # Read in dataframe and reduce sample
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
+    print(df.columns)
+    df.sample(2000)
+    
+    # Set up Dox mean and and confidence interval
+    dfDox = df[df['Condition'].str.contains("Dox")]
+    dfDox['Dox-dose'] = dfDox['Condition'].str.split(' ').str[1]
+    dfDox['Dox-dose'] = dfDox['Dox-dose'].convert_objects(convert_numeric=True)
+
+    dfDoxmean = dfDox.groupby(['Dox-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].mean().reset_index()
+    dfDoxerr1 = dfDoxmean-dfDox.groupby(['Dox-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.05).reset_index()
+    dfDoxerr2 = dfDox.groupby(['Dox-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.95).reset_index()-dfDoxmean
+    
+    # Set up NVB mean and and confidence interval
+    dfNVB = df[df['Condition'].str.contains("NVB")]
+    dfNVB['NVB-dose'] = dfNVB['Condition'].str.split(' ').str[1]
+    dfNVB['NVB-dose'] = dfNVB['NVB-dose'].convert_objects(convert_numeric=True)
+
+    dfNVBmean = dfNVB.groupby(['NVB-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].mean().reset_index()
+    dfNVBerr1 = dfNVBmean-dfNVB.groupby(['NVB-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.05).reset_index()
+    dfNVBerr2 = dfNVB.groupby(['NVB-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.95).reset_index()-dfNVBmean
+    params = ['a', 'b', 'c', 'd', 'LL', 'conv']
+
+    # Plot params vs. drug dose
+    f, axis = plt.subplots(2,6,figsize=(18,6), sharex=False, sharey=False)
+    for i in range(len(params)):
+        axis[0,i].errorbar(dfDoxmean['Dox-dose'],dfDoxmean[params[i]],
+                           [dfDoxerr1[params[i]],dfDoxerr2[params[i]]],
+                           fmt='.',capsize=5,capthick=1)
+        axis[0,i].set_xlabel('Dox-dose')
+        axis[0,i].set_ylabel(params[i])
+        
+        axis[1,i].errorbar(dfNVBmean['NVB-dose'],dfNVBmean[params[i]],
+                           [dfNVBerr1[params[i]],dfNVBerr2[params[i]]],
+                           fmt='.',capsize=5,capthick=1)
+        axis[1,i].set_xlabel('NVB-dose')
+        axis[1,i].set_ylabel(params[i])
+    plt.tight_layout()
+    plt.show()
+    
 def plotSimulation(self, paramV):
     """
     Plots the results from a simulation.
