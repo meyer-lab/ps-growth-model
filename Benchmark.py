@@ -11,4 +11,4 @@ grM = GrowthModel.GrowthModel(4)
 p0, ndims, nwalkers = getUniformStart(grM)
 
 # Set up sampler and sample
-EnsembleSampler(nwalkers, ndims, grM.logL).run_mcmc(p0, N=1E3)
+EnsembleSampler(nwalkers, ndims, grM.logL).run_mcmc(p0, N=1E4)
