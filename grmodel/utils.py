@@ -166,47 +166,43 @@ def hist_plot():
     plt.show()
 
 
-def dose_response_plot():
+def dose_response_plot(drugs):
+    # Takes in a list of drugs
+    # Makes 1*num(parameters) plots for each drug
     # Read in dataframe and reduce sample
     df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
     print(df.columns)
     df.sample(2000)
-    
-    # Set up Dox mean and and confidence interval
-    dfDox = df[df['Condition'].str.contains("Dox")]
-    dfDox['Dox-dose'] = dfDox['Condition'].str.split(' ').str[1]
-    dfDox['Dox-dose'] = dfDox['Dox-dose'].convert_objects(convert_numeric=True)
 
-    dfDoxmean = dfDox.groupby(['Dox-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].mean().reset_index()
-    dfDoxerr1 = dfDoxmean-dfDox.groupby(['Dox-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.05).reset_index()
-    dfDoxerr2 = dfDox.groupby(['Dox-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.95).reset_index()-dfDoxmean
-    
-    # Set up NVB mean and and confidence interval
-    dfNVB = df[df['Condition'].str.contains("NVB")]
-    dfNVB['NVB-dose'] = dfNVB['Condition'].str.split(' ').str[1]
-    dfNVB['NVB-dose'] = dfNVB['NVB-dose'].convert_objects(convert_numeric=True)
+    # Make plots for each drug
+    for drug in drugs:
+        # Set up table for the drug
+        dfd = df[df['Condition'].str.contains(drug+' ')]
+        # Break if drug not in dataset
+        if dfd.empty:
+            print("Error: Drug not in dataset")
+            break 
 
-    dfNVBmean = dfNVB.groupby(['NVB-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].mean().reset_index()
-    dfNVBerr1 = dfNVBmean-dfNVB.groupby(['NVB-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.05).reset_index()
-    dfNVBerr2 = dfNVB.groupby(['NVB-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.95).reset_index()-dfNVBmean
-    params = ['a', 'b', 'c', 'd', 'LL', 'conv']
+        # Set up mean and confidence interval
+        dfd[drug+'-dose'] = dfd['Condition'].str.split(' ').str[1]
+        dfd[drug+'-dose'] = dfd[drug+'-dose'].convert_objects(convert_numeric=True)
 
-    # Plot params vs. drug dose
-    f, axis = plt.subplots(2,6,figsize=(18,6), sharex=False, sharey=False)
-    for i in range(len(params)):
-        axis[0,i].errorbar(dfDoxmean['Dox-dose'],dfDoxmean[params[i]],
-                           [dfDoxerr1[params[i]],dfDoxerr2[params[i]]],
-                           fmt='.',capsize=5,capthick=1)
-        axis[0,i].set_xlabel('Dox-dose')
-        axis[0,i].set_ylabel(params[i])
-        
-        axis[1,i].errorbar(dfNVBmean['NVB-dose'],dfNVBmean[params[i]],
-                           [dfNVBerr1[params[i]],dfNVBerr2[params[i]]],
-                           fmt='.',capsize=5,capthick=1)
-        axis[1,i].set_xlabel('NVB-dose')
-        axis[1,i].set_ylabel(params[i])
-    plt.tight_layout()
-    plt.show()
+        dfmean = dfd.groupby([drug+'-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].mean().reset_index()
+        dferr1 = dfmean-dfd.groupby([drug+'-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.05).reset_index()
+        dferr2 = dfd.groupby([drug+'-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.95).reset_index()-dfmean
+
+        # Plot params vs. drug dose
+        params = ['a', 'b', 'c', 'd', 'LL', 'conv']
+        f, axis = plt.subplots(1,6,figsize=(18,3), sharex=False, sharey=False)
+        for i in range(len(params)):
+            axis[i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
+                               [dferr1[params[i]],dferr2[params[i]]],
+                               fmt='.',capsize=5,capthick=1)
+            axis[i].set_xlabel(drug+'-dose')
+            axis[i].set_ylabel(params[i])
+
+        plt.tight_layout()
+        plt.show()
     
 def plotSimulation(self, paramV):
     """
