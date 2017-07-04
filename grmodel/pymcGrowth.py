@@ -2,81 +2,40 @@ import numpy as np
 import pymc3 as pm
 
 
-def simulate(params, ts):
-    """
-    Solves the ODE function given a set of initial values (y0),
-    over a time interval (ts)
-
-    params:
-    params  list of parameters for model (a, b, c, d, e)
-    ts  time interval over which to solve the function
-
-    y0  list with the initial values for each state
-
-    ODE function of cells living/dying/undergoing early apoptosis
-
-        params:
-        ss   the number of cells in a particular state
-                (LIVE, DEAD, EARLY_APOPTOSIS)
-        t   time
-        a   parameter between LIVE -> LIVE (cell division)
-        b   parameter between LIVE -> DEAD
-        c   parameter between LIVE -> EARLY_APOPTOSIS
-        d   parameter between EARLY_APOPTOSIS -> DEATH
-        e   parameter between DEATH -> GONE
-    """
-    GR = params[0] - params[1] - params[2]
-
-    lnum = np.exp(GR * ts)
-
-    # Number of early apoptosis cells at start is 0.0
-    Cone = -params[2] / (GR + params[3])
-
-    eap = params[2] / (GR + params[3]) * np.exp(GR * ts)
-    eap = eap + Cone * np.exp(-params[3] * ts)
-
-    dead = (params[1] / GR * np.exp(GR * ts) +
-            params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * ts) +
-            params[2] / (GR + params[3]) * np.exp(-params[3] * ts) -
-            params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
-            params[2] / (GR + params[3]))
-
-    # Add numbers to the output matrix
-    out = np.concatenate((np.expand_dims(lnum, axis=1),
-                          np.expand_dims(dead, axis=1),
-                          np.expand_dims(eap, axis=1)), axis=1)
-
-    return out
-
-# Previous code for comparing to data
-    # # Calculate model data table
-    # model = simulate(paramV, self.timeV)
-
-    # # Run likelihood function with modeled and experiemental data, with
-    # # standard deviation given by last two entries in paramV
-    # if 'confl' in self.expTable.keys():
-    #     confl_mod = paramV[-3] * np.sum(model, axis=1)
-
-    #     log_likelihood = np.sum(logpdf_sum(self.expTable['confl'],
-    #                             loc=confl_mod, scale=paramV[-2]))
-
-    # if 'apop' in self.expTable.keys():
-    #     green_mod = paramV[-3] * (model[:, 1] + model[:, 2])
-
-    #     log_likelihood += np.sum(logpdf_sum(self.expTable['apop'],
-    #                              loc=green_mod, scale=paramV[-1]))
-
-    # if 'dna' in self.expTable.keys():
-    #     dna_mod = paramV[-3] * model[:, 1]
-
-    #     log_likelihood += np.sum(logpdf_sum(self.expTable['dna'],
-    #                              loc=dna_mod, scale=paramV[-1]))
-
-
 class MultiSample:
 
-    def __init__(self, filename):
-        return None
+    def __init__(self):
+        self.cols = list()
+
+    def loadCols(self, firstCols, filename=None):
+        """ Load columns in. Run through columns until the loading process errors. """
+
+        try:
+            while (True):
+                # Create new class
+                temp = GrowthModel()
+
+                # Import data column
+                temp.importData(firstCols, filename)
+
+                # Stick the class into the list
+                self.cols.append(temp)
+
+                # Increment column
+                firstCols = firstCols + 1
+        except IndexError:
+            if len(self.cols) < 2:
+                raise ValueError("Didn't find many columns.")
+
+        return firstCols
+
+    def sample(self):
+        ''' Map over sampling runs. '''
+        map(lambda x: x.sample(), self.cols)
+
+    def save(self, filename):
+        ''' Map over saving runs. '''
+        map(lambda x: x.saveTable(filename), self.cols)
 
 
 class GrowthModel:
@@ -120,7 +79,7 @@ class GrowthModel:
 
     def build_model(self):
         '''
-        A
+        Builds then returns the pyMC model.
         '''
 
         if not hasattr(self, 'timeV'):
@@ -175,6 +134,45 @@ class GrowthModel:
 
         return growth_model
 
+    def old_model(self, params, confl_conv):
+        """
+        Solves the ODE function given a set of initial values (y0),
+        over a time interval (self.timeV)
+        """
+        GR = params[0] - params[1] - params[2]
+
+        lnum = np.exp(GR * self.timeV)
+
+        # Number of early apoptosis cells at start is 0.0
+        Cone = -params[2] / (GR + params[3])
+
+        eap = params[2] / (GR + params[3]) * np.exp(GR * self.timeV)
+        eap = eap + Cone * np.exp(-params[3] * self.timeV)
+
+        dead = (params[1] / GR * np.exp(GR * self.timeV) +
+                params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * self.timeV) +
+                params[2] / (GR + params[3]) * np.exp(-params[3] * self.timeV) -
+                params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
+                params[2] / (GR + params[3]))
+
+        ssqErr = 0.0
+
+        # Run likelihood function with modeled and experiemental data, with
+        # standard deviation given by last two entries in paramV
+        if 'confl' in self.expTable.keys():
+            diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
+            ssqErr = ssqErr + diff.norm(2)
+
+        if 'apop' in self.expTable.keys():
+            diff = (lnum + eap) * confl_conv - self.expTable['apop']
+            ssqErr = ssqErr + diff.norm(2)
+
+        if 'dna' in self.expTable.keys():
+            diff = dead * confl_conv - self.expTable['dna']
+            ssqErr = ssqErr + diff.norm(2)
+
+        return ssqErr
+
     def importData(self, selCol, loadFile=None):
         from os.path import join, dirname, abspath
         import pandas
@@ -222,7 +220,7 @@ class GrowthModel:
                 self.condName = data.columns.values[self.selCol]
 
         # Record the number of observations we've made
-        nobs = len(self.expTable) * len(self.timeV)
+        self.nobs = len(self.expTable) * len(self.timeV)
 
         # Build the model
         self.model = self.build_model()

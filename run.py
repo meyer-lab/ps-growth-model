@@ -1,5 +1,7 @@
-from grmodel.utils import hist_plot, sim_plot, dose_response_plot
+#! /usr/bin/env python3
 
-hist_plot()
-#sim_plot(12)
-dose_response_plot(['Dox', 'NVB'])
+from grmodel.pymcGrowth import MultiSample
+
+a = MultiSample()
+
+print(a.loadCols(3))
