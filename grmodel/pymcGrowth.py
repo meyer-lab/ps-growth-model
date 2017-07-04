@@ -2,6 +2,77 @@ import numpy as np
 import pymc3 as pm
 
 
+def simulate(params, ts):
+    """
+    Solves the ODE function given a set of initial values (y0),
+    over a time interval (ts)
+
+    params:
+    params  list of parameters for model (a, b, c, d, e)
+    ts  time interval over which to solve the function
+
+    y0  list with the initial values for each state
+
+    ODE function of cells living/dying/undergoing early apoptosis
+
+        params:
+        ss   the number of cells in a particular state
+                (LIVE, DEAD, EARLY_APOPTOSIS)
+        t   time
+        a   parameter between LIVE -> LIVE (cell division)
+        b   parameter between LIVE -> DEAD
+        c   parameter between LIVE -> EARLY_APOPTOSIS
+        d   parameter between EARLY_APOPTOSIS -> DEATH
+        e   parameter between DEATH -> GONE
+    """
+    GR = params[0] - params[1] - params[2]
+
+    lnum = np.exp(GR * ts)
+
+    # Number of early apoptosis cells at start is 0.0
+    Cone = -params[2] / (GR + params[3])
+
+    eap = params[2] / (GR + params[3]) * np.exp(GR * ts)
+    eap = eap + Cone * np.exp(-params[3] * ts)
+
+    dead = (params[1] / GR * np.exp(GR * ts) +
+            params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * ts) +
+            params[2] / (GR + params[3]) * np.exp(-params[3] * ts) -
+            params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
+            params[2] / (GR + params[3]))
+
+    # Add numbers to the output matrix
+    out = np.concatenate((np.expand_dims(lnum, axis=1),
+                          np.expand_dims(dead, axis=1),
+                          np.expand_dims(eap, axis=1)), axis=1)
+
+    return out
+
+# Previous code for comparing to data
+    # # Calculate model data table
+    # model = simulate(paramV, self.timeV)
+
+    # # Run likelihood function with modeled and experiemental data, with
+    # # standard deviation given by last two entries in paramV
+    # if 'confl' in self.expTable.keys():
+    #     confl_mod = paramV[-3] * np.sum(model, axis=1)
+
+    #     log_likelihood = np.sum(logpdf_sum(self.expTable['confl'],
+    #                             loc=confl_mod, scale=paramV[-2]))
+
+    # if 'apop' in self.expTable.keys():
+    #     green_mod = paramV[-3] * (model[:, 1] + model[:, 2])
+
+    #     log_likelihood += np.sum(logpdf_sum(self.expTable['apop'],
+    #                              loc=green_mod, scale=paramV[-1]))
+
+    # if 'dna' in self.expTable.keys():
+    #     dna_mod = paramV[-3] * model[:, 1]
+
+    #     log_likelihood += np.sum(logpdf_sum(self.expTable['dna'],
+    #                              loc=dna_mod, scale=paramV[-1]))
+
+
 class MultiSample:
 
     def __init__(self, filename):

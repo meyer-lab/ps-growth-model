@@ -8,22 +8,6 @@ except ImportError:
     import pickle
 
 
-def geweke_single_chain(chain1, chain2=None):
-    """
-    Perform the Geweke Diagnostic between two univariate chains. If two chains are input 
-    instead of one, Student's t-test is performed instead. Returns p-value.
-    """
-
-    from scipy.stats import ttest_ind
-
-    len0 = chain1.shape[0]
-    if chain2 is None:
-        chain2 = chain1[int(np.ceil(len0 / 2)):len0]
-        chain1 = chain1[0:int(np.ceil(len0 * 0.1))]
-
-    return ttest_ind(chain1, chain2)[1]
-
-
 def read_dataset(column, filename=None, trim=True):
     ''' Read the specified column from the shared test file. '''
     import os
