@@ -25,18 +25,28 @@ class GrowthModel:
         '''
         return pm.find_MAP(model=self.model)
 
-    def getTable(self):
-        '''
-
-        '''
-        return None
-
     def saveTable(self, filename):
         '''
-
+        Saves a table of sampling results.
         '''
+        import h5py
 
-        noned = 0.0
+        # Raise an error if there are no sampling results.
+        if not hasattr(self, 'samples'):
+            raise ValueError("Need to sample first.")
+
+        # Start constructing the dataframe
+        df = pm.backends.tracetab.trace_to_dataframe(self.samples)
+
+        df.to_hdf(filename,
+                  key='column' + str(self.selCol) + '/chain',
+                  complevel=9, complib='bzip2')
+
+        # Open file to pickle class
+        f = h5py.File(filename, 'a', libver='latest')
+
+        # Done writing out pickled class
+        f.close()
 
     def build_model(self):
         '''
