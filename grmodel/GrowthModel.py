@@ -48,8 +48,8 @@ def simulate(params, ts):
 
     eap = params[2] / (GR + params[3]) * np.exp(GR * ts)
     eap = eap + Cone * np.exp(-params[3] * ts)
-    
-    dead = (params[1] / GR * np.exp(GR*ts) +
+
+    dead = (params[1] / GR * np.exp(GR * ts) +
             params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * ts) +
             params[2] / (GR + params[3]) * np.exp(-params[3] * ts) -
             params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
@@ -91,19 +91,19 @@ class GrowthModel:
                 confl_mod = paramV[-3] * np.sum(model, axis=1)
 
                 log_likelihood = np.sum(logpdf_sum(self.expTable['confl'],
-                                   loc=confl_mod, scale=paramV[-2]))
+                                        loc=confl_mod, scale=paramV[-2]))
 
             if 'apop' in self.expTable.keys():
                 green_mod = paramV[-3] * (model[:, 1] + model[:, 2])
 
                 log_likelihood += np.sum(logpdf_sum(self.expTable['apop'],
-                                               loc=green_mod, scale=paramV[-1]))
+                                         loc=green_mod, scale=paramV[-1]))
 
             if 'dna' in self.expTable.keys():
                 dna_mod = paramV[-3] * model[:, 1]
 
                 log_likelihood += np.sum(logpdf_sum(self.expTable['dna'],
-                                               loc=dna_mod, scale=paramV[-1]))
+                                         loc=dna_mod, scale=paramV[-1]))
 
             # TODO: Add scale for DNA
         except FloatingPointError:

@@ -1,5 +1,5 @@
 numpy
 scipy
-numba
 tables
 pandas
+pymc
