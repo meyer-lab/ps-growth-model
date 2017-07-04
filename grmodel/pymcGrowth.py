@@ -98,9 +98,9 @@ class GrowthModel:
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
-            pm.StudentT('dataFit', nu=self.nobs,
-                        lam=pm.Lognormal('std', -2, 1) / self.nobs,
-                        observed=ssqErr)
+            # Error distribution for the expt observations
+            pm.ChiSquared('dataFit', self.nobs,
+                          observed=ssqErr / pm.Lognormal('std', -2, 1))
 
         return growth_model
 
