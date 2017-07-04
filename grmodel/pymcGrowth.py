@@ -8,7 +8,6 @@ class MultiSample:
         return None
 
 
-
 class GrowthModel:
 
     def sample(self):
@@ -96,10 +95,11 @@ class GrowthModel:
                 diff = dead * confl_conv - self.expTable['dna']
                 ssqErr = ssqErr + diff.norm(2)
 
-            nobs = len(self.expTable) * len(self.timeV)
+            # Save the sum of squared error
+            ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
-            pm.StudentT('dataFit', nu=nobs,
-                        lam=pm.Lognormal('std', -2, 1) / nobs,
+            pm.StudentT('dataFit', nu=self.nobs,
+                        lam=pm.Lognormal('std', -2, 1) / self.nobs,
                         observed=ssqErr)
 
         return growth_model
@@ -149,6 +149,9 @@ class GrowthModel:
 
                 # Set the name of the condition we're considering
                 self.condName = data.columns.values[self.selCol]
+
+        # Record the number of observations we've made
+        nobs = len(self.expTable) * len(self.timeV)
 
         # Build the model
         self.model = self.build_model()
