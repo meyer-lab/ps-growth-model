@@ -1,5 +1,7 @@
 NPROCS := 8
 
+THEANO_FLAGS := 'floatX=float32'
+
 pan_common = -F pandoc-crossref -F pandoc-citeproc -f markdown ./Manuscript/Text/*.md
 fdir = ./Manuscript/Figures
 tdir = ./Manuscript/Templates
@@ -9,7 +11,6 @@ tdir = ./Manuscript/Templates
 clean:
 	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html
 	rm -f $(fdir)/Figure*
-	rm -f profile.png profile.pstats
 
 test:
 	nosetests -s --with-timer --timer-top-n 5
@@ -21,5 +22,4 @@ upload:
 	echo "Upload stub"
 
 profile:
-	python3 -m cProfile -o profile.pstats Benchmark.py
-	python3 -m gprof2dot -n 2.0 -f pstats profile.pstats | dot -Tpng -o profile.png
+	python3 -c "from grmodel.pymcGrowth import GrowthModel; grM = GrowthModel(); grM.importData(3); grM.model.profile(grM.model.logpt).summary()"
