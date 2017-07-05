@@ -125,7 +125,7 @@ class GrowthModel:
                 ssqErr = ssqErr + diff.norm(2)
 
             if 'apop' in self.expTable.keys():
-                diff = (lnum + eap) * confl_conv - self.expTable['apop']
+                diff = (dead + eap) * confl_conv - self.expTable['apop']
                 ssqErr = ssqErr + diff.norm(2)
 
             if 'dna' in self.expTable.keys():
@@ -177,7 +177,7 @@ class GrowthModel:
             ssqErr = ssqErr + np.sqrt(np.sum(np.square(diff)))
 
         if 'apop' in self.expTable.keys():
-            diff = (lnum + eap) * confl_conv - self.expTable['apop']
+            diff = (dead + eap) * confl_conv - self.expTable['apop']
             ssqErr = ssqErr + np.sqrt(np.sum(np.square(diff)))
 
         if 'dna' in self.expTable.keys():
