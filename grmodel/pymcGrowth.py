@@ -53,6 +53,7 @@ class GrowthModel:
         '''
         with self.model:
             self.samples = pm.sample(500, start=self.getMAP())
+        return pm.backends.tracetab.trace_to_dataframe(self.samples)
 
     def getMAP(self):
         '''
@@ -168,15 +169,15 @@ class GrowthModel:
         # standard deviation given by last two entries in paramV
         if 'confl' in self.expTable.keys():
             diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
-            ssqErr = ssqErr + diff.norm(2)
+            ssqErr = ssqErr + np.sqrt(np.sum(np.square(diff)))
 
         if 'apop' in self.expTable.keys():
             diff = (lnum + eap) * confl_conv - self.expTable['apop']
-            ssqErr = ssqErr + diff.norm(2)
+            ssqErr = ssqErr + np.sqrt(np.sum(np.square(diff)))
 
         if 'dna' in self.expTable.keys():
             diff = dead * confl_conv - self.expTable['dna']
-            ssqErr = ssqErr + diff.norm(2)
+            ssqErr = ssqErr + np.sqrt(np.sum(np.square(diff)))
 
         return ssqErr
 

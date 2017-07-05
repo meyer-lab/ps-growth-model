@@ -198,7 +198,7 @@ def violinplot(drugs,log=False):
     filename = './grmodel/data/first_chain.h5'
     df = MultiSample(filename).load_sampling(list(range(2,14)))
     print(df.columns)
-    df.sample(2000)
+    df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     
