@@ -31,12 +31,19 @@ class MultiSample:
 
     def sample(self):
         ''' Map over sampling runs. '''
-        map(lambda x: x.sample(), self.cols)
+        #map(lambda x: x.sample(), self.cols)
+        for x in self.cols:
+            x.sample()
 
     def save(self, filename):
         ''' Map over saving runs. '''
-        map(lambda x: x.saveTable(filename), self.cols)
+        import os
 
+        if os.path.exists(filename):
+            os.remove(filename)
+        #map(lambda x: x.saveTable(filename), self.cols)
+        for x in self.cols:
+            x.saveTable(filename)
 
 class GrowthModel:
 
@@ -44,7 +51,6 @@ class GrowthModel:
         '''
         A
         '''
-
         with self.model:
             self.samples = pm.sample(500, start=self.getMAP())
 
@@ -77,6 +83,7 @@ class GrowthModel:
         # Done writing out pickled class
         f.close()
 
+
     def build_model(self):
         '''
         Builds then returns the pyMC model.
@@ -88,10 +95,10 @@ class GrowthModel:
         growth_model = pm.Model()
 
         with growth_model:
-            div = pm.Lognormal('div', -2, 0.5)
-            b = pm.Lognormal('b', -3, 1)
-            c = pm.Lognormal('c', -3, 1)
-            d = pm.Lognormal('d', -3, 1)
+            div = pm.Lognormal('div', -2, 2)
+            b = pm.Lognormal('b', -5, 5)
+            c = pm.Lognormal('c', -5, 5)
+            d = pm.Lognormal('d', -5, 5)
 
             confl_conv = pm.Lognormal('confl_conv', 2, 1)
 

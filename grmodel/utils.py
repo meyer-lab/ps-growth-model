@@ -76,20 +76,19 @@ def growth_rate_plot(column):
 
 
 def sim_plot(column):
-    from .GrowthModel import simulate
+    from .pymcGrowth import GrowthModel, simulate
     # Read in dataset to Pandas data frame
-    classM, pdset = read_dataset(column)
+    classM = GrowthModel(column)
+    pdset = GrowthModel(column).getTable()[1]
 
-    pdset = pdset.loc[pdset['LL'] > (np.amax(pdset['LL']) - 30), :]
-    pdset = pdset.drop('LL', axis=1)
+#    pdset = pdset.loc[pdset['LL'] > (np.amax(pdset['LL']) - 30), :]
+#    pdset = pdset.drop('LL', axis=1)
 
     print(pdset.shape)
 
-    pdset = pdset.sample(1000)
-
     print(pdset)
 
-    raise
+    #raise
 
     # Time interval to solve over
     t_interval = np.arange(0, np.max(classM.timeV), 0.2)
@@ -101,25 +100,25 @@ def sim_plot(column):
     vv = 0
 
     for row in pdset.iterrows():
-        mparm = np.power(10, np.copy(row[1].as_matrix()[0:4]))
-        
+        mparm = np.copy(row[1].as_matrix()[0:-4])
         try:
-            simret = simulate(list(mparm), t_interval)
+            simret = simulate(mparm, t_interval)
 
-            calcset[varr, :] = np.sum(simret, axis = 1) * np.power(10, row[1]['conv'])
+            calcset[varr, :] = np.sum(simret, axis = 1) * row[1]['confl_conv']
 
             varr = varr + 1
         except:
             print('Failed')
             continue
 
-    # Get median & 95% confidence interval for each time point
+    # Get median & 90% confidence interval for each time point
     qqq = np.percentile(calcset, [5, 25, 50, 75, 95], axis=0)
 
     plt.figure(figsize=(10, 10))
     plt.plot(t_interval, qqq[2, :])
     plt.fill_between(t_interval, qqq[1, :], qqq[3, :], alpha=0.5)
     plt.fill_between(t_interval, qqq[0, :], qqq[4, :], alpha=0.2)
+    plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
     plt.show()
@@ -187,7 +186,48 @@ def dose_response_plot(drugs):
 
         plt.tight_layout()
         plt.show()
+
+
+def violinplot(drugs,log=False):
+    '''
+    Takes in a list of drugs
+    Makes 1*num(parameters) boxplots for each drug
+    '''
+    import seaborn as sns
+    from .pymcGrowth import MultiSample
+    filename = './grmodel/data/first_chain.h5'
+    df = MultiSample(filename).load_sampling(list(range(2,14)))
+    print(df.columns)
+    df.sample(2000)
+
+    params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     
+    # Make plots for each drug
+    f, axis = plt.subplots(len(drugs),6,figsize=(18,3*len(drugs)), sharex=False, sharey='col')
+    for drug in drugs:
+        # Set up table for the drug
+        dfd = df[df['Condition'].str.contains(drug+' ')]
+        # Break if drug not in dataset
+        if dfd.empty:
+            print("Error: Drug not in dataset")
+            break 
+
+        # Add dose to table
+        dfd[drug+'-dose'] = dfd['Condition'].str.split(' ').str[1]
+        dfd[drug+'-dose'] = dfd[drug+'-dose'].convert_objects(convert_numeric=True)
+
+        # Plot params vs. drug dose
+        j = drugs.index(drug)
+        for i in range(len(params)):
+            if log == True:
+                sns.violinplot(dfd[drug+'-dose'],np.log(dfd[params[i]]),ax=axis[j,i])
+            else:
+                sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
+
+    plt.tight_layout()
+    plt.show()
+
+
 def plotSimulation(self, paramV):
     """
     Plots the results from a simulation.
