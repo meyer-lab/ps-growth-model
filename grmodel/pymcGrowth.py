@@ -53,7 +53,6 @@ class GrowthModel:
         '''
         with self.model:
             self.samples = pm.sample(500, start=self.getMAP())
-        return pm.backends.tracetab.trace_to_dataframe(self.samples)
 
     def getMAP(self):
         '''
@@ -138,9 +137,11 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', -2, 1))
+                          observed=ssqErr / pm.Lognormal('std', 0, 1))
+            #dataFit = pm.Deterministic('dataF', dataFit)
 
         return growth_model
+
 
     def old_model(self, params, confl_conv):
         """
@@ -162,7 +163,11 @@ class GrowthModel:
                 params[2] / (GR + params[3]) * np.exp(-params[3] * self.timeV) -
                 params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
                 params[2] / (GR + params[3]))
-
+        
+        out = np.concatenate((np.expand_dims(lnum, axis=1),
+                              np.expand_dims(dead, axis=1),
+                              np.expand_dims(eap, axis=1)), axis=1)
+        out = out * confl_conv
         ssqErr = 0.0
 
         # Run likelihood function with modeled and experiemental data, with
@@ -179,7 +184,8 @@ class GrowthModel:
             diff = dead * confl_conv - self.expTable['dna']
             ssqErr = ssqErr + np.sqrt(np.sum(np.square(diff)))
 
-        return ssqErr
+        return (ssqErr, out) 
+
 
     def importData(self, selCol, loadFile=None):
         from os.path import join, dirname, abspath

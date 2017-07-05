@@ -12,22 +12,28 @@ def read_dataset(column, filename=None, trim=True):
     ''' Read the specified column from the shared test file. '''
     import os
     import h5py
+    from .pymcGrowth import GrowthModel
 
     if filename is None:
         filename = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "./data/first_chain.h5")
+            os.path.abspath(__file__)), "./data/030317_first_chain.h5")
 
     # Open hdf5 file
     f = h5py.File(filename, 'r')
 
     # Read in StoneModel and unpickle
-    classM = pickle.loads(f['/column' + str(column)].attrs['class'].tobytes())
+    #classM = pickle.loads(f['/column' + str(column)].attrs['class'].tobytes())
+    
 
     # Close hdf5 file
     f.close()
 
     # Read in sampling chain
-    df = pd.read_hdf(filename, key='column' + str(classM.selCol) + '/chain')
+    df = pd.read_hdf(filename, key='column' + str(column) + '/chain')
+    
+    # Initialize StoneModel
+    classM = GrowthModel()
+    classM.importData(column)
 
     # Add the column this came from
     df['Col'] = column
@@ -35,7 +41,9 @@ def read_dataset(column, filename=None, trim=True):
 
     # Remove unlikely points if chosen
     if trim:
-        df = df.loc[df['LL'] > (np.max(df['LL']) - 10), :]
+        cutoff = np.amin(df['ssqErr'])+10
+        df = df.loc[df['ssqErr'] < cutoff,:]
+        #df = df.loc[df['sqqErr'] < (np.min(df['sqqErr']) + 10), :]
 
     return (classM, df)
 
@@ -76,48 +84,53 @@ def growth_rate_plot(column):
 
 
 def sim_plot(column):
-    from .pymcGrowth import GrowthModel, simulate
+    from .pymcGrowth import GrowthModel
+
     # Read in dataset to Pandas data frame
-    classM = GrowthModel(column)
-    pdset = GrowthModel(column).getTable()[1]
+    classM, pdset = read_dataset(column)
 
-#    pdset = pdset.loc[pdset['LL'] > (np.amax(pdset['LL']) - 30), :]
-#    pdset = pdset.drop('LL', axis=1)
-
-    print(pdset.shape)
+    #print(pdset.shape)
 
     print(pdset)
 
     #raise
 
     # Time interval to solve over
-    t_interval = np.arange(0, np.max(classM.timeV), 0.2)
+#    t_interval = np.arange(0, np.max(classM.timeV), 0.2)
 
     # Evaluate each of the growth rates over the time interval
-    calcset = np.full((pdset.shape[0], len(t_interval)), np.inf)
+    calcset = np.full((pdset.shape[0], len(classM.timeV)), np.inf)
 
     varr = 0
     vv = 0
 
     for row in pdset.iterrows():
-        mparm = np.copy(row[1].as_matrix()[0:-4])
-        try:
-            simret = simulate(mparm, t_interval)
+        mparm = np.copy(row[1].as_matrix()[0:4])
+#        try:
+        simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
 
-            calcset[varr, :] = np.sum(simret, axis = 1) * row[1]['confl_conv']
+        calcset[varr, :] = np.sum(simret, axis = 1)
 
-            varr = varr + 1
-        except:
-            print('Failed')
-            continue
-
+        varr = varr + 1
+#        except:
+#            print('Failed')
+#            continue
+    # Get rid of repeating predictions
+    calcset = calcset[:,:25]
+    time = classM.timeV.reshape(3,25)[0,:]
     # Get median & 90% confidence interval for each time point
     qqq = np.percentile(calcset, [5, 25, 50, 75, 95], axis=0)
-
+    
     plt.figure(figsize=(10, 10))
-    plt.plot(t_interval, qqq[2, :])
-    plt.fill_between(t_interval, qqq[1, :], qqq[3, :], alpha=0.5)
-    plt.fill_between(t_interval, qqq[0, :], qqq[4, :], alpha=0.2)
+    plt.plot(time, qqq[2, :])
+    plt.fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
+    plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
+#    calcset = np.full((len(classM.timeV)), np.inf)
+#    mparm = np.power(10,[-1.5,-4,-4,-3])
+#    simret = classM.old_model(mparm, np.power(10,0.75))[1]
+#    calcset[:] = np.sum(simret,axis = 1)
+#    calcset = calcset.reshape(3,25)[0,:]
+#    plt.plot(classM.timeV.reshape(3,25)[0,:], calcset)
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
@@ -149,15 +162,18 @@ def hist_plot():
     plt.show()
 
 
-def dose_response_plot(drugs):
+def dose_response_plot(drugs, log=False):
     # Takes in a list of drugs
     # Makes 1*num(parameters) plots for each drug
     # Read in dataframe and reduce sample
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(3,14))))
     print(df.columns)
-    df.sample(2000)
+    df = df.sample(2000)
 
+    params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
+    
     # Make plots for each drug
+    f, axis = plt.subplots(len(drugs),6,figsize=(15,2.5*len(drugs)), sharex=False, sharey='col')
     for drug in drugs:
         # Set up table for the drug
         dfd = df[df['Condition'].str.contains(drug+' ')]
@@ -166,26 +182,29 @@ def dose_response_plot(drugs):
             print("Error: Drug not in dataset")
             break 
 
-        # Set up mean and confidence interval
+        # Add dose to table
         dfd[drug+'-dose'] = dfd['Condition'].str.split(' ').str[1]
         dfd[drug+'-dose'] = dfd[drug+'-dose'].convert_objects(convert_numeric=True)
-
-        dfmean = dfd.groupby([drug+'-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].mean().reset_index()
-        dferr1 = dfmean-dfd.groupby([drug+'-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.05).reset_index()
-        dferr2 = dfd.groupby([drug+'-dose'])['a', 'b', 'c', 'd', 'LL', 'conv'].quantile(0.95).reset_index()-dfmean
+        
+        # Set up mean and confidence interval
+        if log == True:
+            for param in params:
+                dfd[param] = np.log(dfd[param])
+        dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
+        dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
+        dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean
 
         # Plot params vs. drug dose
-        params = ['a', 'b', 'c', 'd', 'LL', 'conv']
-        f, axis = plt.subplots(1,6,figsize=(18,3), sharex=False, sharey=False)
+        j = drugs.index(drug)
         for i in range(len(params)):
-            axis[i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
+            axis[j,i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
                                [dferr1[params[i]],dferr2[params[i]]],
                                fmt='.',capsize=5,capthick=1)
-            axis[i].set_xlabel(drug+'-dose')
-            axis[i].set_ylabel(params[i])
+            axis[j,i].set_xlabel(drug+'-dose')
+            axis[j,i].set_ylabel(params[i])
 
-        plt.tight_layout()
-        plt.show()
+    plt.tight_layout()
+    plt.show()
 
 
 def violinplot(drugs,log=False):
@@ -194,10 +213,7 @@ def violinplot(drugs,log=False):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    from .pymcGrowth import MultiSample
-    filename = './grmodel/data/first_chain.h5'
-    df = MultiSample(filename).load_sampling(list(range(2,14)))
-    print(df.columns)
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(3,14))))
     df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
