@@ -41,7 +41,7 @@ def read_dataset(column, filename=None, trim=True):
 
     # Remove unlikely points if chosen
     if trim:
-        cutoff = np.amin(df['ssqErr'])+20
+        cutoff = np.amin(df['ssqErr'])+30
         df = df.loc[df['ssqErr'] < cutoff,:]
         #df = df.loc[df['sqqErr'] < (np.min(df['sqqErr']) + 10), :]
 
@@ -126,8 +126,8 @@ def sim_plot(column):
     plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
 #    calcset = np.full((len(classM.timeV)), np.inf)
 #    calcsetd = np.full((len(classM.timeV)), np.inf)
-#    mparm = np.exp([-3.3852573297297504,-6.850742001169859,-6.431790773616399,-5.158198848293945])
-#    simret = classM.old_model(mparm, np.exp(1.7327448582333145))[1]
+#    mparm = np.exp([-3.434892865275417,-7.96312272337698,-7.987219333825418,-5.2248634220018575])
+#    simret = classM.old_model(mparm, np.exp(1.7561011061148422))[1]
 #    calcset[:] = np.sum(simret,axis = 1)
 #    calcset = calcset.reshape(3,25)[0,:]
 #    calcsetd[:] = simret.reshape(len(classM.timeV),3)[:,0]
