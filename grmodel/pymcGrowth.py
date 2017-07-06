@@ -137,7 +137,7 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', 0, 1))
+                          observed=ssqErr / pm.Lognormal('std', -2, 1))
             #dataFit = pm.Deterministic('dataF', dataFit)
 
         return growth_model

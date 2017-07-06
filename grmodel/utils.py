@@ -41,7 +41,7 @@ def read_dataset(column, filename=None, trim=True):
 
     # Remove unlikely points if chosen
     if trim:
-        cutoff = np.amin(df['ssqErr'])+50
+        cutoff = np.amin(df['ssqErr'])+20
         df = df.loc[df['ssqErr'] < cutoff,:]
         #df = df.loc[df['sqqErr'] < (np.min(df['sqqErr']) + 10), :]
 
@@ -102,7 +102,6 @@ def sim_plot(column):
     calcset = np.full((pdset.shape[0], len(classM.timeV)), np.inf)
 
     varr = 0
-    vv = 0
 
     for row in pdset.iterrows():
         mparm = np.copy(row[1].as_matrix()[0:4])
@@ -127,8 +126,8 @@ def sim_plot(column):
     plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
 #    calcset = np.full((len(classM.timeV)), np.inf)
 #    calcsetd = np.full((len(classM.timeV)), np.inf)
-#    mparm = np.exp([-2.9622890219561406,-4.7946407717268125,-3.7561060183758226,-5.090198430135659])
-#    simret = classM.old_model(mparm, np.exp(1.87565406312042))[1]
+#    mparm = np.exp([-3.3852573297297504,-6.850742001169859,-6.431790773616399,-5.158198848293945])
+#    simret = classM.old_model(mparm, np.exp(1.7327448582333145))[1]
 #    calcset[:] = np.sum(simret,axis = 1)
 #    calcset = calcset.reshape(3,25)[0,:]
 #    calcsetd[:] = simret.reshape(len(classM.timeV),3)[:,0]
@@ -172,7 +171,7 @@ def dose_response_plot(drugs, log=False):
     # Read in dataframe and reduce sample
     df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
     print(df.columns)
-    df = df.sample(2000)
+    #df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     
@@ -218,7 +217,7 @@ def violinplot(drugs,log=False):
     '''
     import seaborn as sns
     df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
-    df = df.sample(2000)
+    #df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     
