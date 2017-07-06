@@ -41,7 +41,7 @@ def read_dataset(column, filename=None, trim=True):
 
     # Remove unlikely points if chosen
     if trim:
-        cutoff = np.amin(df['ssqErr'])+10
+        cutoff = np.amin(df['ssqErr'])+50
         df = df.loc[df['ssqErr'] < cutoff,:]
         #df = df.loc[df['sqqErr'] < (np.min(df['sqqErr']) + 10), :]
 
@@ -106,15 +106,15 @@ def sim_plot(column):
 
     for row in pdset.iterrows():
         mparm = np.copy(row[1].as_matrix()[0:4])
-#        try:
-        simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
+        try:
+            simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
 
-        calcset[varr, :] = np.sum(simret, axis = 1)
+            calcset[varr, :] = np.sum(simret, axis = 1)
 
-        varr = varr + 1
-#        except:
-#            print('Failed')
-#            continue
+            varr = varr + 1
+        except:
+            print('Failed')
+            continue
     # Get rid of repeating predictions
     calcset = calcset[:,:25]
     time = classM.timeV.reshape(3,25)[0,:]
@@ -126,11 +126,15 @@ def sim_plot(column):
     plt.fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
     plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
 #    calcset = np.full((len(classM.timeV)), np.inf)
-#    mparm = np.power(10,[-1.5,-4,-4,-3])
-#    simret = classM.old_model(mparm, np.power(10,0.75))[1]
+#    calcsetd = np.full((len(classM.timeV)), np.inf)
+#    mparm = np.exp([-2.9622890219561406,-4.7946407717268125,-3.7561060183758226,-5.090198430135659])
+#    simret = classM.old_model(mparm, np.exp(1.87565406312042))[1]
 #    calcset[:] = np.sum(simret,axis = 1)
 #    calcset = calcset.reshape(3,25)[0,:]
+#    calcsetd[:] = simret.reshape(len(classM.timeV),3)[:,0]
+#    calcsetd = calcsetd.reshape(3,25)[0,:]
 #    plt.plot(classM.timeV.reshape(3,25)[0,:], calcset)
+#    plt.plot(classM.timeV.reshape(3,25)[0,:], calcsetd)
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
@@ -166,7 +170,7 @@ def dose_response_plot(drugs, log=False):
     # Takes in a list of drugs
     # Makes 1*num(parameters) plots for each drug
     # Read in dataframe and reduce sample
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(3,14))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
     print(df.columns)
     df = df.sample(2000)
 
@@ -213,7 +217,7 @@ def violinplot(drugs,log=False):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(3,14))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
     df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']

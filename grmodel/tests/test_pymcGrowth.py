@@ -29,6 +29,10 @@ class TestgrMethods(unittest.TestCase):
                                    classM.old_model(params,conv)[0],
                                    delta = row[1].as_matrix()[5] / 10**6)
 
+    def test_model(self):
+        self.GR.importData(3)
+        print(self.GR.getMAP())
+
     def test_sim_plot(self):
         from ..utils import sim_plot
         sim_plot(3)
