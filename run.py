@@ -4,7 +4,7 @@ from grmodel.pymcGrowth import MultiSample
 
 a = MultiSample()
 
-print(a.loadCols(3))
+print(a.loadCols(2))
 a.sample()
 filename = './grmodel/data/030317_first_chain.h5'
 a.save(filename)
