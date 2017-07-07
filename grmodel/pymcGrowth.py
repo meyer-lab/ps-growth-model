@@ -33,19 +33,17 @@ class MultiSample:
 
     def sample(self):
         ''' Map over sampling runs. '''
-        from multiprocessing import Pool
-        for result in Pool().map(lambda x: x.sample(), self.cols):
-            print(result)
+        for result in map(lambda x: x.sample(), self.cols):
+            continue 
 
     def save(self, filename):
         ''' Map over saving runs. '''
         import os
-        from multiprocessing import Pool
 
         if os.path.exists(filename):
             os.remove(filename)
-        for result in Pool().map(lambda x: x.saveTable(filename), self.cols):
-            print(result)
+        for result in map(lambda x: x.saveTable(filename), self.cols):
+            continue
 
 class GrowthModel:
 
