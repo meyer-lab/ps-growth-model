@@ -31,7 +31,7 @@ class TestgrMethods(unittest.TestCase):
 
     def test_model(self):
         self.GR.importData(3)
-        print(self.GR.getMAP())
+        self.GR.getMAP()
 
     def test_sim_plot(self):
         from ..utils import sim_plot

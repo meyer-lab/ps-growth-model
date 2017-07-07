@@ -43,60 +43,18 @@ def read_dataset(column, filename=None, trim=True):
     if trim:
         cutoff = np.amin(df['ssqErr'])+30
         df = df.loc[df['ssqErr'] < cutoff,:]
-        #df = df.loc[df['sqqErr'] < (np.min(df['sqqErr']) + 10), :]
 
     return (classM, df)
 
 
-def growth_rate_plot(column):
-    # Read in dataset to Pandas data frame
-    classM, pdset = read_dataset(column)
-
-    pdset = pdset.loc[pdset['LL'] > -30000, :]
-
-    print(classM.expTable)
-
-    # Time interval to solve over
-    t_interval = np.arange(0, np.max(classM.uniqueT), 0.2)
-
-    # Evaluate each of the growth rates over the time interval
-    calcset = np.full((pdset.shape[0], len(t_interval)), np.inf)
-
-    varr = 0
-    vv = 0
-
-    for row in pdset.iterrows():
-        mparm = mcFormat(row[1].as_matrix()[1:-4])
-
-        calcset[varr, :] = np.exp(np.polyval(mparm[:, vv], t_interval))
-
-        varr = varr + 1
-
-    # Get median & 95% confidence interval for each time point
-    med = np.median(calcset, axis=0)
-    upper = np.percentile(calcset, 0.95, axis=0)
-    lower = np.percentile(calcset, 0.05, axis=0)
-
-    plt.figure(figsize=(10, 10))
-    plt.plot(t_interval, med)
-    plt.fill_between(t_interval, lower, upper, alpha=0.3)
-    plt.show()
-
-
 def sim_plot(column):
-    from .pymcGrowth import GrowthModel
 
     # Read in dataset to Pandas data frame
     classM, pdset = read_dataset(column)
 
-    #print(pdset.shape)
+    print(pdset.shape)
 
     print(pdset)
-
-    #raise
-
-    # Time interval to solve over
-#    t_interval = np.arange(0, np.max(classM.timeV), 0.2)
 
     # Evaluate each of the growth rates over the time interval
     calcset = np.full((pdset.shape[0], len(classM.timeV)), np.inf)

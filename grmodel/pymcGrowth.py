@@ -96,9 +96,9 @@ class GrowthModel:
 
         with growth_model:
             div = pm.Lognormal('div', -2, 2)
-            b = pm.Lognormal('b', -5, 5)
-            c = pm.Lognormal('c', -5, 5)
-            d = pm.Lognormal('d', -5, 5)
+            b = pm.Lognormal('b', -5, 3)
+            c = pm.Lognormal('c', -5, 3)
+            d = pm.Lognormal('d', -5, 3)
 
             confl_conv = pm.Lognormal('confl_conv', 2, 1)
 
@@ -132,14 +132,17 @@ class GrowthModel:
 #                diff = dead * confl_conv - self.expTable['dna']
 #                ssqErr = ssqErr + diff.norm(2)
             if 'confl' in self.expTable.keys():
-                diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
-                ssqErr = ssqErr + (np.square(diff)/((lnum + dead + eap) * confl_conv)).sum()
+                expc = (lnum + dead + eap) * confl_conv
+                diff = expc - self.expTable['confl']
+                ssqErr = ssqErr + (np.square(diff)/expc).sum()
             if 'apop' in self.expTable.keys():
-                diff = (dead + eap) * confl_conv - self.expTable['apop']
-                ssqErr = ssqErr + (np.square(diff)/((dead + eap) * confl_conv + 10**(-3))).sum()
+                expc = (dead + eap) * confl_conv + 10**(-3)
+                diff = expc - self.expTable['apop']
+                ssqErr = ssqErr + (np.square(diff)/expc).sum()
             if 'dna' in self.expTable.keys():
-                diff = dead * confl_conv - self.expTable['dna']
-                ssqErr = ssqErr + (np.square(diff)/ (dead * confl_conv + 10**(-3))).sum()
+                expc = dead * confl_conv + 10**(-3)
+                diff = expc - self.expTable['dna']
+                ssqErr = ssqErr + (np.square(diff)/ expc).sum()
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
@@ -184,14 +187,12 @@ class GrowthModel:
             diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
             ssqErr = ssqErr + np.sum(np.square(diff)/((lnum + dead + eap) * confl_conv))
         if 'apop' in self.expTable.keys():
-            diff = (dead + eap) * confl_conv - self.expTable['apop']
-            expc = (dead + eap) * confl_conv
-            expc[expc==0] = 10**(-3)
+            expc = (dead + eap) * confl_conv + 10**(-3)
+            diff = expc - self.expTable['apop']
             ssqErr = ssqErr + np.sum(np.square(diff)/expc)
         if 'dna' in self.expTable.keys():
-            diff = dead * confl_conv - self.expTable['dna']
-            expc = dead * confl_conv
-            expc[expc==0] = 10**(-3)
+            expc = dead * confl_conv + 10**(-3)
+            diff = expc - self.expTable['dna']
             ssqErr = ssqErr + np.sum(np.square(diff)/ expc)
         return (ssqErr, out) 
 
