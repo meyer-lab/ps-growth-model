@@ -33,9 +33,7 @@ class MultiSample:
 
     def sample(self):
         ''' Map over sampling runs. '''
-        #map(lambda x: x.sample(), self.cols)
-        for x in self.cols:
-            x.sample()
+        map(lambda x: x.sample(), self.cols)
 
     def save(self, filename):
         ''' Map over saving runs. '''
@@ -43,9 +41,7 @@ class MultiSample:
 
         if os.path.exists(filename):
             os.remove(filename)
-        #map(lambda x: x.saveTable(filename), self.cols)
-        for x in self.cols:
-            x.saveTable(filename)
+        map(lambda x: x.saveTable(filename), self.cols)
 
 class GrowthModel:
 
