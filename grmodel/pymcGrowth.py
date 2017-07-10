@@ -42,6 +42,7 @@ class MultiSample:
 
         if os.path.exists(filename):
             os.remove(filename)
+
         for result in map(lambda x: x.saveTable(filename), self.cols):
             continue
 
@@ -120,17 +121,6 @@ class GrowthModel:
 
             ssqErr = 0.0
 
-#            if 'confl' in self.expTable.keys():
-#                diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
-#                ssqErr = ssqErr + diff.norm(2)
-#
-#            if 'apop' in self.expTable.keys():
-#                diff = (dead + eap) * confl_conv - self.expTable['apop']
-#                ssqErr = ssqErr + diff.norm(2)
-#
-#            if 'dna' in self.expTable.keys():
-#                diff = dead * confl_conv - self.expTable['dna']
-#                ssqErr = ssqErr + diff.norm(2)
             if 'confl' in self.expTable.keys():
                 expc = (lnum + dead + eap) * confl_conv
                 diff = expc - self.expTable['confl']
@@ -143,13 +133,13 @@ class GrowthModel:
                 expc = dead * confl_conv + 10**(-3)
                 diff = expc - self.expTable['dna']
                 ssqErr = ssqErr + (np.square(diff)/ expc).sum()
+
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
                           observed=ssqErr / pm.Lognormal('std', -1, 1))
-            #dataFit = pm.Deterministic('dataF', dataFit)
 
         return growth_model
 
@@ -182,7 +172,6 @@ class GrowthModel:
         ssqErr = 0.0
 
         # Run likelihood function with modeled and experiemental data, with
-        # standard deviation given by last two entries in paramV
         if 'confl' in self.expTable.keys():
             diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
             ssqErr = ssqErr + np.sum(np.square(diff)/((lnum + dead + eap) * confl_conv))

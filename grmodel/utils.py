@@ -56,42 +56,78 @@ def sim_plot(column):
 
     print(pdset)
 
-    # Evaluate each of the growth rates over the time interval
-    calcset = np.full((pdset.shape[0], len(classM.timeV)), np.inf)
+    #Initialize variables 
+    time = classM.timeV.reshape(3,25)[0,:]
+    calcset = np.full((pdset.shape[0], len(time)), np.inf)
+    calcseta = np.full((pdset.shape[0], len(time)), np.inf)
+    calcsetd = np.full((pdset.shape[0], len(time)), np.inf)
 
     varr = 0
-
+    # Evaluate predictions for each set of parameter fits
     for row in pdset.iterrows():
         mparm = np.copy(row[1].as_matrix()[0:4])
         try:
+            # Use old_model to calculate lnum, eap, and dead over time
             simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
+            simret = simret[:len(time),:]
+            simret = simret.reshape((len(time),3))
 
+            # Calculate predictions for total, apop, and dead cells over time
             calcset[varr, :] = np.sum(simret, axis = 1)
+            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1)
+            calcsetd[varr,:] = simret[:,2]
 
             varr = varr + 1
         except:
             print('Failed')
             continue
-    # Get rid of repeating predictions
-    calcset = calcset[:,:25]
-    time = classM.timeV.reshape(3,25)[0,:]
-    # Get median & 90% confidence interval for each time point
-    qqq = np.percentile(calcset, [5, 25, 50, 75, 95], axis=0)
     
+    # Plot prediction distribution and observation
     plt.figure(figsize=(10, 10))
-    plt.plot(time, qqq[2, :])
-    plt.fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
-    plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
-#    calcset = np.full((len(classM.timeV)), np.inf)
-#    calcsetd = np.full((len(classM.timeV)), np.inf)
-#    mparm = np.exp([-3.434892865275417,-7.96312272337698,-7.987219333825418,-5.2248634220018575])
-#    simret = classM.old_model(mparm, np.exp(1.7561011061148422))[1]
-#    calcset[:] = np.sum(simret,axis = 1)
-#    calcset = calcset.reshape(3,25)[0,:]
-#    calcsetd[:] = simret.reshape(len(classM.timeV),3)[:,0]
-#    calcsetd = calcsetd.reshape(3,25)[0,:]
-#    plt.plot(classM.timeV.reshape(3,25)[0,:], calcset)
-#    plt.plot(classM.timeV.reshape(3,25)[0,:], calcsetd)
+    # Iterate over total, apop, and dead cels
+    for calc in [calcset, calcseta, calcsetd]:
+        # Get median & 90% confidence interval for each time point
+        qqq = np.percentile(calc, [5, 25, 50, 75, 95], axis=0)
+        # Plot confidence interval 
+        plt.plot(time, qqq[2, :])
+        plt.fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
+        plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
+    # Plot observation 
+    plt.scatter(classM.timeV, classM.expTable['confl'])
+    plt.scatter(classM.timeV, classM.expTable['apop'])
+    plt.scatter(classM.timeV, classM.expTable['dna'])
+    plt.show()
+
+
+def fit_plot(param, column):
+    '''
+    Inputs: param = a list of len(5) in ln sapce, column = column for corresponding observation
+    Plot model prediction overlaying observation
+    '''
+    # Import an instance of GrowthModel
+    classM, _ = read_dataset(column)
+
+    # Initialize variables and parameters 
+    ltime = len(classM.timeV)/3
+    calcset = np.full((ltime), np.inf)
+    calcseta = np.full((ltime), np.inf)
+    calcsetd = np.full((ltime), np.inf)
+    mparm = np.exp(param[0:4])
+
+    # Use old model to calculate cells nubmers
+    simret = classM.old_model(mparm, np.exp(param[4]))[1]
+    simret = simret[:ltime,:]
+    simret = simret.reshape(ltime,3)
+
+    # Calculate total, apop, and dead cells 
+    calcset[:] = np.sum(simret,axis = 1)
+    calcseta[:] = np.sum(simret[:,1:3], axis = 1)
+    calcsetd[:] = simret[:,2]
+    
+    # Plot prediction curves overlayed with observation 
+    plt.plot(classM.timeV.reshape(3,25)[0,:], calcset)
+    plt.plot(classM.timeV.reshape(3,25)[0,:], calcseta)
+    plt.plot(classM.timeV.reshape(3,25)[0,:], calcsetd)
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
@@ -104,20 +140,17 @@ def hist_plot():
     """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    df = pd.concat(map(lambda x: read_dataset(x)[1], [2, 3, 4, 5]))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], [4,5,6,7]))
 
     print(df.columns)
-
-    # Reduce the number of data points randomly
-    df = df.sample(1000)
     
     # Main plot organization
-    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['a', 'b', 'c', 'd', 'LL', 'conv'],
+    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['div', 'b', 'c', 'd', 'confl_conv'],
                  plot_kws=dict(s=5, linewidth=0),
                  diag_kws=dict(shade=True))
 
     # Shuffle positions to show legend
-    plt.tight_layout(w_pad=3)
+    plt.tight_layout(pad = 0.1)
 
     # Draw plot
     plt.show()
@@ -150,7 +183,7 @@ def dose_response_plot(drugs, log=False):
         # Set up mean and confidence interval
         if log == True:
             for param in params:
-                dfd[param] = np.log(dfd[param])
+                dfd[param] = np.log10(dfd[param])
         dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
         dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
         dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean

@@ -35,11 +35,19 @@ class TestgrMethods(unittest.TestCase):
 
     def test_sim_plot(self):
         from ..utils import sim_plot
-        sim_plot(3)
+        sim_plot(2)
+
+    def test_hist_plot(self):
+        from ..utils import hist_plot
+        hist_plot()
+
+    def test_map_plot(self):
+        from ..utils import fit_plot
+        fit_plot([-3.434892865275417,-7.96312272337698,-7.987219333825418,-5.2248634220018575,1.7561011061148422], 3)
 
     def test_dose_response_plots(self):
         from ..utils import dose_response_plot, violinplot
-        dose_response_plot(['Dox','NVB'])
+        dose_response_plot(['Dox','NVB'], log = True)
         violinplot(['Dox','NVB'])
 
 if __name__ == '__main__':
