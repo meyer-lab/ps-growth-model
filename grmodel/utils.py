@@ -16,14 +16,10 @@ def read_dataset(column, filename=None, trim=True):
 
     if filename is None:
         filename = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "./data/030317_first_chain.h5")
+            os.path.abspath(__file__)), "./data/062117_first_chain.h5")
 
     # Open hdf5 file
     f = h5py.File(filename, 'r')
-
-    # Read in StoneModel and unpickle
-    #classM = pickle.loads(f['/column' + str(column)].attrs['class'].tobytes())
-    
 
     # Close hdf5 file
     f.close()
@@ -125,9 +121,9 @@ def fit_plot(param, column):
     calcsetd[:] = simret[:,2]
     
     # Plot prediction curves overlayed with observation 
-    plt.plot(classM.timeV.reshape(3,25)[0,:], calcset)
-    plt.plot(classM.timeV.reshape(3,25)[0,:], calcseta)
-    plt.plot(classM.timeV.reshape(3,25)[0,:], calcsetd)
+    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcset)
+    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcseta)
+    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcsetd)
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
