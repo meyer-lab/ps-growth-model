@@ -34,7 +34,7 @@ class MultiSample:
     def sample(self):
         ''' Map over sampling runs. '''
         for result in map(lambda x: x.sample(), self.cols):
-            continue 
+            continue
 
     def save(self, filename):
         ''' Map over saving runs. '''
@@ -102,6 +102,12 @@ class GrowthModel:
             d = pm.Lognormal('d', -5, 3)
 
             confl_conv = pm.Lognormal('confl_conv', 0, 1)
+            apop_conv = pm.Lognormal('apop_conv', 0, 1)
+            dna_conv = pm.Lognormal('dna_conv', 0, 1)
+
+            # Priors on conv factors
+            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
+            pm.Lognormal('apop_dna', np.log(2.0), 0.1, observed=apop_conv / dna_conv)
 
             # Calculate the growth rate
             GR = div - b - c
@@ -124,15 +130,15 @@ class GrowthModel:
             if 'confl' in self.expTable.keys():
                 expc = (lnum + dead + eap) * confl_conv
                 diff = expc - self.expTable['confl']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'apop' in self.expTable.keys():
-                expc = (dead + eap) * confl_conv + 10**(-3)
+                expc = (dead + eap) * apop_conv + 10**(-3)
                 diff = expc - self.expTable['apop']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'dna' in self.expTable.keys():
-                expc = dead * confl_conv + 10**(-3)
+                expc = dead * dna_conv + 10**(-3)
                 diff = expc - self.expTable['dna']
-                ssqErr = ssqErr + (np.square(diff)/ expc).sum()
+                ssqErr = ssqErr + (np.square(diff) / expc).sum()
 
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
