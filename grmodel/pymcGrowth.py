@@ -102,12 +102,12 @@ class GrowthModel:
             d = pm.Lognormal('d', -5, 3)
 
             confl_conv = pm.Lognormal('confl_conv', 0, 1)
-            apop_conv = pm.Lognormal('apop_conv', 0, 1)
-            dna_conv = pm.Lognormal('dna_conv', 0, 1)
+            apop_conv = confl_conv * pm.Lognormal('apop_conv', np.log(5), 0.2)
+            dna_conv = confl_conv * pm.Lognormal('dna_conv', 2.3, 0.2)
 
-            # Priors on conv factors
-            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
-            pm.Lognormal('apop_dna', np.log(2.0), 0.1, observed=apop_conv / dna_conv)
+#            # Priors on conv factors
+#            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
+#            pm.Lognormal('apop_dna', np.log(2.0), 0.1, observed=apop_conv / dna_conv)
 
             # Calculate the growth rate
             GR = div - b - c
@@ -145,7 +145,7 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', -1, 1))
+                          observed=ssqErr / pm.Lognormal('std', 2, 1))
 
         return growth_model
 

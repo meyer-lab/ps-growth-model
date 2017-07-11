@@ -41,7 +41,7 @@ class TestgrMethods(unittest.TestCase):
         from ..utils import hist_plot
         hist_plot()
 
-    def test_map_plot(self):
+    def test_fit_plot(self):
         from ..utils import fit_plot
         fit_plot([-3.434892865275417,-7.96312272337698,-7.987219333825418,-5.2248634220018575,1.7561011061148422], 3)
 
@@ -49,6 +49,12 @@ class TestgrMethods(unittest.TestCase):
         from ..utils import dose_response_plot, violinplot
         dose_response_plot(['Dox','NVB'], log = True)
         violinplot(['Dox','NVB'])
+
+    def test_062117(self):
+        from ..utils import dose_response_plot, violinplot
+        dose_response_plot(['U0126','JNK-IN-7','R428','Erlotinib'], log = True)
+        violinplot(['U0126','JNK-IN-7', 'R428', 'Erlotinib'])
+
 
 if __name__ == '__main__':
     unittest.main()
