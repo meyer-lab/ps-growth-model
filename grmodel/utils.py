@@ -108,7 +108,7 @@ def fit_plot(param, column):
     classM, _ = read_dataset(column)
 
     # Initialize variables and parameters 
-    ltime = len(classM.timeV)/3
+    ltime = int(len(classM.timeV)/3)
     calcset = np.full((ltime), np.inf)
     calcseta = np.full((ltime), np.inf)
     calcsetd = np.full((ltime), np.inf)
