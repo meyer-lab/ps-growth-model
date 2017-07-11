@@ -101,7 +101,7 @@ class GrowthModel:
             c = pm.Lognormal('c', -5, 3)
             d = pm.Lognormal('d', -5, 3)
 
-            confl_conv = pm.Lognormal('confl_conv', 2, 1)
+            confl_conv = pm.Lognormal('confl_conv', 0, 1)
 
             # Calculate the growth rate
             GR = div - b - c
