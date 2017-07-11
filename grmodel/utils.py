@@ -121,9 +121,9 @@ def fit_plot(param, column):
     calcsetd[:] = simret[:,2]
     
     # Plot prediction curves overlayed with observation 
-    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcset)
-    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcseta)
-    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcsetd)
+    plt.plot(classM.timeV.reshape(2,ltime)[0,:], calcset)
+    plt.plot(classM.timeV.reshape(2,ltime)[0,:], calcseta)
+    plt.plot(classM.timeV.reshape(2,ltime)[0,:], calcsetd)
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
@@ -140,6 +140,10 @@ def hist_plot():
 
     print(df.columns)
     
+    # Log transformation
+    for param in ['div', 'b', 'c', 'd', 'confl_conv']:
+        df[param] = np.log10(df[param])
+
     # Main plot organization
     sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['div', 'b', 'c', 'd', 'confl_conv'],
                  plot_kws=dict(s=5, linewidth=0),
@@ -147,6 +151,7 @@ def hist_plot():
 
     # Shuffle positions to show legend
     plt.tight_layout(pad = 0.1)
+    plt.legend(bbox_to_anchor=(0.7, 5))
 
     # Draw plot
     plt.show()
