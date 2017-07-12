@@ -16,7 +16,7 @@ def read_dataset(column, filename=None, trim=True):
 
     if filename is None:
         filename = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "./data/062117_first_chain.h5")
+            os.path.abspath(__file__)), "./data/030317_first_chain.h5")
 
     # Open hdf5 file
     f = h5py.File(filename, 'r')
@@ -37,7 +37,7 @@ def read_dataset(column, filename=None, trim=True):
 
     # Remove unlikely points if chosen
     if trim:
-        cutoff = np.amin(df['ssqErr'])+100
+        cutoff = np.amin(df['ssqErr'])+30
         df = df.loc[df['ssqErr'] < cutoff,:]
 
     return (classM, df)
@@ -64,17 +64,14 @@ def sim_plot(column):
         mparm = np.copy(row[1].as_matrix()[0:4])
         try:
             # Use old_model to calculate lnum, eap, and dead over time
-            con = row[1]['confl_conv']
-            apopcon = con / row[1]['apop_conv']
-            dnacon = con / row[1]['dna_conv']
-            simret = classM.old_model(mparm, con, apopcon, dnacon)[1]
+            simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
             simret = simret[:len(time),:]
             simret = simret.reshape((len(time),3))
 
             # Calculate predictions for total, apop, and dead cells over time
-            calcset[varr, :] = np.sum(simret, axis = 1) * con
-            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1) * apopcon
-            calcsetd[varr,:] = simret[:,2] * dnacon
+            calcset[varr, :] = np.sum(simret, axis = 1) 
+            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1) * 0.25
+            calcsetd[varr,:] = simret[:,2] * 0.125
 
             varr = varr + 1
         except:

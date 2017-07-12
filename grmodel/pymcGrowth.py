@@ -102,7 +102,7 @@ class GrowthModel:
             d = pm.Lognormal('d', -5, 3)
             
             # Set up conversion rates
-            confl_conv = pm.Lognormal('confl_conv', 0, 1)
+            confl_conv = pm.Lognormal('confl_conv', 2, 0.5)
             apopcon = confl_conv * 0.25
             dnacon = confl_conv * 0.125
 
@@ -146,12 +146,12 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', 0, 1))
+                          observed=ssqErr / pm.Lognormal('std', -1, 1))
 
         return growth_model
 
 
-    def old_model(self, params, confl_conv, apopcon, dnacon):
+    def old_model(self, params, confl_conv):
         """
         Solves the ODE function given a set of initial values (y0),
         over a time interval (self.timeV)
@@ -175,7 +175,7 @@ class GrowthModel:
         out = np.concatenate((np.expand_dims(lnum, axis=1),
                               np.expand_dims(dead, axis=1),
                               np.expand_dims(eap, axis=1)), axis=1)
-
+        out = out * confl_conv
         ssqErr = 0.0
 
         # Run likelihood function with modeled and experiemental data, with
@@ -183,11 +183,11 @@ class GrowthModel:
             diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
             ssqErr = ssqErr + np.sum(np.square(diff)/((lnum + dead + eap) * confl_conv))
         if 'apop' in self.expTable.keys():
-            expc = (dead + eap) * apopcon + 10**(-3)
+            expc = (dead + eap) * 0.25 * confl_conv + 10**(-3)
             diff = expc - self.expTable['apop']
             ssqErr = ssqErr + np.sum(np.square(diff)/expc)
         if 'dna' in self.expTable.keys():
-            expc = dead * dnacon + 10**(-3)
+            expc = dead * 0.125 * confl_conv + 10**(-3)
             diff = expc - self.expTable['dna']
             ssqErr = ssqErr + np.sum(np.square(diff)/ expc)
         return (ssqErr, out) 
@@ -199,7 +199,7 @@ class GrowthModel:
 
         # If no filename is given use a default
         if loadFile is None:
-            loadFile = "062117_PC9"
+            loadFile = "030317-2_H1299"
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
