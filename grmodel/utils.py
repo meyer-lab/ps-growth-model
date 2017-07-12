@@ -37,7 +37,7 @@ def read_dataset(column, filename=None, trim=True):
 
     # Remove unlikely points if chosen
     if trim:
-        cutoff = np.amin(df['ssqErr'])+30
+        cutoff = np.amin(df['ssqErr'])+20
         df = df.loc[df['ssqErr'] < cutoff,:]
 
     return (classM, df)
@@ -70,8 +70,8 @@ def sim_plot(column):
 
             # Calculate predictions for total, apop, and dead cells over time
             calcset[varr, :] = np.sum(simret, axis = 1) 
-            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1) * 0.25
-            calcsetd[varr,:] = simret[:,2] * 0.125
+            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1)
+            calcsetd[varr,:] = simret[:,2]
 
             varr = varr + 1
         except:
@@ -90,8 +90,8 @@ def sim_plot(column):
         plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
     # Plot observation 
     plt.scatter(classM.timeV, classM.expTable['confl'])
-    plt.scatter(classM.timeV, classM.expTable['apop'])
-    plt.scatter(classM.timeV, classM.expTable['dna'])
+    plt.scatter(classM.timeV, classM.expTable['apop']*4)
+    plt.scatter(classM.timeV, classM.expTable['dna']*8)
     plt.show()
 
 
