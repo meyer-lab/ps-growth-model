@@ -100,10 +100,13 @@ class GrowthModel:
             b = pm.Lognormal('b', -5, 3)
             c = pm.Lognormal('c', -5, 3)
             d = pm.Lognormal('d', -5, 3)
-
+            
+            # Set up conversion rates
             confl_conv = pm.Lognormal('confl_conv', 0, 1)
-            apop_conv = confl_conv / pm.Lognormal('apop_conv', np.log(4), 0.2)
-            dna_conv = confl_conv / pm.Lognormal('dna_conv', 2, 0.2)
+            apop_conv = pm.Lognormal('apop_conv', np.log(4), 0.2)
+            dna_conv = pm.Lognormal('dna_conv', 2, 0.2)
+            apopcon = confl_conv / apop_conv
+            dnacon = confl_conv / dna_conv 
 
 #            # Priors on conv factors
 #            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
@@ -132,11 +135,11 @@ class GrowthModel:
                 diff = expc - self.expTable['confl']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'apop' in self.expTable.keys():
-                expc = (dead + eap) * apop_conv + 10**(-3)
+                expc = (dead + eap) * apopcon + 10**(-3)
                 diff = expc - self.expTable['apop']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'dna' in self.expTable.keys():
-                expc = dead * dna_conv + 10**(-3)
+                expc = dead * dnacon + 10**(-3)
                 diff = expc - self.expTable['dna']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
 
