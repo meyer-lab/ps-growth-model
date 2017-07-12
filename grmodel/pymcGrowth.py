@@ -102,8 +102,8 @@ class GrowthModel:
             d = pm.Lognormal('d', -5, 3)
 
             confl_conv = pm.Lognormal('confl_conv', 0, 1)
-            apop_conv = confl_conv / pm.Lognormal('apop_conv', np.log(5), 0.2)
-            dna_conv = confl_conv / pm.Lognormal('dna_conv', 2.3, 0.2)
+            apop_conv = confl_conv / pm.Lognormal('apop_conv', np.log(4), 0.2)
+            dna_conv = confl_conv / pm.Lognormal('dna_conv', 2, 0.2)
 
 #            # Priors on conv factors
 #            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)

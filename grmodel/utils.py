@@ -147,7 +147,7 @@ def hist_plot():
     # Main plot organization
     sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['div', 'b', 'c', 'd', 'confl_conv'],
                  plot_kws=dict(s=5, linewidth=0),
-                 diag_kws=dict(shade=True))
+                 diag_kws=dict(shade=True), size = 2)
 
     # Shuffle positions to show legend
     plt.tight_layout(pad = 0.1)
