@@ -103,10 +103,8 @@ class GrowthModel:
             
             # Set up conversion rates
             confl_conv = pm.Lognormal('confl_conv', 0, 1)
-            apop_conv = pm.Lognormal('apop_conv', np.log(4), 0.2)
-            dna_conv = pm.Lognormal('dna_conv', 2, 0.2)
-            apopcon = confl_conv / apop_conv
-            dnacon = confl_conv / dna_conv 
+            apopcon = confl_conv * 0.25
+            dnacon = confl_conv * 0.125
 
 #            # Priors on conv factors
 #            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
@@ -148,12 +146,12 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', 2, 1))
+                          observed=ssqErr / pm.Lognormal('std', 0, 1))
 
         return growth_model
 
 
-    def old_model(self, params, confl_conv):
+    def old_model(self, params, confl_conv, apopcon, dnacon):
         """
         Solves the ODE function given a set of initial values (y0),
         over a time interval (self.timeV)
@@ -173,11 +171,11 @@ class GrowthModel:
                 params[2] / (GR + params[3]) * np.exp(-params[3] * self.timeV) -
                 params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
                 params[2] / (GR + params[3]))
-        
+
         out = np.concatenate((np.expand_dims(lnum, axis=1),
                               np.expand_dims(dead, axis=1),
                               np.expand_dims(eap, axis=1)), axis=1)
-        out = out * confl_conv
+
         ssqErr = 0.0
 
         # Run likelihood function with modeled and experiemental data, with
@@ -185,11 +183,11 @@ class GrowthModel:
             diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
             ssqErr = ssqErr + np.sum(np.square(diff)/((lnum + dead + eap) * confl_conv))
         if 'apop' in self.expTable.keys():
-            expc = (dead + eap) * confl_conv + 10**(-3)
+            expc = (dead + eap) * apopcon + 10**(-3)
             diff = expc - self.expTable['apop']
             ssqErr = ssqErr + np.sum(np.square(diff)/expc)
         if 'dna' in self.expTable.keys():
-            expc = dead * confl_conv + 10**(-3)
+            expc = dead * dnacon + 10**(-3)
             diff = expc - self.expTable['dna']
             ssqErr = ssqErr + np.sum(np.square(diff)/ expc)
         return (ssqErr, out) 

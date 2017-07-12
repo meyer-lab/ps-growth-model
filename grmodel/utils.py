@@ -8,7 +8,7 @@ except ImportError:
     import pickle
 
 
-def read_dataset(column, filename=None, trim=False):
+def read_dataset(column, filename=None, trim=True):
     ''' Read the specified column from the shared test file. '''
     import os
     import h5py
@@ -37,7 +37,7 @@ def read_dataset(column, filename=None, trim=False):
 
     # Remove unlikely points if chosen
     if trim:
-        cutoff = np.amin(df['ssqErr'])+30
+        cutoff = np.amin(df['ssqErr'])+100
         df = df.loc[df['ssqErr'] < cutoff,:]
 
     return (classM, df)
@@ -64,14 +64,17 @@ def sim_plot(column):
         mparm = np.copy(row[1].as_matrix()[0:4])
         try:
             # Use old_model to calculate lnum, eap, and dead over time
-            simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
+            con = row[1]['confl_conv']
+            apopcon = con / row[1]['apop_conv']
+            dnacon = con / row[1]['dna_conv']
+            simret = classM.old_model(mparm, con, apopcon, dnacon)[1]
             simret = simret[:len(time),:]
             simret = simret.reshape((len(time),3))
 
             # Calculate predictions for total, apop, and dead cells over time
-            calcset[varr, :] = np.sum(simret, axis = 1)
-            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1)
-            calcsetd[varr,:] = simret[:,2]
+            calcset[varr, :] = np.sum(simret, axis = 1) * con
+            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1) * apopcon
+            calcsetd[varr,:] = simret[:,2] * dnacon
 
             varr = varr + 1
         except:
