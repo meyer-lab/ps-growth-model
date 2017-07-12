@@ -102,7 +102,8 @@ class GrowthModel:
             d = pm.Lognormal('d', -5, 3)
             
             # Set up conversion rates
-            confl_conv = pm.Lognormal('confl_conv', 2, 0.5)
+            conv = np.mean(self.expTable['confl'][0:int(len(self.expTable['confl']))/3:int(len(self.expTable['confl']))])
+            confl_conv = pm.Lognormal('confl_conv', np.log(conv), 0.1)
             apopcon = confl_conv * 0.25
             dnacon = confl_conv * 0.125
 

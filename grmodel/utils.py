@@ -53,7 +53,7 @@ def sim_plot(column):
     print(pdset)
 
     #Initialize variables 
-    time = classM.timeV.reshape(2,int(len(classM.timeV)/2))[0,:]
+    time = classM.timeV.reshape(3,int(len(classM.timeV)/3))[0,:]
     calcset = np.full((pdset.shape[0], len(time)), np.inf)
     calcseta = np.full((pdset.shape[0], len(time)), np.inf)
     calcsetd = np.full((pdset.shape[0], len(time)), np.inf)
@@ -104,7 +104,7 @@ def fit_plot(param, column):
     classM, _ = read_dataset(column)
 
     # Initialize variables and parameters 
-    ltime = int(len(classM.timeV)/2)
+    ltime = int(len(classM.timeV)/3)
     calcset = np.full((ltime), np.inf)
     calcseta = np.full((ltime), np.inf)
     calcsetd = np.full((ltime), np.inf)
@@ -121,9 +121,9 @@ def fit_plot(param, column):
     calcsetd[:] = simret[:,2]
     
     # Plot prediction curves overlayed with observation 
-    plt.plot(classM.timeV.reshape(2,ltime)[0,:], calcset)
-    plt.plot(classM.timeV.reshape(2,ltime)[0,:], calcseta)
-    plt.plot(classM.timeV.reshape(2,ltime)[0,:], calcsetd)
+    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcset)
+    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcseta)
+    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcsetd)
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
@@ -161,7 +161,7 @@ def dose_response_plot(drugs, log=False):
     # Takes in a list of drugs
     # Makes 1*num(parameters) plots for each drug
     # Read in dataframe and reduce sample
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
     print(df.columns)
     #df = df.sample(2000)
 
@@ -208,7 +208,7 @@ def violinplot(drugs,log=False):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
     #df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
@@ -231,7 +231,7 @@ def violinplot(drugs,log=False):
         j = drugs.index(drug)
         for i in range(len(params)):
             if log == True:
-                sns.violinplot(dfd[drug+'-dose'],np.log(dfd[params[i]]),ax=axis[j,i])
+                sns.violinplot(dfd[drug+'-dose'],np.log10(dfd[params[i]]),ax=axis[j,i])
             else:
                 sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
 
