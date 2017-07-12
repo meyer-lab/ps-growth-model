@@ -18,16 +18,16 @@ class TestgrMethods(unittest.TestCase):
         con = np.power(10,0.75)
         self.GR.old_model(parms, con)[0]
 
-    def test_bothmodels(self):
-        from ..utils import read_dataset 
-        classM, df = read_dataset(3)
-        df = df.sample(10)
-        for row in df.iterrows():
-            params = row[1].as_matrix()[0:4]
-            conv = row[1]['confl_conv']
-            self.assertAlmostEqual(row[1].as_matrix()[5], 
-                                   classM.old_model(params,conv)[0],
-                                   delta = row[1].as_matrix()[5] / 10**6)
+#    def test_bothmodels(self):
+#        from ..utils import read_dataset 
+#        classM, df = read_dataset(3)
+#        df = df.sample(10)
+#        for row in df.iterrows():
+#            params = row[1].as_matrix()[0:4]
+#            conv = row[1]['confl_conv']
+#            self.assertAlmostEqual(row[1].as_matrix()[5], 
+#                                   classM.old_model(params,conv)[0],
+#                                   delta = row[1].as_matrix()[5] / 10**6)
 
     def test_model(self):
         self.GR.importData(3)
