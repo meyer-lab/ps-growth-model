@@ -146,8 +146,12 @@ class GrowthModel:
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
             # Error distribution for the expt observations
+            if self.selcol <= 8:
+                sd = np.log(1/4)
+            else:
+                sd = np.log(0.1)
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', -2, 1))
+                          observed=ssqErr / pm.Lognormal('std', sd, 0.2))
 
         return growth_model
 
