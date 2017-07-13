@@ -146,7 +146,7 @@ class GrowthModel:
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
             # Error distribution for the expt observations
-            if self.selcol <= 8:
+            if self.selCol <= 8:
                 sd = np.log(1/4)
             else:
                 sd = np.log(0.1)
