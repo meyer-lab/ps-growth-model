@@ -147,11 +147,13 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             if self.selCol <= 8:
-                sd = np.log(1/4)
+                sd = -1
+                sdd = 0.5
             else:
                 sd = np.log(0.1)
+                sdd = 0.2
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', sd, 0.2))
+                          observed=ssqErr / pm.Lognormal('std', sd, sdd))
 
         return growth_model
 
