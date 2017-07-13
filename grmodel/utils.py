@@ -136,16 +136,16 @@ def hist_plot():
     """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    df = pd.concat(map(lambda x: read_dataset(x)[1], [4,5,6,7]))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], [4,6,8,10,12]))
 
     print(df.columns)
     
     # Log transformation
-    for param in ['div', 'b', 'c', 'd', 'confl_conv']:
+    for param in ['div', 'b', 'c', 'd', 'confl_conv', 'std']:
         df[param] = np.log10(df[param])
 
     # Main plot organization
-    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['div', 'b', 'c', 'd', 'confl_conv'],
+    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['div', 'b', 'c', 'd', 'confl_conv', 'std'],
                  plot_kws=dict(s=5, linewidth=0),
                  diag_kws=dict(shade=True), size = 2)
 
@@ -161,7 +161,7 @@ def dose_response_plot(drugs, log=False):
     # Takes in a list of drugs
     # Makes 1*num(parameters) plots for each drug
     # Read in dataframe and reduce sample
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,22))))
     print(df.columns)
     #df = df.sample(2000)
 

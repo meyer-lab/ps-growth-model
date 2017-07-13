@@ -102,12 +102,16 @@ class GrowthModel:
             d = pm.Lognormal('d', -5, 3)
             
             # Set up conversion rates
-            conv = np.mean(self.expTable['confl'][0:25:75])
+            con0 = []
+            for i in list(range(len(self.timeV))):
+                if self.timeV[i] == 0:
+                    con0.append(self.expTable['confl'][i])
+            conv = np.mean(con0)
             confl_conv = pm.Lognormal('confl_conv', np.log(conv), 0.1)
-            apopcon = confl_conv * 0.25
-            dnacon = confl_conv * 0.125
+            apop_conv = pm.Lognormal('apop_conv', np.log(confl_conv * 0.25), 0.1)
+            dna_conv = pm.Lognormal('dna_conv', np.log(confl_conv * 0.125), 0.1) 
 
-#            # Priors on conv factors
+            # Priors on conv factors
 #            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
 #            pm.Lognormal('apop_dna', np.log(2.0), 0.1, observed=apop_conv / dna_conv)
 
@@ -134,11 +138,11 @@ class GrowthModel:
                 diff = expc - self.expTable['confl']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'apop' in self.expTable.keys():
-                expc = (dead + eap) * apopcon + 10**(-2)
+                expc = (dead + eap) * apop_conv + 10**(-2)
                 diff = expc - self.expTable['apop']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'dna' in self.expTable.keys():
-                expc = dead * dnacon + 10**(-2)
+                expc = dead * dna_conv + 10**(-2)
                 diff = expc - self.expTable['dna']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
 
@@ -146,14 +150,8 @@ class GrowthModel:
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
             # Error distribution for the expt observations
-            if self.selCol <= 8:
-                sd = -1
-                sdd = 0.5
-            else:
-                sd = np.log(0.1)
-                sdd = 0.2
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', sd, sdd))
+                          observed=ssqErr / pm.Lognormal('std', -2, 1))
 
         return growth_model
 
