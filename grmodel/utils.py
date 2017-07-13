@@ -136,7 +136,7 @@ def hist_plot():
     """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    df = pd.concat(map(lambda x: read_dataset(x)[1], [4,6,8,10,12]))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], [2,5,7,9,11,13]))
 
     print(df.columns)
     
@@ -151,7 +151,7 @@ def hist_plot():
 
     # Shuffle positions to show legend
     plt.tight_layout(pad = 0.1)
-    plt.legend(bbox_to_anchor=(0.7, 5))
+    plt.legend(bbox_to_anchor=(0, 6.5))
 
     # Draw plot
     plt.show()
@@ -161,7 +161,7 @@ def dose_response_plot(drugs, log=False):
     # Takes in a list of drugs
     # Makes 1*num(parameters) plots for each drug
     # Read in dataframe and reduce sample
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,22))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
     print(df.columns)
     #df = df.sample(2000)
 
@@ -178,13 +178,14 @@ def dose_response_plot(drugs, log=False):
             break 
 
         # Add dose to table
-        dfd[drug+'-dose'] = dfd['Condition'].str.split(' ').str[1]
-        dfd[drug+'-dose'] = dfd[drug+'-dose'].convert_objects(convert_numeric=True)
+        dfd = dfd.copy()
+        dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
+        dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
         
         # Set up mean and confidence interval
         if log == True:
             for param in params:
-                dfd[param] = np.log10(dfd[param])
+                dfd.loc[:, param] = dfd[param].apply(np.log10)
         dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
         dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
         dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean
@@ -224,8 +225,9 @@ def violinplot(drugs,log=False):
             break 
 
         # Add dose to table
-        dfd[drug+'-dose'] = dfd['Condition'].str.split(' ').str[1]
-        dfd[drug+'-dose'] = dfd[drug+'-dose'].convert_objects(convert_numeric=True)
+        dfd = dfd.copy()
+        dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
+        dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
 
         # Plot params vs. drug dose
         j = drugs.index(drug)
