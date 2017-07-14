@@ -33,7 +33,12 @@ def read_dataset(column, filename=None, trim=True):
 
     # Add the column this came from
     df['Col'] = column
-    df['Condition'] = classM.condName
+    
+    # Unmangle condition names for duplicate columns
+    if classM.condName[-2:] == '.1':
+        df['Condition'] = classM.condName[:-2]
+    else:
+        df['Condition'] = classM.condName
 
     # Remove unlikely points if chosen
     if trim:
