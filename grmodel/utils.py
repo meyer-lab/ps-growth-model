@@ -16,7 +16,7 @@ def read_dataset(column, filename=None, trim=True):
 
     if filename is None:
         filename = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "./data/030317_first_chain.h5")
+            os.path.abspath(__file__)), "./data/062117_first_chain.h5")
 
     # Open hdf5 file
     f = h5py.File(filename, 'r')
@@ -48,7 +48,7 @@ def read_dataset(column, filename=None, trim=True):
     return (classM, df)
 
 
-def sim_plot(column):
+def sim_plot(column, replica = False):
 
     # Read in dataset to Pandas data frame
     classM, pdset = read_dataset(column)
@@ -58,7 +58,10 @@ def sim_plot(column):
     print(pdset)
 
     #Initialize variables 
-    time = classM.timeV.reshape(3,int(len(classM.timeV)/3))[0,:]
+    if replica:
+        time = classM.timeV.reshape(3,int(len(classM.timeV)/3))[0,:]
+    else:
+        time = classM.timeV 
     calcset = np.full((pdset.shape[0], len(time)), np.inf)
     calcseta = np.full((pdset.shape[0], len(time)), np.inf)
     calcsetd = np.full((pdset.shape[0], len(time)), np.inf)
@@ -70,7 +73,8 @@ def sim_plot(column):
         try:
             # Use old_model to calculate lnum, eap, and dead over time
             simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
-            simret = simret[:len(time),:]
+            if replica:
+                simret = simret[:len(time),:]
             simret = simret.reshape((len(time),3))
 
             # Calculate predictions for total, apop, and dead cells over time
@@ -100,7 +104,7 @@ def sim_plot(column):
     plt.show()
 
 
-def fit_plot(param, column):
+def fit_plot(param, column, replica = False):
     '''
     Inputs: param = a list of len(5) in ln sapce, column = column for corresponding observation
     Plot model prediction overlaying observation
@@ -109,7 +113,10 @@ def fit_plot(param, column):
     classM, _ = read_dataset(column)
 
     # Initialize variables and parameters 
-    ltime = int(len(classM.timeV)/3)
+    if replica:
+        ltime = int(len(classM.timeV)/3)
+    else:
+        ltime = int(len(classM.timeV))
     calcset = np.full((ltime), np.inf)
     calcseta = np.full((ltime), np.inf)
     calcsetd = np.full((ltime), np.inf)
@@ -117,7 +124,8 @@ def fit_plot(param, column):
 
     # Use old model to calculate cells nubmers
     simret = classM.old_model(mparm, np.exp(param[4]))[1]
-    simret = simret[:ltime,:]
+    if replica:
+        simret = simret[:ltime,:]
     simret = simret.reshape(ltime,3)
 
     # Calculate total, apop, and dead cells 
@@ -126,9 +134,14 @@ def fit_plot(param, column):
     calcsetd[:] = simret[:,2]
     
     # Plot prediction curves overlayed with observation 
-    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcset)
-    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcseta)
-    plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcsetd)
+    if replica:
+        plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcset)
+        plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcseta)
+        plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcsetd)
+    else:
+        plt.plot(classM.timeV, calcset)
+        plt.plot(classM.timeV, calcseta)
+        plt.plot(classM.timeV, calcsetd)
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])

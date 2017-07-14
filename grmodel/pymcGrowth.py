@@ -204,7 +204,7 @@ class GrowthModel:
 
         # If no filename is given use a default
         if loadFile is None:
-            loadFile = "030317-2_H1299"
+            loadFile = "062117_PC9"
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
