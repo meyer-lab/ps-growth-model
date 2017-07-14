@@ -148,13 +148,13 @@ def fit_plot(param, column, replica = False):
     plt.show()
 
 
-def hist_plot():
+def hist_plot(cols):
     """
     Display histograms of parameter values across conditions
     """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    df = pd.concat(map(lambda x: read_dataset(x)[1], [2,5,7,9,11,13]))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
 
     print(df.columns)
     
@@ -173,6 +173,22 @@ def hist_plot():
 
     # Draw plot
     plt.show()
+
+
+def PCA(cols):
+    from seaborn.decomposition import PCA
+
+    df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
+
+    print(df.columns)
+    
+    # Log transformation
+    for param in ['div', 'b', 'c', 'd', 'confl_conv', 'std']:
+        df[param] = np.log10(df[param])
+    dfmain = df.loc[:,param]
+    pca = PCA(n_components=5)
+    pca.fit(dfmain)
+    print(pca.explained_variance_ratio_)
 
 
 def dose_response_plot(drugs, log=False):
