@@ -136,15 +136,15 @@ class GrowthModel:
             if 'confl' in self.expTable.keys():
                 expc = (lnum + dead + eap) * confl_conv
                 diff = expc - self.expTable['confl']
-                ssqErr = ssqErr + (np.square(diff / expc)).sum()
+                ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'apop' in self.expTable.keys():
                 expc = (dead + eap) * apop_conv + 10**(-2)
                 diff = expc - self.expTable['apop']
-                ssqErr = ssqErr + (np.square(diff / expc)).sum()
+                ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'dna' in self.expTable.keys():
                 expc = dead * dna_conv + 10**(-2)
                 diff = expc - self.expTable['dna']
-                ssqErr = ssqErr + (np.square(diff / expc)).sum()
+                ssqErr = ssqErr + (np.square(diff) / expc).sum()
 
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
@@ -156,7 +156,7 @@ class GrowthModel:
         return growth_model
 
 
-    def old_model(self, params, confl_conv):
+    def old_model(self, params, confl_conv, apop_conv, dna_conv):
         """
         Solves the ODE function given a set of initial values (y0),
         over a time interval (self.timeV)
@@ -185,14 +185,15 @@ class GrowthModel:
 
         # Run likelihood function with modeled and experiemental data, with
         if 'confl' in self.expTable.keys():
-            diff = (lnum + dead + eap) * confl_conv - self.expTable['confl']
-            ssqErr = ssqErr + np.sum(np.square(diff)/((lnum + dead + eap) * confl_conv))
+            expc = (lnum + dead + eap) * confl_conv
+            diff = expc - self.expTable['confl']
+            ssqErr = ssqErr + np.sum(np.square(diff)/expc)
         if 'apop' in self.expTable.keys():
-            expc = (dead + eap) * 0.25 * confl_conv + 10**(-2)
+            expc = (dead + eap) *apop_conv + 10**(-2)
             diff = expc - self.expTable['apop']
             ssqErr = ssqErr + np.sum(np.square(diff)/expc)
         if 'dna' in self.expTable.keys():
-            expc = dead * 0.125 * confl_conv + 10**(-2)
+            expc = dead * dna_conv + 10**(-2)
             diff = expc - self.expTable['dna']
             ssqErr = ssqErr + np.sum(np.square(diff)/ expc)
         return (ssqErr, out) 
@@ -225,7 +226,8 @@ class GrowthModel:
         for key, value in properties.items():
             # Read input file
             try:
-                data = pandas.read_csv(pathcsv + value)
+                dataset = pandas.read_csv(pathcsv + value)
+                data = dataset.loc[dataset['Elapsed'] >= 24]
             except FileNotFoundError:
                 print("No file for key: " + key)
                 continue

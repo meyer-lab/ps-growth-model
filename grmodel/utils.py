@@ -221,7 +221,6 @@ def dose_response_plot(drugs, log=False):
     # Read in dataframe and reduce sample
     df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
     print(df.columns)
-    #df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     
@@ -233,7 +232,7 @@ def dose_response_plot(drugs, log=False):
         # Break if drug not in dataset
         if dfd.empty:
             print("Error: Drug not in dataset")
-            break 
+            break
 
         # Add dose to table
         dfd = dfd.copy()
@@ -241,7 +240,7 @@ def dose_response_plot(drugs, log=False):
         dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
         
         # Set up mean and confidence interval
-        if log == True:
+        if log: 
             for param in params:
                 dfd.loc[:, param] = dfd[param].apply(np.log10)
         dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
@@ -268,7 +267,6 @@ def violinplot(drugs,log=False):
     '''
     import seaborn as sns
     df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
-    #df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     
@@ -290,7 +288,7 @@ def violinplot(drugs,log=False):
         # Plot params vs. drug dose
         j = drugs.index(drug)
         for i in range(len(params)):
-            if log == True:
+            if log: 
                 sns.violinplot(dfd[drug+'-dose'],np.log10(dfd[params[i]]),ax=axis[j,i])
             else:
                 sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
