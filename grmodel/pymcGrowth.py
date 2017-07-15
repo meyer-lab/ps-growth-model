@@ -102,12 +102,12 @@ class GrowthModel:
             d = pm.Lognormal('d', -5, 3)
             
             # Set up conversion rates
-            con0 = []
-            for i in list(range(len(self.timeV))):
-                if self.timeV[i] == 0:
-                    con0.append(self.expTable['confl'][i])
-            conv = np.mean(con0)
-            confl_conv = pm.Lognormal('confl_conv', np.log(conv), 0.1)
+#            con0 = []
+#            for i in list(range(len(self.timeV))):
+#                if self.timeV[i] == 0:
+#                    con0.append(self.expTable['confl'][i])
+#            conv = np.mean(con0)
+            confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
             apop_conv = pm.Lognormal('apop_conv', np.log(confl_conv * 1/6), 0.1)
             dna_conv = pm.Lognormal('dna_conv', np.log(confl_conv * 1/6), 0.1) 
 
@@ -228,6 +228,9 @@ class GrowthModel:
             try:
                 dataset = pandas.read_csv(pathcsv + value)
                 data = dataset.loc[dataset['Elapsed'] >= 24]
+                if key == 'confl':
+                    data0 = dataset.loc[dataset['Elapsed'] == 0]
+                    self.conv0 = np.mean(data0.iloc[:,self.selCol])
             except FileNotFoundError:
                 print("No file for key: " + key)
                 continue
