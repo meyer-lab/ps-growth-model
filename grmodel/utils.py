@@ -182,6 +182,7 @@ def hist_plot(cols):
 def PCA(cols):
     # Principle components analysis of sampling results for parameter values
     from sklearn.decomposition import PCA
+    import seaborn as sns
 
     df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
 
@@ -201,13 +202,17 @@ def PCA(cols):
     # Get explained variance ratio
     expvar = pca.explained_variance_ratio_
     # Get PCA Scores
-    dftrans = pca.fit_transform(dfmain)
+    dftran = pca.fit_transform(dfmain)
+    dftran = pd.DataFrame(dftran, columns = ['PC 1', 'PC 2', 'PC 3'])
+    # Add condition column to PCA scores
+    condition = np.asarray(df.loc[:,'Condition'])
+    dftran['Conditions'] = condition 
 
     # Plot first 2 principle components
-    plt.scatter(dftrans[:,0], dftrans[:,1])
+    ax = sns.lmplot('PC 1', 'PC 2', data = dftran, hue = 'Conditions', fit_reg = False)
     # Set axis labels
-    plt.xlabel('PC 1 ('+str(round(float(expvar[0])*100, 0))+'%)')
-    plt.ylabel('PC 2 ('+str(round(float(expvar[1])*100, 0))+'%)')
+    ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))+'%)')
+    ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))+'%)')
 
 
 def dose_response_plot(drugs, log=False):

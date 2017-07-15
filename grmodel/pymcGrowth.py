@@ -136,15 +136,15 @@ class GrowthModel:
             if 'confl' in self.expTable.keys():
                 expc = (lnum + dead + eap) * confl_conv
                 diff = expc - self.expTable['confl']
-                ssqErr = ssqErr + (np.square(diff) / expc).sum()
+                ssqErr = ssqErr + (np.square(diff / expc)).sum()
             if 'apop' in self.expTable.keys():
                 expc = (dead + eap) * apop_conv + 10**(-2)
                 diff = expc - self.expTable['apop']
-                ssqErr = ssqErr + (np.square(diff) / expc).sum()
+                ssqErr = ssqErr + (np.square(diff / expc)).sum()
             if 'dna' in self.expTable.keys():
                 expc = dead * dna_conv + 10**(-2)
                 diff = expc - self.expTable['dna']
-                ssqErr = ssqErr + (np.square(diff) / expc).sum()
+                ssqErr = ssqErr + (np.square(diff / expc)).sum()
 
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
