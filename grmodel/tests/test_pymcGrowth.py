@@ -55,6 +55,9 @@ class TestgrMethods(unittest.TestCase):
         dose_response_plot(['U0126','JNK-IN-7','R428','Erlotinib'], log = True)
         violinplot(['U0126','JNK-IN-7', 'R428', 'Erlotinib'])
 
+    def test_PCA(self):
+        from ..utils import PCA
+        PCA([2,3])
 
 if __name__ == '__main__':
     unittest.main()

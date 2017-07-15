@@ -99,8 +99,12 @@ def sim_plot(column, replica = False):
         plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
     # Plot observation 
     plt.scatter(classM.timeV, classM.expTable['confl'])
-    plt.scatter(classM.timeV, classM.expTable['apop']*4)
-    plt.scatter(classM.timeV, classM.expTable['dna']*8)
+    if replica:
+        plt.scatter(classM.timeV, classM.expTable['apop']*4)
+        plt.scatter(classM.timeV, classM.expTable['dna']*8)
+    else:
+        plt.scatter(classM.timeV, classM.expTable['apop']*6)
+        plt.scatter(classM.timeV, classM.expTable['dna']*6)
     plt.show()
 
 
@@ -176,26 +180,41 @@ def hist_plot(cols):
 
 
 def PCA(cols):
-    from seaborn.decomposition import PCA
+    # Principle components analysis of sampling results for parameter values
+    from sklearn.decomposition import PCA
 
     df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
 
     print(df.columns)
-    
+ 
     # Log transformation
-    for param in ['div', 'b', 'c', 'd', 'confl_conv', 'std']:
+    params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
+    for param in params:
         df[param] = np.log10(df[param])
-    dfmain = df.loc[:,param]
-    pca = PCA(n_components=5)
+
+    # Keep columns in params
+    dfmain = df.loc[:,params]
+
+    # Run PCA
+    pca = PCA(n_components=3)
     pca.fit(dfmain)
-    print(pca.explained_variance_ratio_)
+    # Get explained variance ratio
+    expvar = pca.explained_variance_ratio_
+    # Get PCA Scores
+    dftrans = pca.fit_transform(dfmain)
+
+    # Plot first 2 principle components
+    plt.scatter(dftrans[:,0], dftrans[:,1])
+    # Set axis labels
+    plt.xlabel('PC 1 ('+str(round(float(expvar[0])*100, 0))+'%)')
+    plt.ylabel('PC 2 ('+str(round(float(expvar[1])*100, 0))+'%)')
 
 
 def dose_response_plot(drugs, log=False):
     # Takes in a list of drugs
     # Makes 1*num(parameters) plots for each drug
     # Read in dataframe and reduce sample
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
     print(df.columns)
     #df = df.sample(2000)
 
@@ -243,7 +262,7 @@ def violinplot(drugs,log=False):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,14))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
     #df = df.sample(2000)
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
