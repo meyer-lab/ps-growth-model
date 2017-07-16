@@ -49,7 +49,7 @@ def read_dataset(column, filename=None, trim=True):
 
 
 def sim_plot(column, replica = False):
-
+    """ Given column, plots simulation of predictions overlaying observed data """
     # Read in dataset to Pandas data frame
     classM, pdset = read_dataset(column)
 
@@ -78,9 +78,9 @@ def sim_plot(column, replica = False):
                 simret = simret.reshape((len(time),3))
 
             # Calculate predictions for total, apop, and dead cells over time
-            calcset[varr, :] = np.sum(simret, axis = 1) 
-            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1)
-            calcsetd[varr,:] = simret[:,2]
+            calcset[varr, :] = np.sum(simret, axis = 1) * row[1]['confl_conv']
+            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1) *row[1]['apop_conv']
+            calcsetd[varr,:] = simret[:,2] * row[1]['dna_conv']
 
             varr = varr + 1
         except:
@@ -103,14 +103,14 @@ def sim_plot(column, replica = False):
         plt.scatter(classM.timeV, classM.expTable['apop']*4)
         plt.scatter(classM.timeV, classM.expTable['dna']*8)
     else:
-        plt.scatter(classM.timeV, classM.expTable['apop']*6)
-        plt.scatter(classM.timeV, classM.expTable['dna']*6)
+        plt.scatter(classM.timeV, classM.expTable['apop'])
+        plt.scatter(classM.timeV, classM.expTable['dna'])
     plt.show()
 
 
 def fit_plot(param, column, replica = False):
     '''
-    Inputs: param = a list of len(5) in ln sapce, column = column for corresponding observation
+    Inputs: param = a list of len(7) in normal space, column = column for corresponding observation
     Plot model prediction overlaying observation
     '''
     # Import an instance of GrowthModel
@@ -124,18 +124,18 @@ def fit_plot(param, column, replica = False):
     calcset = np.full((ltime), np.inf)
     calcseta = np.full((ltime), np.inf)
     calcsetd = np.full((ltime), np.inf)
-    mparm = np.exp(param[0:4])
+    mparm = param[0:4]
 
     # Use old model to calculate cells nubmers
-    simret = classM.old_model(mparm, np.exp(param[4]))[1]
+    simret = classM.old_model(mparm, param[4], param[5], param[6])[1]
     if replica:
         simret = simret[:ltime,:]
     simret = simret.reshape(ltime,3)
 
     # Calculate total, apop, and dead cells 
-    calcset[:] = np.sum(simret,axis = 1)
-    calcseta[:] = np.sum(simret[:,1:3], axis = 1)
-    calcsetd[:] = simret[:,2]
+    calcset[:] = np.sum(simret,axis = 1) * param[4]
+    calcseta[:] = np.sum(simret[:,1:3], axis = 1) * param[5]
+    calcsetd[:] = simret[:,2] * param[6]
     
     # Plot prediction curves overlayed with observation 
     if replica:
@@ -180,7 +180,9 @@ def hist_plot(cols):
 
 
 def PCA(cols):
-    # Principle components analysis of sampling results for parameter values
+    """
+    Principle components analysis of sampling results for parameter values
+    """
     from sklearn.decomposition import PCA
     import seaborn as sns
 
@@ -216,9 +218,11 @@ def PCA(cols):
 
 
 def dose_response_plot(drugs, log=False):
-    # Takes in a list of drugs
-    # Makes 1*num(parameters) plots for each drug
-    # Read in dataframe and reduce sample
+    '''
+    Takes in a list of drugs
+    Makes 1*num(parameters) plots for each drug
+    ''' 
+    # Read in dataframe
     df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
     print(df.columns)
 

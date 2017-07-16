@@ -180,7 +180,7 @@ class GrowthModel:
         out = np.concatenate((np.expand_dims(lnum, axis=1),
                               np.expand_dims(eap, axis=1),
                               np.expand_dims(dead, axis=1)), axis=1)
-        out = out * confl_conv
+        out = out
         ssqErr = 0.0
 
         # Run likelihood function with modeled and experiemental data, with
