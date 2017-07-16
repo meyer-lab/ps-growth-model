@@ -72,10 +72,10 @@ def sim_plot(column, replica = False):
         mparm = np.copy(row[1].as_matrix()[0:4])
         try:
             # Use old_model to calculate lnum, eap, and dead over time
-            simret = classM.old_model(mparm, row[1]['confl_conv'])[1]
+            simret = classM.old_model(mparm, row[1]['confl_conv'], row[1]['apop_conv'], row[1]['dna_conv'])[1]
             if replica:
                 simret = simret[:len(time),:]
-            simret = simret.reshape((len(time),3))
+                simret = simret.reshape((len(time),3))
 
             # Calculate predictions for total, apop, and dead cells over time
             calcset[varr, :] = np.sum(simret, axis = 1) 
@@ -211,8 +211,8 @@ def PCA(cols):
     # Plot first 2 principle components
     ax = sns.lmplot('PC 1', 'PC 2', data = dftran, hue = 'Conditions', fit_reg = False)
     # Set axis labels
-    ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))+'%)')
-    ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))+'%)')
+    ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))[:-2]+'%)')
+    ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))[:-2]+'%)')
 
 
 def dose_response_plot(drugs, log=False):
@@ -266,7 +266,7 @@ def violinplot(drugs,log=False):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(19,36))))
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     

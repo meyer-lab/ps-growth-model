@@ -138,11 +138,11 @@ class GrowthModel:
                 diff = expc - self.expTable['confl']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'apop' in self.expTable.keys():
-                expc = (dead + eap) * apop_conv + 10**(-2)
+                expc = (dead + eap) * apop_conv
                 diff = expc - self.expTable['apop']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
             if 'dna' in self.expTable.keys():
-                expc = dead * dna_conv + 10**(-2)
+                expc = dead * dna_conv
                 diff = expc - self.expTable['dna']
                 ssqErr = ssqErr + (np.square(diff) / expc).sum()
 
@@ -151,7 +151,7 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', -1, 1))
+                          observed=ssqErr / pm.Lognormal('std', -1.5, 1))
 
         return growth_model
 
@@ -178,8 +178,8 @@ class GrowthModel:
                 params[2] / (GR + params[3]))
 
         out = np.concatenate((np.expand_dims(lnum, axis=1),
-                              np.expand_dims(dead, axis=1),
-                              np.expand_dims(eap, axis=1)), axis=1)
+                              np.expand_dims(eap, axis=1),
+                              np.expand_dims(dead, axis=1)), axis=1)
         out = out * confl_conv
         ssqErr = 0.0
 
@@ -189,11 +189,11 @@ class GrowthModel:
             diff = expc - self.expTable['confl']
             ssqErr = ssqErr + np.sum(np.square(diff)/expc)
         if 'apop' in self.expTable.keys():
-            expc = (dead + eap) *apop_conv + 10**(-2)
+            expc = (dead + eap) *apop_conv
             diff = expc - self.expTable['apop']
             ssqErr = ssqErr + np.sum(np.square(diff)/expc)
         if 'dna' in self.expTable.keys():
-            expc = dead * dna_conv + 10**(-2)
+            expc = dead * dna_conv
             diff = expc - self.expTable['dna']
             ssqErr = ssqErr + np.sum(np.square(diff)/ expc)
         return (ssqErr, out) 
