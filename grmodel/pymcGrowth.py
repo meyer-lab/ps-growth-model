@@ -96,7 +96,7 @@ class GrowthModel:
         growth_model = pm.Model()
 
         with growth_model:
-            div = pm.Lognormal('div', -2, 2)
+            div = pm.Lognormal('div', -3, 2)
             b = pm.Lognormal('b', -5, 3)
             c = pm.Lognormal('c', -5, 3)
             d = pm.Lognormal('d', -5, 3)
