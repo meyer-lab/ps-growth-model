@@ -36,17 +36,18 @@ class TestgrMethods(unittest.TestCase):
 
     def test_sim_plot(self):
         from ..utils import sim_plot
-        sim_plot(14)
+        sim_plot(3)
         sim_plot(13)
         sim_plot(2)
 
     def test_hist_plot(self):
         from ..utils import hist_plot
-        hist_plot([2,5,7,9,11,13])
+        hist_plot([2,3,4,5,6])
 
     def test_fit_plot(self):
         from ..utils import fit_plot
-        fit_plot([-3.434892865275417,-7.96312272337698,-7.987219333825418,-5.2248634220018575,1.7561011061148422], 6)
+        params = np.exp([-3.4820022279157254, -4.618086088299654, -4.673132496944741, -4.993737331758884, -0.7971962401826481, -2.5886341322921487, -2.5888985087520373])
+        fit_plot(params, 3)
 
     def test_dose_response_plots(self):
         from ..utils import dose_response_plot, violinplot
@@ -60,7 +61,7 @@ class TestgrMethods(unittest.TestCase):
 
     def test_PCA(self):
         from ..utils import PCA
-        PCA([2,3])
+        PCA([2,3,4,5,6])
 
 if __name__ == '__main__':
     unittest.main()
