@@ -96,12 +96,17 @@ class GrowthModel:
         growth_model = pm.Model()
 
         with growth_model:
-            div = np.power(10, pm.Uniform('div', -5, -1)) 
-            b = np.power(10, pm.Uniform('b', -6, 0))
-            c = np.power(10, pm.Uniform('c', -6, 0)) 
-            d = np.power(10, pm.Uniform('d', -6, 0)) 
+            div = pm.Lognormal('div', -3, 2)
+            b = pm.Lognormal('b', -5, 3)
+            c = pm.Lognormal('c', -5, 3)
+            d = pm.Lognormal('d', -5, 3)
             
             # Set up conversion rates
+#            con0 = []
+#            for i in list(range(len(self.timeV))):
+#                if self.timeV[i] == 0:
+#                    con0.append(self.expTable['confl'][i])
+#            conv = np.mean(con0)
             confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
             apop_conv = pm.Lognormal('apop_conv', np.log(confl_conv * 1/6), 0.1)
             dna_conv = pm.Lognormal('dna_conv', np.log(confl_conv * 1/6), 0.1) 

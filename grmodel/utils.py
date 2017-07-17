@@ -16,7 +16,7 @@ def read_dataset(column, filename=None, trim=True):
 
     if filename is None:
         filename = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "./data/062117_second_chain.h5")
+            os.path.abspath(__file__)), "./data/062117_first_chain.h5")
 
     # Open hdf5 file
     f = h5py.File(filename, 'r')
