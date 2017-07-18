@@ -96,17 +96,15 @@ class GrowthModel:
         growth_model = pm.Model()
 
         with growth_model:
-            div = pm.Lognormal('div', -4.5, 1)
+            div = pm.Lognormal('div', -3, 1)
             b = pm.Lognormal('b', -5, 3)
             c = pm.Lognormal('c', -5, 3)
             d = pm.Lognormal('d', -5, 3)
             
             # Set up conversion rates
-            log46 = (np.log(1/4) + np.log(1/6))/2
-            log68 = (np.log(1/6) + np.log(1/8))/2
             confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
-            apop_conv = pm.Lognormal('apop_conv', np.log(confl_conv)+log46, log46-np.log(1/6))
-            dna_conv = pm.Lognormal('dna_conv', np.log(confl_conv)+log68, log68-np.log(1/8)) 
+            apop_conv = pm.Lognormal('apop_conv', np.log(confl_conv * 1/6), 0.1)
+            dna_conv = pm.Lognormal('dna_conv', np.log(confl_conv * 1/6), 0.1) 
 
             # Priors on conv factors
 #            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
@@ -133,22 +131,22 @@ class GrowthModel:
             if 'confl' in self.expTable.keys():
                 expc = (lnum + dead + eap) * confl_conv
                 diff = expc - self.expTable['confl']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr = ssqErr + (np.square(diff)).sum()
             if 'apop' in self.expTable.keys():
                 expc = (dead + eap) * apop_conv
                 diff = expc - self.expTable['apop']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr = ssqErr + (np.square(diff)).sum()
             if 'dna' in self.expTable.keys():
                 expc = dead * dna_conv
                 diff = expc - self.expTable['dna']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr = ssqErr + (np.square(diff)).sum()
 
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', -1.5, 1))
+                          observed=ssqErr / pm.Lognormal('std', 1, 1))
 
         return growth_model
 
