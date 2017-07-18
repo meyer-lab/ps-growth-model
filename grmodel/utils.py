@@ -8,7 +8,7 @@ except ImportError:
     import pickle
 
 
-def read_dataset(column, filename=None, trim=False):
+def read_dataset(column, filename=None, trim=True):
     ''' Read the specified column from the shared test file. '''
     import os
     import h5py
