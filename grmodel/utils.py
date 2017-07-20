@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib 
 import matplotlib.pyplot as plt
 
 try:
@@ -99,12 +100,11 @@ def sim_plot(column, replica = False):
         plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
     # Plot observation 
     plt.scatter(classM.timeV, classM.expTable['confl'])
-    if replica:
-        plt.scatter(classM.timeV, classM.expTable['apop']*4)
-        plt.scatter(classM.timeV, classM.expTable['dna']*8)
-    else:
-        plt.scatter(classM.timeV, classM.expTable['apop'])
-        plt.scatter(classM.timeV, classM.expTable['dna'])
+    plt.scatter(classM.timeV, classM.expTable['apop'])
+    plt.scatter(classM.timeV, classM.expTable['dna'])
+    plt.xlabel('Time (hr)')
+    plt.ylabel('% Confluence')
+    plt.title('Sim_plot '+pdset['Condition'].as_matrix()[0])
     plt.show()
 
 
@@ -149,6 +149,9 @@ def fit_plot(param, column, replica = False):
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
+    plt.title('Fit_plot '+column)
+    plt.xlabel('Time (hr)')
+    plt.ylabel('% Confluence')
     plt.show()
 
 
@@ -161,7 +164,12 @@ def hist_plot(cols):
     df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
 
     print(df.columns)
-    
+
+    # Get conditions
+    cond = df.loc[:,'Condition']
+    cond = list(cond.drop_duplicates(keep='first'))
+    condidx = dict(zip(cond, sns.color_palette()))
+
     # Log transformation
     for param in ['div', 'b', 'c', 'd', 'confl_conv', 'std']:
         df[param] = np.log10(df[param])
@@ -172,8 +180,10 @@ def hist_plot(cols):
                  diag_kws=dict(shade=True), size = 2)
 
     # Shuffle positions to show legend
-    plt.tight_layout(pad = 0.1)
-    plt.legend(bbox_to_anchor=(0, 6.5))
+    patches = list()
+    for key, val in zip(cond, [condidx[con] for con in cond]):
+        patches.append(matplotlib.patches.Patch(color=val, label=key))
+    plt.legend(handles=patches, bbox_to_anchor=(-5, 6.5), loc=2)
 
     # Draw plot
     plt.show()
@@ -189,7 +199,7 @@ def PCA(cols):
     df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
 
     print(df.columns)
- 
+
     # Log transformation
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     for param in params:
@@ -215,6 +225,8 @@ def PCA(cols):
     # Set axis labels
     ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))[:-2]+'%)')
     ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))[:-2]+'%)')
+    plt.title('PCA')
+    plt.show()
 
 
 def dose_response_plot(drugs, log=False):
@@ -230,6 +242,11 @@ def dose_response_plot(drugs, log=False):
     
     # Make plots for each drug
     f, axis = plt.subplots(len(drugs),6,figsize=(15,2.5*len(drugs)), sharex=False, sharey='col')
+    
+    # Get control parameter fits
+    dfc = df.loc[df['Condition'] == 'Control']
+    dfc = dfc.copy()
+    # Interate over each drug
     for drug in drugs:
         # Set up table for the drug
         dfd = df[df['Condition'].str.contains(drug+' ')]
@@ -242,6 +259,9 @@ def dose_response_plot(drugs, log=False):
         dfd = dfd.copy()
         dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
         dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
+        # Add control
+        dfc[drug+'-dose'] = 0
+        dfd = pd.concat([dfd, dfc])
         
         # Set up mean and confidence interval
         if log: 
@@ -261,6 +281,7 @@ def dose_response_plot(drugs, log=False):
             axis[j,i].set_ylabel(params[i])
 
     plt.tight_layout()
+    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 5.1)
     plt.show()
 
 
@@ -270,12 +291,16 @@ def violinplot(drugs,log=False):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(19,36))))
+    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
 
     params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
     
     # Make plots for each drug
     f, axis = plt.subplots(len(drugs),6,figsize=(18,3*len(drugs)), sharex=False, sharey='col')
+    # Get control parameter fits
+    dfc = df.loc[df['Condition'] == 'Control']
+    dfc = dfc.copy()
+    # Iterate over each drug 
     for drug in drugs:
         # Set up table for the drug
         dfd = df[df['Condition'].str.contains(drug+' ')]
@@ -288,6 +313,9 @@ def violinplot(drugs,log=False):
         dfd = dfd.copy()
         dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
         dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
+        # Add control
+        dfc[drug+'-dose'] = 0
+        dfd = pd.concat([dfd, dfc])
 
         # Plot params vs. drug dose
         j = drugs.index(drug)
@@ -298,6 +326,7 @@ def violinplot(drugs,log=False):
                 sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
 
     plt.tight_layout()
+    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 5)
     plt.show()
 
 

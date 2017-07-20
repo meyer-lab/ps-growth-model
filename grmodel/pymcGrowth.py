@@ -97,9 +97,9 @@ class GrowthModel:
 
         with growth_model:
             div = pm.Lognormal('div', -4.5, 1)
-            b = pm.Lognormal('b', -5, 3)
-            c = pm.Lognormal('c', -5, 3)
-            d = pm.Lognormal('d', -5, 3)
+            b = pm.Lognormal('b', -5, 2)
+            c = pm.Lognormal('c', -5, 2)
+            d = pm.Lognormal('d', -5, 2)
             
             # Set up conversion rates
             log46 = (np.log(1/4) + np.log(1/6))/2
