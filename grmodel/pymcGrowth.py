@@ -53,7 +53,9 @@ class GrowthModel:
         A
         '''
         with self.model:
-            self.samples = pm.sample(500, start=self.getMAP())
+            self.samples = pm.sample(500, start=self.getMAP(), njobs = 2)
+            print(pm.diagnostics.gelman_rubin(self.samples))
+            print(pm.diagnostics.effective_n(self.samples)) 
 
     def getMAP(self):
         '''
