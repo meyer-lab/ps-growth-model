@@ -52,10 +52,27 @@ class GrowthModel:
         '''
         A
         '''
+        import pandas as pd 
         with self.model:
-            self.samples = pm.sample(500, start=self.getMAP(), njobs = 2)
-            print(pm.diagnostics.gelman_rubin(self.samples))
-            print(pm.diagnostics.effective_n(self.samples)) 
+            self.samples = pm.sample(500, start=self.getMAP())
+#            # Diagnostic tests
+#            params = ['div', 'b', 'c', 'd', 'confl_conv', 'apop_conv', 'dna_conv', 'std']
+#            for param in params:
+#                print(pm.diagnostics.geweke(self.samples[param], 0.1, 0.5))
+#            print(pm.diagnostics.gelman_rubin(self.samples))
+#            print(pm.diagnostics.effective_n(self.samples))  
+#
+#            # Print out parameter values for diverging samples           
+#            divergent = self.samples['diverging']
+#            divdf = pd.DataFrame(self.samples[params[0]][divergent==1], columns = [params[0]])
+#            for param in params[1:]:
+#                divdf[param] = self.samples[param][divergent==1]
+#            ssqErr = []
+#            for row in divdf.iterrows():
+#                ssqErr.append(self.old_model(row[1].as_matrix()[0:4], row[1]['confl_conv'], row[1]['apop_conv'], row[1]['dna_conv'])[0])
+#            divdf['ssqErr'] = ssqErr
+#            print(divdf)
+
 
     def getMAP(self):
         '''
@@ -150,7 +167,7 @@ class GrowthModel:
 
             # Error distribution for the expt observations
             pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', -1.5, 1))
+                          observed=ssqErr / pm.Lognormal('std', -2, 1))
 
         return growth_model
 
