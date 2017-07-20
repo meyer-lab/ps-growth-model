@@ -149,7 +149,7 @@ def fit_plot(param, column, replica = False):
     plt.scatter(classM.timeV, classM.expTable['confl'])
     plt.scatter(classM.timeV, classM.expTable['apop'])
     plt.scatter(classM.timeV, classM.expTable['dna'])
-    plt.title('Fit_plot '+str(column))
+    plt.title('Fit_plot '+column)
     plt.xlabel('Time (hr)')
     plt.ylabel('% Confluence')
     plt.show()
