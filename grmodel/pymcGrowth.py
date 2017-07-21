@@ -53,12 +53,24 @@ class GrowthModel:
         A
         '''
         import pandas as pd 
+        import matplotlib.pyplot as plt
         with self.model:
             self.samples = pm.sample(500, start=self.getMAP())
-#            # Diagnostic tests
-#            params = ['div', 'b', 'c', 'd', 'confl_conv', 'apop_conv', 'dna_conv', 'std']
-#            for param in params:
-#                print(pm.diagnostics.geweke(self.samples[param], 0.1, 0.5))
+            # Diagnostic tests
+            params = ['div', 'b', 'c', 'd', 'confl_conv', 'apop_conv', 'dna_conv', 'std']
+            for param in params:
+                pm.traceplot(self.samples, varnames=[param])
+                gscores = pm.diagnostics.geweke(self.samples[param], 0.1, 0.5)
+                gscores = np.array(gscores)
+#                print(gscores)
+#                gscores = gscores.reshape((2, self.samples['diverging'].nonzero()[0].size))
+#                print(gscores)
+#                idx = gscores[0][:]
+#                scores = gscores[1][:]
+#                print(idx)
+#                print(scores)
+#                plt.scatter(idx,scores)
+#                plt.show()
 #            print(pm.diagnostics.gelman_rubin(self.samples))
 #            print(pm.diagnostics.effective_n(self.samples))  
 #
