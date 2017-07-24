@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib 
+import matplotlib
 import matplotlib.pyplot as plt
 
 try:
@@ -9,42 +9,7 @@ except ImportError:
     import pickle
 
 
-def read_dataset(column, filename=None, trim=True):
-    ''' Read the specified column from the shared test file. '''
-    import os
-    import h5py
-    from .pymcGrowth import GrowthModel
-
-    if filename is None:
-        filename = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "./data/062117_first_chain.h5")
-
-    # Open hdf5 file
-    f = h5py.File(filename, 'r')
-
-    # Close hdf5 file
-    f.close()
-
-    # Read in sampling chain
-    df = pd.read_hdf(filename, key='column' + str(column) + '/chain')
-    
-    # Initialize StoneModel
-    classM = GrowthModel()
-    classM.importData(column)
-
-    # Add the column this came from
-    df['Col'] = column
-    df['Condition'] = classM.condName
-
-    # Remove unlikely points if chosen
-    if trim:
-        cutoff = np.amin(df['ssqErr'])+20
-        df = df.loc[df['ssqErr'] < cutoff,:]
-
-    return (classM, df)
-
-
-def sim_plot(column, replica = False):
+def sim_plot(column, replica=False):
     """ Given column, plots simulation of predictions overlaying observed data """
     # Read in dataset to Pandas data frame
     classM, pdset = read_dataset(column)
@@ -55,9 +20,9 @@ def sim_plot(column, replica = False):
 
     #Initialize variables 
     if replica:
-        time = classM.timeV.reshape(3,int(len(classM.timeV)/3))[0,:]
+        time = classM.timeV.reshape(3, int(len(classM.timeV) / 3))[0, :]
     else:
-        time = classM.timeV 
+        time = classM.timeV
     calcset = np.full((pdset.shape[0], len(time)), np.inf)
     calcseta = np.full((pdset.shape[0], len(time)), np.inf)
     calcsetd = np.full((pdset.shape[0], len(time)), np.inf)
@@ -70,13 +35,13 @@ def sim_plot(column, replica = False):
             # Use old_model to calculate lnum, eap, and dead over time
             simret = classM.old_model(mparm, row[1]['confl_conv'], row[1]['apop_conv'], row[1]['dna_conv'])[1]
             if replica:
-                simret = simret[:len(time),:]
-                simret = simret.reshape((len(time),3))
+                simret = simret[:len(time), :]
+                simret = simret.reshape((len(time), 3))
 
             # Calculate predictions for total, apop, and dead cells over time
-            calcset[varr, :] = np.sum(simret, axis = 1) * row[1]['confl_conv']
-            calcseta[varr,:] = np.sum(simret[:,1:3], axis = 1) *row[1]['apop_conv']
-            calcsetd[varr,:] = simret[:,2] * row[1]['dna_conv']
+            calcset[varr, :] = np.sum(simret, axis=1) * row[1]['confl_conv']
+            calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1) * row[1]['apop_conv']
+            calcsetd[varr, :] = simret[:, 2] * row[1]['dna_conv']
 
             varr = varr + 1
         except:

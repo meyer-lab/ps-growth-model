@@ -1,7 +1,17 @@
-import matplotlib
-matplotlib.use('Agg')
+import bz2
+from os.path import join, dirname, abspath
+import pandas
 import numpy as np
 import pymc3 as pm
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+
+def ssq(expc, expt):
+    return np.square((expc - expt) / expc).sum()
 
 
 class MultiSample:
@@ -11,7 +21,6 @@ class MultiSample:
 
     def loadCols(self, firstCols, filename=None):
         """ Load columns in. Run through columns until the loading process errors. """
-
         try:
             while (True):
                 # Create new class
@@ -23,8 +32,12 @@ class MultiSample:
                 # Stick the class into the list
                 self.cols.append(temp)
 
-                # Increment column
-                firstCols = firstCols + 1
+                # If filename for output not yet set, save it
+                if not hasattr(self, 'filePrefix'):
+                    self.filePrefix = './grmodel/data/' + temp.loadFile
+
+                # Increment to next column
+                firstCols += 1
         except IndexError:
             if len(self.cols) < 2:
                 raise ValueError("Didn't find many columns.")
@@ -36,85 +49,19 @@ class MultiSample:
         for result in map(lambda x: x.sample(), self.cols):
             continue
 
-    def save(self, filename):
-        ''' Map over saving runs. '''
-        import os
+    def save(self):
+        ''' Open file and dump pyMC3 objects through pickle. '''
+        pickle.dump(self.cols, bz2.BZ2File(self.filePrefix + '_samples.pkl', 'w'))
 
-        if os.path.exists(filename):
-            os.remove(filename)
-
-        for result in map(lambda x: x.saveTable(filename), self.cols):
-            continue
 
 class GrowthModel:
 
     def sample(self):
-        '''
-        A
-        '''
-        import pandas as pd 
-        import matplotlib.pyplot as plt
+        ''' A '''
+
         with self.model:
-            self.samples = pm.sample(500, start=self.getMAP())
-            # Diagnostic tests
-            params = ['div', 'b', 'c', 'd', 'confl_conv', 'apop_conv', 'dna_conv', 'std']
-            for param in params:
-                pm.traceplot(self.samples, varnames=[param])
-                gscores = pm.diagnostics.geweke(self.samples[param], 0.1, 0.5)
-                gscores = np.array(gscores)
-#                print(gscores)
-#                gscores = gscores.reshape((2, self.samples['diverging'].nonzero()[0].size))
-#                print(gscores)
-#                idx = gscores[0][:]
-#                scores = gscores[1][:]
-#                print(idx)
-#                print(scores)
-#                plt.scatter(idx,scores)
-#                plt.show()
-#            print(pm.diagnostics.gelman_rubin(self.samples))
-#            print(pm.diagnostics.effective_n(self.samples))  
-#
-#            # Print out parameter values for diverging samples           
-#            divergent = self.samples['diverging']
-#            divdf = pd.DataFrame(self.samples[params[0]][divergent==1], columns = [params[0]])
-#            for param in params[1:]:
-#                divdf[param] = self.samples[param][divergent==1]
-#            ssqErr = []
-#            for row in divdf.iterrows():
-#                ssqErr.append(self.old_model(row[1].as_matrix()[0:4], row[1]['confl_conv'], row[1]['apop_conv'], row[1]['dna_conv'])[0])
-#            divdf['ssqErr'] = ssqErr
-#            print(divdf)
-
-
-    def getMAP(self):
-        '''
-        Find the MAP point as a starting point.
-        '''
-        return pm.find_MAP(model=self.model)
-
-    def saveTable(self, filename):
-        '''
-        Saves a table of sampling results.
-        '''
-        import h5py
-
-        # Raise an error if there are no sampling results.
-        if not hasattr(self, 'samples'):
-            raise ValueError("Need to sample first.")
-
-        # Start constructing the dataframe
-        df = pm.backends.tracetab.trace_to_dataframe(self.samples)
-
-        df.to_hdf(filename,
-                  key='column' + str(self.selCol) + '/chain',
-                  complevel=9, complib='bzip2')
-
-        # Open file to pickle class
-        f = h5py.File(filename, 'a', libver='latest')
-
-        # Done writing out pickled class
-        f.close()
-
+            self.samples = pm.sample(njobs=3,  # Run three parallel chains
+                                     nuts_kwargs={'target_accept': 0.99})
 
     def build_model(self):
         '''
@@ -127,33 +74,32 @@ class GrowthModel:
         growth_model = pm.Model()
 
         with growth_model:
-            div = pm.Lognormal('div', -4.5, 1)
-            b = pm.Lognormal('b', -5, 2)
-            c = pm.Lognormal('c', -5, 2)
-            d = pm.Lognormal('d', -5, 2)
-            
-            # Set up conversion rates
-            log46 = (np.log(1/4) + np.log(1/6))/2
-            log68 = (np.log(1/6) + np.log(1/8))/2
-            confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
-            apop_conv = pm.Lognormal('apop_conv', np.log(confl_conv)+log46, log46-np.log(1/6))
-            dna_conv = pm.Lognormal('dna_conv', np.log(confl_conv)+log68, log68-np.log(1/8)) 
+            # Growth rate
+            div = pm.Lognormal('div', np.log(0.01), 1)
 
-            # Priors on conv factors
-#            pm.Lognormal('confl_apop', np.log(10.0), 0.1, observed=apop_conv / confl_conv)
-#            pm.Lognormal('apop_dna', np.log(2.0), 0.1, observed=apop_conv / dna_conv)
+            # Rate of moving from apoptosis to death
+            d = pm.Lognormal('d', np.log(0.01), 1)
+
+            # Rate of entering apoptosis or skipping straight to death
+            deathRate = pm.Lognormal('deathRate', np.log(0.01), 1)
+
+            # Fraction of dying cells that go through apoptosis
+            apopfrac = pm.Uniform('apopfrac')
 
             # Calculate the growth rate
-            GR = div - b - c
-
-            # cGDd is used later
-            cGRd = c / (GR + d)
+            GR = div - deathRate
 
             # Calculate the number of live cells
             lnum = pm.math.exp(GR * self.timeV)
 
+            # cGDd is used later
+            cGRd = deathRate * apopfrac / (GR + d)
+
             # Number of early apoptosis cells at start is 0.0
             eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
+
+            # b is the rate straight to death
+            b = deathRate * (1 - apopfrac)
 
             # Calculate dead cells
             dead = ((b * lnum + cGRd * d * lnum - b - cGRd * d) / GR +
@@ -161,18 +107,21 @@ class GrowthModel:
 
             ssqErr = 0.0
 
+            # Set up conversion rates
+            confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
+            apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0 * 0.204), 0.2)
+            dna_conv = pm.Lognormal('dna_conv', np.log(self.conv0 * 0.144), 0.2)
+
+            # Priors on conv factors
+            pm.Lognormal('confl_apop', np.log(0.204), 0.1, observed=apop_conv / confl_conv)
+            pm.Lognormal('apop_dna', np.log(0.144), 0.1, observed=dna_conv / confl_conv)
+
             if 'confl' in self.expTable.keys():
-                expc = (lnum + dead + eap) * confl_conv
-                diff = expc - self.expTable['confl']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr += ssq((lnum + dead + eap) * confl_conv, self.expTable['confl'])
             if 'apop' in self.expTable.keys():
-                expc = (dead + eap) * apop_conv
-                diff = expc - self.expTable['apop']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr += ssq((dead + eap) * apop_conv, self.expTable['apop'])
             if 'dna' in self.expTable.keys():
-                expc = dead * dna_conv
-                diff = expc - self.expTable['dna']
-                ssqErr = ssqErr + (np.square(diff)/expc).sum()
+                ssqErr += ssq(dead * dna_conv, self.expTable['dna'])
 
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
@@ -183,57 +132,12 @@ class GrowthModel:
 
         return growth_model
 
-
-    def old_model(self, params, confl_conv, apop_conv, dna_conv):
-        """
-        Solves the ODE function given a set of initial values (y0),
-        over a time interval (self.timeV)
-        """
-        GR = params[0] - params[1] - params[2]
-
-        lnum = np.exp(GR * self.timeV)
-
-        # Number of early apoptosis cells at start is 0.0
-        Cone = -params[2] / (GR + params[3])
-
-        eap = params[2] / (GR + params[3]) * np.exp(GR * self.timeV)
-        eap = eap + Cone * np.exp(-params[3] * self.timeV)
-
-        dead = (params[1] / GR * np.exp(GR * self.timeV) +
-                params[2] * params[3] / (GR * (GR + params[3])) * np.exp(GR * self.timeV) +
-                params[2] / (GR + params[3]) * np.exp(-params[3] * self.timeV) -
-                params[1] / GR - params[2] * params[3] / (GR * (GR + params[3])) -
-                params[2] / (GR + params[3]))
-
-        out = np.concatenate((np.expand_dims(lnum, axis=1),
-                              np.expand_dims(eap, axis=1),
-                              np.expand_dims(dead, axis=1)), axis=1)
-        out = out
-        ssqErr = 0.0
-
-        # Run likelihood function with modeled and experiemental data, with
-        if 'confl' in self.expTable.keys():
-            expc = (lnum + dead + eap) * confl_conv
-            diff = expc - self.expTable['confl']
-            ssqErr = ssqErr + np.sum(np.square(diff)/expc)
-        if 'apop' in self.expTable.keys():
-            expc = (dead + eap) *apop_conv
-            diff = expc - self.expTable['apop']
-            ssqErr = ssqErr + np.sum(np.square(diff)/expc)
-        if 'dna' in self.expTable.keys():
-            expc = dead * dna_conv
-            diff = expc - self.expTable['dna']
-            ssqErr = ssqErr + np.sum(np.square(diff)/ expc)
-        return (ssqErr, out) 
-
-
     def importData(self, selCol, loadFile=None):
-        from os.path import join, dirname, abspath
-        import pandas
-
         # If no filename is given use a default
         if loadFile is None:
-            loadFile = "062117_PC9"
+            self.loadFile = "062117_PC9"
+        else:
+            self.loadFile = loadFile
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
@@ -241,7 +145,7 @@ class GrowthModel:
                       'dna': '_confluence_red.csv'}
 
         # Find path for csv files in the repository.
-        pathcsv = join(dirname(abspath(__file__)), 'data/' + loadFile)
+        pathcsv = join(dirname(abspath(__file__)), 'data/' + self.loadFile)
 
         # Pull out selected column data
         self.selCol = selCol
@@ -258,7 +162,7 @@ class GrowthModel:
                 data = dataset.loc[dataset['Elapsed'] >= 24]
                 if key == 'confl':
                     data0 = dataset.loc[dataset['Elapsed'] == 0]
-                    self.conv0 = np.mean(data0.iloc[:,self.selCol])
+                    self.conv0 = np.mean(data0.iloc[:, self.selCol])
             except FileNotFoundError:
                 print("No file for key: " + key)
                 continue

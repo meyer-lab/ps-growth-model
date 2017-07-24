@@ -6,18 +6,17 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh 'echo Building'
+        sh 'make -j 8'
       }
     }
     stage('Test'){
       steps {
         sh 'make testcover'
         sh '(pylint --rcfile=.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
-        step([
-          $class: 'WarningsPublisher',
-          parserConfigurations: [[parserName: 'PYLint', pattern: 'pylint.log']],
-          unstableTotalAll: '1000',
-          usePreviousBuildAsReference: true])
+      }
+    }
+    stage('Report') {
+      steps {
         step([
           $class: 'CoberturaPublisher',
           autoUpdateHealth: true,
@@ -41,18 +40,12 @@ pipeline {
           normal: 'CITE',
           pattern: '**/*.py, **/*.md',
           unHealthy: ''])
-        }
-      }
-    stage('Profile') {
-      steps {
-        sh 'make profile'
-        archiveArtifacts artifacts: 'profile.png', onlyIfSuccessful: true
-      }
-    }
-      stage('Deploy') {
-        steps {
-          sh 'echo "Deploy step"'
-        }
+        step([
+          $class: 'WarningsPublisher',
+          parserConfigurations: [[parserName: 'PYLint', pattern: 'pylint.log']],
+          unstableTotalAll: '1000',
+          usePreviousBuildAsReference: true])
       }
     }
   }
+}
