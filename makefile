@@ -27,10 +27,10 @@ clean:
 	rm -f $(fdir)/Figure*
 
 test:
-	nosetests -s --with-timer --timer-top-n 5
+	nosetests3 -s --with-timer --timer-top-n 5
 
 testcover:
-	nosetests --with-xunit --with-xcoverage --cover-package=grmodel -s --with-timer --timer-top-n 5
+	nosetests3 --with-xunit --with-xcoverage --cover-package=grmodel -s --with-timer --timer-top-n 5
 
 upload:
 	echo "Upload stub"
