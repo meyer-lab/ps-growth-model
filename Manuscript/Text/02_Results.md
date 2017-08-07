@@ -1,3 +1,1 @@
 # Results
-
-## Subsection

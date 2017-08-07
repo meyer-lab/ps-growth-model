@@ -1,15 +1,15 @@
 ---
-title: X
+title: Growth models taking into account cell death
 author:
-- name: X
-  affiliation: X
-- name: X
-  affiliation: X
-- name: X
-  affiliation: X
+- name: Song Yi Bae
+  affiliation: Koch Institute for Integrative Cancer Research, Massachusetts Institute of Technology, Cambridge, MA
+- name: Ning Guan
+  affiliation: Koch Institute for Integrative Cancer Research, Massachusetts Institute of Technology, Cambridge, MA
+- name: Aaron S Meyer
+  affiliation: Department of Bioengineering, University of California, Los Angeles
 keywords:
-- X
-- X
+- growth models
+- inference
 institute: A
 bibliography: ./Manuscript/References.bib
 abstract: Abstract
@@ -18,3 +18,4 @@ csl: ./Manuscript/Templates/nature.csl
 ---
 
 # Introduction
+

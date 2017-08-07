@@ -1,3 +1,3 @@
 # Growth models taking into account cell death
 
-[![Build Status](http://transduction.mit.edu:8081/buildStatus/icon?job=psGrowth)](http://transduction.mit.edu:8081/job/psGrowth/)
+[![Build Status](https://transduc.seas.ucla.edu:8080/buildStatus/icon?job=meyer-lab/ps-growth-model/master)](https://transduc.seas.ucla.edu:8080/job/meyer-lab/job/ps-growth-model/job/master/)
