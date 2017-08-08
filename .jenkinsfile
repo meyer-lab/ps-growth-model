@@ -9,7 +9,7 @@ pipeline {
     stage('Test'){
       steps {
         sh 'make testcover'
-        sh '(pylint --rcfile=.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
+        sh '(pylint --rcfile=./grmodel/tests/.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
       }
     }
     stage('Report') {
@@ -26,6 +26,7 @@ pipeline {
           onlyStable: false,
           sourceEncoding: 'UTF_8',
           zoomCoverageChart: true])
+
         step([
           $class: 'TasksPublisher',
           canComputeNew: false,
@@ -37,11 +38,23 @@ pipeline {
           normal: 'CITE',
           pattern: '**/*.py, **/*.md',
           unHealthy: ''])
+
         step([
           $class: 'WarningsPublisher',
           parserConfigurations: [[parserName: 'PYLint', pattern: 'pylint.log']],
           unstableTotalAll: '1000',
           usePreviousBuildAsReference: true])
+
+        //archiveArtifacts artifacts: 'Manuscript/Manuscript.pdf', onlyIfSuccessful: true
+
+        publishHTML([
+          allowMissing: false,
+          alwaysLinkToLastBuild: false,
+          keepAll: false,
+          reportDir: 'Manuscript',
+          reportFiles: 'index.html',
+          reportName: 'Manuscript',
+          reportTitles: ''])
       }
     }
   }
