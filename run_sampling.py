@@ -17,8 +17,12 @@
 #diagnostics(cL)
 
 from grmodel.fitcurves import MultiDrugs
-from grmodel.utils import plot_dose_fits 
-a = MultiDrugs([4,6,8,10,12], ['Dox'], ['div', 'deathRate'])
+#from grmodel.utils import plot_dose_fits 
+
+
+a = MultiDrugs(list(range(2,14)), ['Dox', 'NVB'], ['div', 'deathRate'])
 a.get_tables()
 curves = a.fitCurves()
 print(curves)
+#plot_dose_fits(list(range(2,14)), ['Dox', 'NVB'], ['div', 'deathRate'], curves)
+    

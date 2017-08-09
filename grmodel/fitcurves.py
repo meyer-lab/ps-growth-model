@@ -121,8 +121,8 @@ class CurveFit:
     def sampling(self):
         self.model = self.build_model()
         get_MAP = pm.find_MAP(model=self.model)
-#        return get_MAP
-        print(get_MAP)
-        with self.model:
-            self.samples = pm.sample()
-        return self.samples
+        return get_MAP
+#        print(get_MAP)
+#        with self.model:
+#            self.samples = pm.sample()
+#        return self.samples

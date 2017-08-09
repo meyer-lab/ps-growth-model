@@ -201,6 +201,7 @@ def violinplot(drugs,log=True):
     plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
     plt.show()
 
+
 def plot_dose_fits(columns, drugs, params, dic, dist = False):
     df = readCols(columns)[1]
     
@@ -258,7 +259,7 @@ def plot_dose_fits(columns, drugs, params, dic, dist = False):
             axis[j,i].set_ylabel(params[i])
 
     plt.tight_layout()
-    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
+    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = 0, y = 2.4)
     plt.show()
 
 
