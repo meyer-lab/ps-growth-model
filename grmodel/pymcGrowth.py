@@ -174,7 +174,7 @@ class GrowthModel:
     def importData(self, selCol, loadFile=None, drop24=True):
         # If no filename is given use a default
         if loadFile is None:
-            self.loadFile = "042017_PC9"
+            self.loadFile = "030317-2_H1299"
         else:
             self.loadFile = loadFile
 

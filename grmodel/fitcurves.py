@@ -109,7 +109,7 @@ class CurveFit:
             hillslope = pm.Normal('hillslope', 1, 0.5)
             
             # Set up data input for interpolated distribution
-            datarange = np.exp(np.arange(minrange, maxrange, (minrange-maxrange)/200))
+            datarange = np.exp(np.arange(minrange, maxrange, (maxrange-minrange)/200))
 
             for logdose in self.logdoses:
                 kde = kdes[logdose]
