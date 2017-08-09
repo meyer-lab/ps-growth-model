@@ -77,7 +77,7 @@ class CurveFit:
         self.logdoses = list(logdoses.drop_duplicates(keep='first'))
         for logdose in logdoses:
             df = drugdf.loc[drugdf[self.drug+'-logdose'] == logdose]
-            kde = sp.stats.gaussian_kde(np.exp(df.loc[:, self.fitparam]))
+            kde = sp.stats.gaussian_kde(df.loc[:, self.fitparam])
             dosedata[logdose] = df.loc[:, self.fitparam]
             kdes[logdose] = kde
         return (dosedata, kdes)
@@ -91,17 +91,17 @@ class CurveFit:
             maxdose = np.amax(self.logdoses)
             mindoseparam = np.mean(dosedata[mindose])
             maxdoseparam = np.mean(dosedata[maxdose])
-            sdparam = np.std(self.drugdf[self.fitparam])/5
+            sdparam = np.std(self.drugdf[self.fitparam])/10
             if mindoseparam < maxdoseparam:
                 minparam = np.amin(dosedata[mindose])
                 maxparam = np.amax(dosedata[maxdose])
-                minrange = minparam - 2 * sdparam
-                maxrange = maxparam + 2 * sdparam
+                minrange = minparam - 4 * sdparam
+                maxrange = maxparam + 4 * sdparam
             else:
                 minparam = np.amax(dosedata[mindose])
                 maxparam = np.amin(dosedata[maxdose])
-                minrange= maxparam - 2 * sdparam
-                maxrange = minparam + 2 * sdparam
+                minrange= maxparam - 4 * sdparam
+                maxrange = minparam + 4 * sdparam
 
             bottom = pm.Lognormal('bottom', minparam, sdparam)
             top = pm.Lognormal('top', maxparam, sdparam)
@@ -109,20 +109,20 @@ class CurveFit:
             hillslope = pm.Normal('hillslope', 1, 0.5)
             
             # Set up data input for interpolated distribution
-            datarange = np.exp(np.arange(minrange, maxrange, (maxrange-minrange)/200))
-
+            datarange = np.arange(minrange, maxrange, (maxrange-minrange)/200)
             for logdose in self.logdoses:
                 kde = kdes[logdose]
                 # Distribution
                 y = bottom + (top - bottom) / (1 + np.power(10., (logIC50-logdose)*hillslope))
-                pm.Interpolated('dis'+str(logdose), datarange, kde.pdf(datarange), observed = y)
+                pm.Interpolated('dis'+str(logdose), np.exp(datarange), kde.pdf(datarange), observed = y)
 
         return curve_model
 
     def sampling(self):
         self.model = self.build_model()
         get_MAP = pm.find_MAP(model=self.model)
+#        return get_MAP
         print(get_MAP)
         with self.model:
-            self.samples = pm.sample(start = get_MAP)
+            self.samples = pm.sample()
         return self.samples

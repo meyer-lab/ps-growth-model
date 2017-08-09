@@ -203,11 +203,13 @@ def sim_plot(column, rep=None, data=None, printt=False, show=True, axis=None):
 #            continue
     
     # Plot prediction distribution and observation
-    # Iterate over total, apop, and dead cels
+    # Set up axis and color
     if axis == None:
         plt.figure()
         axis = plt.gca()
     colors = ['b', 'g', 'r']
+
+    # Iterate over total, apop, and dead cels
     calcsets = [calcset, calcseta, calcsetd]
     for i in list(range(len(calcsets))):
         calc = calcsets[i]

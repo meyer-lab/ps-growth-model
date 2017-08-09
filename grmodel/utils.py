@@ -90,13 +90,16 @@ def PCA(cols):
     plt.show()
 
 
-def dose_response_plot(drugs, log=True, logdose = False):
+def dose_response_plot(drugs, log=True, columns = None, logdose = False, show = True):
     '''
     Takes in a list of drugs
     Makes 1*num(parameters) plots for each drug
     ''' 
     # Read in dataframe
-    df = readCols(list(range(2,19)))[1]
+    if columns == None: 
+        df = readCols(list(range(2,19)))[1]
+    else:
+        df = readCols(columns)[1]
 
     params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
     
@@ -147,7 +150,10 @@ def dose_response_plot(drugs, log=True, logdose = False):
 
     plt.tight_layout()
     plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        return (f, axis) 
 
 
 def violinplot(drugs,log=True):
@@ -193,6 +199,66 @@ def violinplot(drugs,log=True):
 
     plt.tight_layout()
     plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
+    plt.show()
+
+def plot_dose_fits(columns, drugs, params, dic, dist = False):
+    df = readCols(columns)[1]
+    
+    fig, axis = plt.subplots(len(drugs),len(params),figsize=(3*len(params),3*len(drugs)), sharex= 'row', sharey='col')
+    for drug in drugs:
+        # Set up table for the drug
+        dfd = df[df['Condition'].str.contains(drug+' ')]
+        # Break if drug not in dataset
+        if dfd.empty:
+            print("Error: Drug not in dataset")
+            break
+
+        # Add dose to table
+        dfd = dfd.copy()
+        dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
+        dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
+        # log10 transform drug dosage
+        dfd.loc[:, drug+'-dose'] = dfd[drug+'-dose'].apply(np.log10)
+        doses = list(dfd.loc[:,drug+'-dose'].drop_duplicates(keep='first'))
+        mindose = min(doses)
+        maxdose = max(doses)
+
+        # log10 transform parameters besides 'apopfrac'
+        for param in params:
+            if param != 'apopfrac':
+                dfd.loc[:, param] = dfd[param].apply(np.log10)
+
+        # Set up mean and confidence interval
+        dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
+        dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
+        dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean
+
+        # Plot params vs. drug dose
+        j = drugs.index(drug)
+        for i in range(len(params)):
+            # Plot dose response
+            axis[j,i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
+                               [dferr1[params[i]],dferr2[params[i]]],
+                               fmt='.',capsize=5,capthick=1)
+            # Plot dose response curves
+            if not dist: # plot MAP curve
+                paramfits = dic[str(drug)+'-'+str(params[i])]
+                bottom = np.exp(paramfits['bottom_log__'])
+                top = np.exp(paramfits['top_log__'])
+                logIC50 = paramfits['logIC50']
+                hillslope = paramfits['hillslope']
+                doserange = np.arange(mindose, maxdose, (maxdose - mindose)/100)
+                paramfit = []
+                for x in doserange:
+                    y = bottom + (top - bottom) / (1 + np.power(10., (logIC50 - x)*hillslope))
+                    paramfit.append(y)
+                axis[j,i].plot(doserange, paramfit)
+
+            axis[j,i].set_xlabel(drug+'-dose')
+            axis[j,i].set_ylabel(params[i])
+
+    plt.tight_layout()
+    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
     plt.show()
 
 
