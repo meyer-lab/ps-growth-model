@@ -7,6 +7,16 @@ pan_common = -F pandoc-crossref -F pandoc-citeproc -f markdown ./Manuscript/Text
 
 all: Manuscript/index.html
 
+$(fdir)/Figure%.svg: genFigures.py
+	mkdir -p ./Manuscript/Figures
+	python3 genFigures.py $*
+
+$(fdir)/Figure%pdf: $(fdir)/Figure%svg
+	rsvg-convert -f pdf $< -o $@
+
+$(fdir)/Figure%eps: $(fdir)/Figure%svg
+	rsvg-convert -f eps $< -o $@
+
 Manuscript/Manuscript.pdf: Manuscript/Manuscript.tex
 	(cd ./Manuscript && latexmk -xelatex -f -quiet)
 	rm -f ./Manuscript/Manuscript.b* ./Manuscript/Manuscript.aux ./Manuscript/Manuscript.fls
@@ -14,7 +24,7 @@ Manuscript/Manuscript.pdf: Manuscript/Manuscript.tex
 Manuscript/Manuscript.tex: Manuscript/Text/*.md Manuscript/index.html
 	pandoc -s $(pan_common) --template=$(tdir)/default.latex --latex-engine=xelatex -o $@
 
-Manuscript/index.html: Manuscript/Text/*.md
+Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.svg $(fdir)/Figure3.svg
 	pandoc -s $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -o $@
 
 clean:

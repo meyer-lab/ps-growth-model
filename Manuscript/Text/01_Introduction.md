@@ -5,7 +5,7 @@ author:
   affiliation: Koch Institute for Integrative Cancer Research, Massachusetts Institute of Technology, Cambridge, MA
 - name: Ning Guan
   affiliation: Koch Institute for Integrative Cancer Research, Massachusetts Institute of Technology, Cambridge, MA
-- name: Aaron S Meyer
+- name: Aaron S Meyer*
   affiliation: Department of Bioengineering, University of California, Los Angeles
 keywords:
 - growth models
