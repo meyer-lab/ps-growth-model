@@ -149,7 +149,7 @@ def dose_response_plot(drugs, log=True, columns = None, logdose = False, show = 
             axis[j,i].set_ylabel(params[i])
 
     plt.tight_layout()
-    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
+    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 2.4)
     if show:
         plt.show()
     else:
@@ -162,7 +162,7 @@ def violinplot(drugs,log=True):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = readCols(list(range(2,19)))[1]
+    df = readCols(list(range(2,14)))[1]
 
     params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
     logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
@@ -198,7 +198,7 @@ def violinplot(drugs,log=True):
                 sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
 
     plt.tight_layout()
-    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
+    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 2.4)
     plt.show()
 
 
@@ -247,19 +247,21 @@ def plot_dose_fits(columns, drugs, params, dic, dist = False):
                 bottom = np.exp(paramfits['bottom_log__'])
                 top = np.exp(paramfits['top_log__'])
                 logIC50 = paramfits['logIC50']
-                hillslope = paramfits['hillslope']
-                doserange = np.arange(mindose, maxdose, (maxdose - mindose)/100)
+                hillslope = np.exp(paramfits['hillslope_log__'])
+                doserange = np.arange(mindose, maxdose, (maxdose - mindose)/50)
                 paramfit = []
                 for x in doserange:
                     y = bottom + (top - bottom) / (1 + np.power(10., (logIC50 - x)*hillslope))
-                    paramfit.append(y)
+                    paramfit.append(np.log10(y))
+                # Plot IC50
+                axis[j,i].axvline(logIC50, color = 'k')
                 axis[j,i].plot(doserange, paramfit)
 
             axis[j,i].set_xlabel(drug+'-dose')
             axis[j,i].set_ylabel(params[i])
 
     plt.tight_layout()
-    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = 0, y = 2.4)
+    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = 0, y = 4.9)
     plt.show()
 
 

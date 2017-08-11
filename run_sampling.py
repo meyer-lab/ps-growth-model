@@ -1,28 +1,17 @@
-##! /usr/bin/env python3
-#
-#import matplotlib
-#matplotlib.use('Agg')
-#
-#from grmodel.pymcGrowth import MultiSample
-#from grmodel.sampleAnalysis import diagnostics, read_dataset
-#
-#a = MultiSample()
-#
-#print(a.loadCols(2))
-#a.sample()
-#a.save()
-#
-#cL = read_dataset()
-#
-#diagnostics(cL)
+#! /usr/bin/env python3
 
-from grmodel.fitcurves import MultiDrugs
-#from grmodel.utils import plot_dose_fits 
+import matplotlib
+matplotlib.use('Agg')
 
+from grmodel.pymcGrowth import MultiSample
+from grmodel.sampleAnalysis import diagnostics, read_dataset
 
-a = MultiDrugs(list(range(2,14)), ['Dox', 'NVB'], ['div', 'deathRate'])
-a.get_tables()
-curves = a.fitCurves()
-print(curves)
-#plot_dose_fits(list(range(2,14)), ['Dox', 'NVB'], ['div', 'deathRate'], curves)
-    
+a = MultiSample()
+
+print(a.loadCols(2))
+a.sample()
+a.save()
+
+cL = read_dataset()
+
+diagnostics(cL)
