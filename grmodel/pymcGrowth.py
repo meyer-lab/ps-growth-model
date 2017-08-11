@@ -1,5 +1,5 @@
 import bz2
-from os.path import join, dirname, abspath
+from os.path import join, dirname, abspath, exists
 import pandas
 import numpy as np
 import pymc3 as pm
@@ -11,7 +11,41 @@ except ImportError:
 
 
 def ssq(expc, expt):
-    return np.square((expc - expt) / expc).sum()
+    return np.square(expc - expt).sum()
+
+def simulate(params, ttime):
+    ''' Takes in params for parameter values and ttimes, a list or array of times
+    params[0] = div
+    params[1] = d
+    params[2] = deathRate
+    params[3] = apopfrac
+    params[4] = confl_conv
+    params[5] = apop_conv
+    params[6] = dna_conv
+    '''
+    # Calculate the growth rate
+    GR = params[0] - params[2]
+
+    # Calculate the number of live cells
+    lnum = np.exp(GR * ttime)
+
+    # cGDd is used later
+    cGRd = params[2] * params[3] / (GR + params[1]) 
+
+    # Number of early apoptosis cells at start is 0.0
+    eap = cGRd * (lnum - np.exp(-params[1] * ttime))
+
+    # b is the rate straight to death
+    b = params[2] * (1 - params[3])
+
+    # Calculate dead cells
+    dead = ((b * lnum + cGRd * params[1] * lnum - b - cGRd * params[1]) / GR +
+            cGRd * np.exp(-params[1] * ttime) - cGRd)
+
+    out = np.concatenate((np.expand_dims(lnum, axis=1),
+                         np.expand_dims(eap, axis=1),
+                         np.expand_dims(dead, axis=1)), axis=1)
+    return out
 
 
 class MultiSample:
@@ -51,6 +85,10 @@ class MultiSample:
 
     def save(self):
         ''' Open file and dump pyMC3 objects through pickle. '''
+        import os
+        if exists(self.filePrefix + '_samples.pkl'):
+            os.remove(self.filePrefix + '_samples.pkl')
+
         pickle.dump(self.cols, bz2.BZ2File(self.filePrefix + '_samples.pkl', 'w'))
 
 
@@ -75,7 +113,7 @@ class GrowthModel:
 
         with growth_model:
             # Growth rate
-            div = pm.Lognormal('div', np.log(0.01), 1)
+            div = pm.Lognormal('div', np.log(0.02), 1)
 
             # Rate of moving from apoptosis to death
             d = pm.Lognormal('d', np.log(0.01), 1)
@@ -109,19 +147,20 @@ class GrowthModel:
 
             # Set up conversion rates
             confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
-            apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0 * 0.204), 0.2)
-            dna_conv = pm.Lognormal('dna_conv', np.log(self.conv0 * 0.144), 0.2)
+            apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0 * 0.25), 0.4)
+            dna_conv = pm.Lognormal('dna_conv', np.log(self.conv0 * 0.144), 0.4)
 
             # Priors on conv factors
-            pm.Lognormal('confl_apop', np.log(0.204), 0.1, observed=apop_conv / confl_conv)
-            pm.Lognormal('apop_dna', np.log(0.144), 0.1, observed=dna_conv / confl_conv)
-
+            pm.Lognormal('confl_apop', np.log(0.25), 0.2, observed=apop_conv / confl_conv)
+            pm.Lognormal('confl_dna', np.log(0.144), 0.2, observed=dna_conv / confl_conv)
+            
+            # TODO: Account for the fact that apop and dna can't exceed confl
             if 'confl' in self.expTable.keys():
-                ssqErr += ssq((lnum + dead + eap) * confl_conv, self.expTable['confl'])
+                ssqErr += ssq((lnum + dead + eap), self.expTable['confl'] / confl_conv)
             if 'apop' in self.expTable.keys():
-                ssqErr += ssq((dead + eap) * apop_conv, self.expTable['apop'])
+                ssqErr += ssq((dead + eap), self.expTable['apop'] / apop_conv)
             if 'dna' in self.expTable.keys():
-                ssqErr += ssq(dead * dna_conv, self.expTable['dna'])
+                ssqErr += ssq(dead, self.expTable['dna'] / dna_conv)
 
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
@@ -132,10 +171,10 @@ class GrowthModel:
 
         return growth_model
 
-    def importData(self, selCol, loadFile=None):
+    def importData(self, selCol, loadFile=None, drop24=False):
         # If no filename is given use a default
         if loadFile is None:
-            self.loadFile = "062117_PC9"
+            self.loadFile = "030317-2_H1299"
         else:
             self.loadFile = loadFile
 
@@ -159,7 +198,10 @@ class GrowthModel:
             # Read input file
             try:
                 dataset = pandas.read_csv(pathcsv + value)
-                data = dataset.loc[dataset['Elapsed'] >= 24]
+                if drop24:
+                    data = dataset.loc[dataset['Elapsed'] >= 24]
+                else:
+                    data = dataset
                 if key == 'confl':
                     data0 = dataset.loc[dataset['Elapsed'] == 0]
                     self.conv0 = np.mean(data0.iloc[:, self.selCol])

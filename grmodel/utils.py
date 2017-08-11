@@ -2,118 +2,18 @@ import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+from .sampleAnalysis import readCols
 
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
-
-def sim_plot(column, replica=False):
-    """ Given column, plots simulation of predictions overlaying observed data """
-    # Read in dataset to Pandas data frame
-    classM, pdset = read_dataset(column)
-
-    print(pdset.shape)
-
-    print(pdset)
-
-    #Initialize variables 
-    if replica:
-        time = classM.timeV.reshape(3, int(len(classM.timeV) / 3))[0, :]
-    else:
-        time = classM.timeV
-    calcset = np.full((pdset.shape[0], len(time)), np.inf)
-    calcseta = np.full((pdset.shape[0], len(time)), np.inf)
-    calcsetd = np.full((pdset.shape[0], len(time)), np.inf)
-
-    varr = 0
-    # Evaluate predictions for each set of parameter fits
-    for row in pdset.iterrows():
-        mparm = np.copy(row[1].as_matrix()[0:4])
-        try:
-            # Use old_model to calculate lnum, eap, and dead over time
-            simret = classM.old_model(mparm, row[1]['confl_conv'], row[1]['apop_conv'], row[1]['dna_conv'])[1]
-            if replica:
-                simret = simret[:len(time), :]
-                simret = simret.reshape((len(time), 3))
-
-            # Calculate predictions for total, apop, and dead cells over time
-            calcset[varr, :] = np.sum(simret, axis=1) * row[1]['confl_conv']
-            calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1) * row[1]['apop_conv']
-            calcsetd[varr, :] = simret[:, 2] * row[1]['dna_conv']
-
-            varr = varr + 1
-        except:
-            print('Failed')
-            continue
-    
-    # Plot prediction distribution and observation
-    plt.figure(figsize=(10, 10))
-    # Iterate over total, apop, and dead cels
-    for calc in [calcset, calcseta, calcsetd]:
-        # Get median & 90% confidence interval for each time point
-        qqq = np.percentile(calc, [5, 25, 50, 75, 95], axis=0)
-        # Plot confidence interval 
-        plt.plot(time, qqq[2, :])
-        plt.fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
-        plt.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
-    # Plot observation 
-    plt.scatter(classM.timeV, classM.expTable['confl'])
-    plt.scatter(classM.timeV, classM.expTable['apop'])
-    plt.scatter(classM.timeV, classM.expTable['dna'])
-    plt.xlabel('Time (hr)')
-    plt.ylabel('% Confluence')
-    plt.title('Sim_plot '+pdset['Condition'].as_matrix()[0])
-    plt.show()
-
-
-def fit_plot(param, column, replica = False):
-    '''
-    Inputs: param = a list of len(7) in normal space, column = column for corresponding observation
-    Plot model prediction overlaying observation
-    '''
-    # Import an instance of GrowthModel
-    classM, _ = read_dataset(column)
-
-    # Initialize variables and parameters 
-    if replica:
-        ltime = int(len(classM.timeV)/3)
-    else:
-        ltime = int(len(classM.timeV))
-    calcset = np.full((ltime), np.inf)
-    calcseta = np.full((ltime), np.inf)
-    calcsetd = np.full((ltime), np.inf)
-    mparm = param[0:4]
-
-    # Use old model to calculate cells nubmers
-    simret = classM.old_model(mparm, param[4], param[5], param[6])[1]
-    if replica:
-        simret = simret[:ltime,:]
-    simret = simret.reshape(ltime,3)
-
-    # Calculate total, apop, and dead cells 
-    calcset[:] = np.sum(simret,axis = 1) * param[4]
-    calcseta[:] = np.sum(simret[:,1:3], axis = 1) * param[5]
-    calcsetd[:] = simret[:,2] * param[6]
-    
-    # Plot prediction curves overlayed with observation 
-    if replica:
-        plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcset)
-        plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcseta)
-        plt.plot(classM.timeV.reshape(3,ltime)[0,:], calcsetd)
-    else:
-        plt.plot(classM.timeV, calcset)
-        plt.plot(classM.timeV, calcseta)
-        plt.plot(classM.timeV, calcsetd)
-    plt.scatter(classM.timeV, classM.expTable['confl'])
-    plt.scatter(classM.timeV, classM.expTable['apop'])
-    plt.scatter(classM.timeV, classM.expTable['dna'])
-    plt.title('Fit_plot '+str(column))
-    plt.xlabel('Time (hr)')
-    plt.ylabel('% Confluence')
-    plt.show()
-
+def makePlot(cols, drugs):
+    hist_plot(cols)
+    PCA(cols)
+    dose_response_plot(drugs)
+    violinplot(drugs)
 
 def hist_plot(cols):
     """
@@ -121,7 +21,7 @@ def hist_plot(cols):
     """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
+    df = readCols(cols)[1]
 
     print(df.columns)
 
@@ -131,11 +31,13 @@ def hist_plot(cols):
     condidx = dict(zip(cond, sns.color_palette()))
 
     # Log transformation
-    for param in ['div', 'b', 'c', 'd', 'confl_conv', 'std']:
+    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
+    logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
+    for param in logparams:
         df[param] = np.log10(df[param])
 
     # Main plot organization
-    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=['div', 'b', 'c', 'd', 'confl_conv', 'std'],
+    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=params,
                  plot_kws=dict(s=5, linewidth=0),
                  diag_kws=dict(shade=True), size = 2)
 
@@ -143,7 +45,7 @@ def hist_plot(cols):
     patches = list()
     for key, val in zip(cond, [condidx[con] for con in cond]):
         patches.append(matplotlib.patches.Patch(color=val, label=key))
-    plt.legend(handles=patches, bbox_to_anchor=(-5, 6.5), loc=2)
+    plt.legend(handles=patches, bbox_to_anchor=(0, 6.5), loc=2)
 
     # Draw plot
     plt.show()
@@ -156,12 +58,11 @@ def PCA(cols):
     from sklearn.decomposition import PCA
     import seaborn as sns
 
-    df = pd.concat(map(lambda x: read_dataset(x)[1], cols))
-
+    df = readCols(cols)[1]
     print(df.columns)
 
     # Log transformation
-    params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
+    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
     for param in params:
         df[param] = np.log10(df[param])
 
@@ -181,7 +82,7 @@ def PCA(cols):
     dftran['Conditions'] = condition 
 
     # Plot first 2 principle components
-    ax = sns.lmplot('PC 1', 'PC 2', data = dftran, hue = 'Conditions', fit_reg = False)
+    ax = sns.lmplot('PC 1', 'PC 2', data = dftran, hue = 'Conditions', fit_reg = False, scatter_kws={"s": 10})
     # Set axis labels
     ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))[:-2]+'%)')
     ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))[:-2]+'%)')
@@ -189,23 +90,25 @@ def PCA(cols):
     plt.show()
 
 
-def dose_response_plot(drugs, log=False):
+def dose_response_plot(drugs, log=True, columns = None, logdose = False, show = True):
     '''
     Takes in a list of drugs
     Makes 1*num(parameters) plots for each drug
     ''' 
     # Read in dataframe
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
-    print(df.columns)
+    if columns == None: 
+        df = readCols(list(range(2,19)))[1]
+    else:
+        df = readCols(columns)[1]
 
-    params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
+    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
     
     # Make plots for each drug
     f, axis = plt.subplots(len(drugs),6,figsize=(15,2.5*len(drugs)), sharex=False, sharey='col')
-    
+
     # Get control parameter fits
-    dfc = df.loc[df['Condition'] == 'Control']
-    dfc = dfc.copy()
+    dfc = df.loc[df['Condition'].str.contains('Control')]
+
     # Interate over each drug
     for drug in drugs:
         # Set up table for the drug
@@ -220,13 +123,18 @@ def dose_response_plot(drugs, log=False):
         dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
         dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
         # Add control
-        dfc[drug+'-dose'] = 0
-        dfd = pd.concat([dfd, dfc])
+        if logdose == False:
+            dfcon = dfc.copy()
+            dfcon[drug+'-dose'] = 0
+            dfd = pd.concat([dfd, dfcon])
         
         # Set up mean and confidence interval
         if log: 
-            for param in params:
+            logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
+            for param in logparams:
                 dfd.loc[:, param] = dfd[param].apply(np.log10)
+        if logdose:
+            dfd.loc[:, drug+'-dose'] = dfd[drug+'-dose'].apply(np.log10)
         dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
         dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
         dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean
@@ -241,19 +149,23 @@ def dose_response_plot(drugs, log=False):
             axis[j,i].set_ylabel(params[i])
 
     plt.tight_layout()
-    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 5.1)
-    plt.show()
+    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 2.4)
+    if show:
+        plt.show()
+    else:
+        return (f, axis) 
 
 
-def violinplot(drugs,log=False):
+def violinplot(drugs,log=True):
     '''
     Takes in a list of drugs
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = pd.concat(map(lambda x: read_dataset(x)[1], list(range(2,19))))
+    df = readCols(list(range(2,14)))[1]
 
-    params = ['div', 'b', 'c', 'd', 'confl_conv', 'std']
+    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
+    logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
     
     # Make plots for each drug
     f, axis = plt.subplots(len(drugs),6,figsize=(18,3*len(drugs)), sharex=False, sharey='col')
@@ -280,13 +192,76 @@ def violinplot(drugs,log=False):
         # Plot params vs. drug dose
         j = drugs.index(drug)
         for i in range(len(params)):
-            if log: 
+            if log and params[i] in logparams:
                 sns.violinplot(dfd[drug+'-dose'],np.log10(dfd[params[i]]),ax=axis[j,i])
             else:
                 sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
 
     plt.tight_layout()
-    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 5)
+    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 2.4)
+    plt.show()
+
+
+def plot_dose_fits(columns, drugs, params, dic, dist = False):
+    df = readCols(columns)[1]
+    
+    fig, axis = plt.subplots(len(drugs),len(params),figsize=(3*len(params),3*len(drugs)), sharex= 'row', sharey='col')
+    for drug in drugs:
+        # Set up table for the drug
+        dfd = df[df['Condition'].str.contains(drug+' ')]
+        # Break if drug not in dataset
+        if dfd.empty:
+            print("Error: Drug not in dataset")
+            break
+
+        # Add dose to table
+        dfd = dfd.copy()
+        dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
+        dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
+        # log10 transform drug dosage
+        dfd.loc[:, drug+'-dose'] = dfd[drug+'-dose'].apply(np.log10)
+        doses = list(dfd.loc[:,drug+'-dose'].drop_duplicates(keep='first'))
+        mindose = min(doses)
+        maxdose = max(doses)
+
+        # log10 transform parameters besides 'apopfrac'
+        for param in params:
+            if param != 'apopfrac':
+                dfd.loc[:, param] = dfd[param].apply(np.log10)
+
+        # Set up mean and confidence interval
+        dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
+        dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
+        dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean
+
+        # Plot params vs. drug dose
+        j = drugs.index(drug)
+        for i in range(len(params)):
+            # Plot dose response
+            axis[j,i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
+                               [dferr1[params[i]],dferr2[params[i]]],
+                               fmt='.',capsize=5,capthick=1)
+            # Plot dose response curves
+            if not dist: # plot MAP curve
+                paramfits = dic[str(drug)+'-'+str(params[i])]
+                bottom = np.exp(paramfits['bottom_log__'])
+                top = np.exp(paramfits['top_log__'])
+                logIC50 = paramfits['logIC50']
+                hillslope = np.exp(paramfits['hillslope_log__'])
+                doserange = np.arange(mindose, maxdose, (maxdose - mindose)/50)
+                paramfit = []
+                for x in doserange:
+                    y = bottom + (top - bottom) / (1 + np.power(10., (logIC50 - x)*hillslope))
+                    paramfit.append(np.log10(y))
+                # Plot IC50
+                axis[j,i].axvline(logIC50, color = 'k')
+                axis[j,i].plot(doserange, paramfit)
+
+            axis[j,i].set_xlabel(drug+'-dose')
+            axis[j,i].set_ylabel(params[i])
+
+    plt.tight_layout()
+    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = 0, y = 4.9)
     plt.show()
 
 
