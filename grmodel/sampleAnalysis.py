@@ -24,7 +24,7 @@ def read_dataset(ff=None):
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
     # Read in list of classes
-    classList = pickle.load(bz2.BZ2File(filename, 'r'))
+    classList = pickle.load(bz2.BZ2File(filename, 'rb'))
 
     return classList
 
@@ -40,10 +40,15 @@ def readCols(cols, trim = True):
     for item in grCols:
         df = pm.backends.tracetab.trace_to_dataframe(item.samples)
         df['Column'] = item.selCol
-        df['Condition'] = item.condName
+        if item.condName[-2:] == '.1':
+            print(1)
+            df['Condition'] = item.condName[:-2]
+        else:
+            df['Condition'] = item.condName
+            print(2)
 
         if trim:
-            cutoff = np.amin(df['ssqErr'])+50
+            cutoff = np.amin(df['ssqErr'])+100
             df = df.loc[df['ssqErr'] < cutoff,:]
         grdf.append(df)
 

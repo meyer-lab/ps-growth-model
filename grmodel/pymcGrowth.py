@@ -89,7 +89,7 @@ class MultiSample:
         if exists(self.filePrefix + '_samples.pkl'):
             os.remove(self.filePrefix + '_samples.pkl')
 
-        pickle.dump(self.cols, bz2.BZ2File(self.filePrefix + '_samples.pkl', 'w'))
+        pickle.dump(self.cols, bz2.BZ2File(self.filePrefix + '_samples.pkl', 'wb'))
 
 
 class GrowthModel:

@@ -120,8 +120,8 @@ class CurveFit:
                 minrange= maxparam - 2 * sdparam
                 maxrange = minparam + 2 * sdparam
             # Specify priors
-            bottom = pm.Lognormal('bottom', (mindoseparam + minparam) / 2, sdparam)
-            top = pm.Lognormal('top', (maxdoseparam + maxparam) / 2, sdparam)
+            bottom = pm.Lognormal('bottom', (mindoseparam+minparam)/2, sdparam)
+            top = pm.Lognormal('top', (maxdoseparam+maxparam)/2, sdparam)
             logIC50 = pm.Normal('logIC50', np.mean(self.logdoses), np.std(self.logdoses))
             hillslope = pm.Lognormal('hillslope', 0, 1)
             
