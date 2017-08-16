@@ -31,10 +31,13 @@ def hist_plot(cols):
     condidx = dict(zip(cond, sns.color_palette()))
 
     # Log transformation
-    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
-    logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
+    params = ['div', 'd', 'deathRate', 'apopfrac']
+    logparams = ['div', 'd', 'deathRate']
     for param in logparams:
         df[param] = np.log10(df[param])
+
+    #Set context for seaborn
+    sns.set_context("paper", font_scale=1.4)
 
     # Main plot organization
     sns.pairplot(df, diag_kind="kde", hue='Condition', vars=params,
@@ -84,9 +87,9 @@ def PCA(cols):
     # Plot first 2 principle components
     ax = sns.lmplot('PC 1', 'PC 2', data = dftran, hue = 'Conditions', fit_reg = False, scatter_kws={"s": 10})
     # Set axis labels
-    ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))[:-2]+'%)')
-    ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))[:-2]+'%)')
-    plt.title('PCA')
+    ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))[:-2]+'%)', fontsize = 15)
+    ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))[:-2]+'%)', fontsize = 15)
+    plt.title('PCA', fontsize = 15)
     plt.show()
 
 
@@ -149,7 +152,7 @@ def dose_response_plot(drugs, log=True, columns = None, logdose = False, show = 
             axis[j,i].set_ylabel(params[i])
 
     plt.tight_layout()
-    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 2.4)
+    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
     if show:
         plt.show()
     else:
@@ -167,10 +170,13 @@ def violinplot(drugs,log=True):
     params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
     logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
     
+    #Set context for seaborn
+    sns.set_context("paper", font_scale = 2)
+    
     # Make plots for each drug
     f, axis = plt.subplots(len(drugs),6,figsize=(18,3*len(drugs)), sharex=False, sharey='col')
     # Get control parameter fits
-    dfc = df.loc[df['Condition'] == 'Control']
+    dfc = df.loc[df['Condition'].str.contains('Control')]
     dfc = dfc.copy()
     # Iterate over each drug 
     for drug in drugs:
@@ -198,14 +204,14 @@ def violinplot(drugs,log=True):
                 sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
 
     plt.tight_layout()
-    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 2.4)
+    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
     plt.show()
 
 
 def plot_dose_fits(columns, drugs, params, dic, dist = False):
     df = readCols(columns)[1]
     
-    fig, axis = plt.subplots(len(drugs),len(params),figsize=(3*len(params),3*len(drugs)), sharex= 'row', sharey='col')
+    fig, axis = plt.subplots(len(drugs),len(params),figsize=(3.5*len(params),3.1*len(drugs)), sharex= 'row', sharey='col')
     for drug in drugs:
         # Set up table for the drug
         dfd = df[df['Condition'].str.contains(drug+' ')]
@@ -229,6 +235,14 @@ def plot_dose_fits(columns, drugs, params, dic, dist = False):
             if param != 'apopfrac':
                 dfd.loc[:, param] = dfd[param].apply(np.log10)
 
+        # Set up dicval, a dictionary of params: list of lists of parameter values for each dose
+        dicval = {}
+        for param in params:
+            dataset = []
+            for dose in doses:
+                dataset.append(list(dfd[dfd[drug+'-dose'] == dose][param]))
+            dicval[param] = dataset
+
         # Set up mean and confidence interval
         dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
         dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
@@ -238,9 +252,10 @@ def plot_dose_fits(columns, drugs, params, dic, dist = False):
         j = drugs.index(drug)
         for i in range(len(params)):
             # Plot dose response
+            axis[j,i].violinplot(dicval[params[i]], doses, showextrema=False, widths = 0.3)
             axis[j,i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
                                [dferr1[params[i]],dferr2[params[i]]],
-                               fmt='.',capsize=5,capthick=1)
+                               fmt='o',capsize=5,capthick=1)
             # Plot dose response curves
             if not dist: # plot MAP curve
                 paramfits = dic[str(drug)+'-'+str(params[i])]
@@ -248,7 +263,7 @@ def plot_dose_fits(columns, drugs, params, dic, dist = False):
                 top = np.exp(paramfits['top_log__'])
                 logIC50 = paramfits['logIC50']
                 hillslope = np.exp(paramfits['hillslope_log__'])
-                doserange = np.arange(mindose, maxdose, (maxdose - mindose)/50)
+                doserange = np.arange(mindose, maxdose, (maxdose - mindose)/200)
                 paramfit = []
                 for x in doserange:
                     y = bottom + (top - bottom) / (1 + np.power(10., (logIC50 - x)*hillslope))
@@ -256,12 +271,11 @@ def plot_dose_fits(columns, drugs, params, dic, dist = False):
                 # Plot IC50
                 axis[j,i].axvline(logIC50, color = 'k')
                 axis[j,i].plot(doserange, paramfit)
-
-            axis[j,i].set_xlabel(drug+'-dose')
-            axis[j,i].set_ylabel(params[i])
+            axis[j,i].set_xlabel(drug+'-dose ($\log_{10}$)', fontsize = 20)
+            axis[j,i].set_ylabel(params[i], fontsize = 20)
 
     plt.tight_layout()
-    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = 0, y = 4.9)
+    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = 0, y = 2.5, fontsize = 20)
     plt.show()
 
 

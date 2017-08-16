@@ -40,7 +40,12 @@ def readCols(cols, trim = True):
     for item in grCols:
         df = pm.backends.tracetab.trace_to_dataframe(item.samples)
         df['Column'] = item.selCol
-        df['Condition'] = item.condName
+        if item.condName[-2:] == '.1':
+            print(1)
+            df['Condition'] = item.condName[:-2]
+        else:
+            df['Condition'] = item.condName
+            print(2)
 
         if trim:
             cutoff = np.amin(df['ssqErr'])+100
