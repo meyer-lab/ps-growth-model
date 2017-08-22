@@ -15,7 +15,7 @@ def getSetup(figsize, gridd):
     # Get list of axis objects
     ax = [f.add_subplot(gs1[x]) for x in range(gridd[0] * gridd[1])]
 
-    return (ax, f)
+    return (ax, f, gs1)
 
 
 def subplotLabel(ax, letter, hstretch=1):

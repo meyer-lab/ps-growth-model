@@ -10,7 +10,7 @@ def makeFigure():
     ''' XXX '''
 
     # Get list of axis objects
-    ax, f = getSetup((7, 6), (3, 3))
+    ax, f, _ = getSetup((7, 6), (3, 3))
 
     for ii, item in enumerate(ax):
         subplotLabel(item, ascii_uppercase[ii])
