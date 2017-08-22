@@ -9,7 +9,7 @@ pipeline {
     stage('Test'){
       steps {
         sh 'make testcover'
-        sh '(pylint --rcfile=./grmodel/tests/.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
+        sh '(pylint3 --rcfile=./grmodel/tests/.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
       }
     }
     stage('Report') {
