@@ -11,7 +11,7 @@ class TestgrMethods(unittest.TestCase):
 
         model = GR.build_model()
 
-        self.assertEqual(len(GR.expTable), 3)
+        self.assertEqual(len(GR.expTable), 4)
         self.assertIsInstance(model, pm.Model)
 
     def test_MAP(self):

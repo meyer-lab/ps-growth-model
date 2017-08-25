@@ -19,7 +19,7 @@ def read_dataset(ff=None):
     ''' Read the specified column from the shared test file. '''
 
     if ff is None:
-        ff = "030317-2_H1299"
+        ff = "042017_PC9"
 
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
@@ -41,14 +41,12 @@ def readCols(cols, trim = True):
         df = pm.backends.tracetab.trace_to_dataframe(item.samples)
         df['Column'] = item.selCol
         if item.condName[-2:] == '.1':
-            print(1)
             df['Condition'] = item.condName[:-2]
         else:
             df['Condition'] = item.condName
-            print(2)
 
         if trim:
-            cutoff = np.amin(df['ssqErr'])+100
+            cutoff = np.amin(df['ssqErr'])+200
             df = df.loc[df['ssqErr'] < cutoff,:]
         grdf.append(df)
 
@@ -198,9 +196,9 @@ def sim_plot(column, rep=None, data=None, printt=False, show=True, axis=None):
             simret = simret.reshape((len(time), rep))
 
             # Calculate predictions for total, apop, and dead cells over time
-        calcset[varr, :] = np.sum(simret, axis=1)*row[1].as_matrix()[idic['confl_conv']]
-        calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1)*row[1].as_matrix()[idic['apop_conv']]
-        calcsetd[varr, :] = simret[:, 2]*row[1].as_matrix()[idic['dna_conv']]
+        calcset[varr, :] = np.sum(simret, axis=1) * row[1].as_matrix()[idic['confl_conv']]
+        calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1) * row[1].as_matrix()[idic['apop_conv']]
+        calcsetd[varr, :] = np.sum(simret[:, 2:4], axis=1) * row[1].as_matrix()[idic['dna_conv']]
 
         varr = varr + 1
 #        except:

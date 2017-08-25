@@ -39,12 +39,13 @@ def simulate(params, ttime):
     b = params[2] * (1 - params[3])
 
     # Calculate dead cells
-    dead = ((b * lnum + cGRd * params[1] * lnum - b - cGRd * params[1]) / GR +
-            cGRd * np.exp(-params[1] * ttime) - cGRd)
+    deadapop = params[1] * cGRd * (lnum - 1) / GR + cGRd * (np.exp(-params[1] * ttime) -1)
+    deadnec = b * (lnum -1) / GR
 
     out = np.concatenate((np.expand_dims(lnum, axis=1),
                          np.expand_dims(eap, axis=1),
-                         np.expand_dims(dead, axis=1)), axis=1)
+                         np.expand_dims(deadapop, axis=1),
+                         np.expand_dims(deadnec, axis=1)), axis=1)
     return out
 
 
@@ -140,8 +141,10 @@ class GrowthModel:
             b = deathRate * (1 - apopfrac)
 
             # Calculate dead cells
-            dead = ((b * lnum + cGRd * d * lnum - b - cGRd * d) / GR +
-                    cGRd * pm.math.exp(-d * self.timeV) - cGRd)
+            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) -1)
+            deadnec = b * (lnum -1) / GR
+#            dead = ((b * lnum + cGRd * d * lnum - b - cGRd * d) / GR +
+#                    cGRd * pm.math.exp(-d * self.timeV) - cGRd)
 
             ssqErr = 0.0
 
@@ -156,11 +159,13 @@ class GrowthModel:
             
             # TODO: Account for the fact that apop and dna can't exceed confl
             if 'confl' in self.expTable.keys():
-                ssqErr += ssq((lnum + dead + eap), self.expTable['confl'] / confl_conv)
+                ssqErr += ssq((lnum + eap + deadapop + deadnec), self.expTable['confl'] / confl_conv)
             if 'apop' in self.expTable.keys():
-                ssqErr += ssq((dead + eap), self.expTable['apop'] / apop_conv)
+                ssqErr += ssq((eap + deadapop), self.expTable['apop'] / apop_conv)
             if 'dna' in self.expTable.keys():
-                ssqErr += ssq(dead, self.expTable['dna'] / dna_conv)
+                ssqErr += ssq((deadapop + deadnec), self.expTable['dna'] / dna_conv)
+            if 'overlap' in self.expTable.keys():
+                ssqErr += ssq(deadapop, self.expTable['overlap'] / dna_conv)
 
             # Save the sum of squared error
             ssqErr = pm.Deterministic('ssqErr', ssqErr)
@@ -171,17 +176,18 @@ class GrowthModel:
 
         return growth_model
 
-    def importData(self, selCol, loadFile=None, drop24=False):
+    def importData(self, selCol, loadFile=None, drop24=True):
         # If no filename is given use a default
         if loadFile is None:
-            self.loadFile = "030317-2_H1299"
+            self.loadFile = "042017_PC9"
         else:
             self.loadFile = loadFile
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
                       'apop': '_confluence_green.csv',
-                      'dna': '_confluence_red.csv'}
+                      'dna': '_confluence_red.csv',
+                      'overlap': '_confluence_overlap.csv'}
 
         # Find path for csv files in the repository.
         pathcsv = join(dirname(abspath(__file__)), 'data/' + self.loadFile)

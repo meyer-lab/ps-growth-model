@@ -165,13 +165,13 @@ def violinplot(drugs,log=True):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = readCols(list(range(2,14)))[1]
+    df = readCols(list(range(2,19)))[1]
 
     params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
     logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
     
     #Set context for seaborn
-    sns.set_context("paper", font_scale = 2)
+    sns.set_context("paper", font_scale = 1.7)
     
     # Make plots for each drug
     f, axis = plt.subplots(len(drugs),6,figsize=(18,3*len(drugs)), sharex=False, sharey='col')
