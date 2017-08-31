@@ -52,36 +52,34 @@ def simulate(params, ttime):
 class MultiSample:
 
     def __init__(self):
-        self.cols = list()
+        self.models = list()
 
-    def loadCols(self, firstCols, filename=None):
-        """ Load columns in. Run through columns until the loading process errors. """
-        try:
-            while (True):
-                # Create new class
-                temp = GrowthModel()
+    def loadModels(self, firstCols, fileName = None):
+        """  Initialize GrowthModel for each drug. Load data for each drug in."""
+        # Get LoadFile from GrowthModel()
+        temp = GrowthModel(fileName)
 
-                # Import data column
-                temp.importData(firstCols, filename)
+        if not hasattr(self, 'filePrefix'):
+            self.filePrefix = './grmodel/data/' + temp.loadFile
 
-                # Stick the class into the list
-                self.cols.append(temp)
-
-                # If filename for output not yet set, save it
-                if not hasattr(self, 'filePrefix'):
-                    self.filePrefix = './grmodel/data/' + temp.loadFile
-
-                # Increment to next column
-                firstCols += 1
-        except IndexError:
-            if len(self.cols) < 2:
-                raise ValueError("Didn't find many columns.")
-
-        return firstCols
+        # Find path for csv files in the repository.
+        pathcsv = join(dirname(abspath(__file__)), 'data/' + temp.loadFile)
+        dataset = pandas.read_csv(pathcsv + '_confluence_phase.csv')
+        conditions = dataset.columns.values[firstCols:]
+        alldrugs = [cond.split(' ')[0] for cond in conditions]
+        drugs = []
+        for drug in alldrugs:
+            if drug not in drugs:
+                drugs.append(drug)
+        for drug in drugs:
+            gr = GrowthModel()
+            gr.importData(firstCols, drug)
+            self.models.append(gr)
+        return drugs
 
     def sample(self):
         ''' Map over sampling runs. '''
-        for result in map(lambda x: x.sample(), self.cols):
+        for result in map(lambda x: x.sample(), self.models):
             continue
 
     def save(self):
@@ -90,7 +88,7 @@ class MultiSample:
         if exists(self.filePrefix + '_samples.pkl'):
             os.remove(self.filePrefix + '_samples.pkl')
 
-        pickle.dump(self.cols, bz2.BZ2File(self.filePrefix + '_samples.pkl', 'wb'))
+        pickle.dump(self.models, bz2.BZ2File(self.filePrefix + '_samples.pkl', 'wb'))
 
 
 class GrowthModel:
@@ -98,8 +96,12 @@ class GrowthModel:
     def sample(self):
         ''' A '''
 
+        if 500*len(self.doses) > 1000:
+            num = 500*len(self.doses)
+        else:
+            num = 1000
         with self.model:
-            self.samples = pm.sample(njobs=3,  # Run three parallel chains
+            self.samples = pm.sample(draws=num, tune = num, njobs=3,  # Run three parallel chains
                                      nuts_kwargs={'target_accept': 0.99})
 
     def build_model(self):
@@ -113,41 +115,6 @@ class GrowthModel:
         growth_model = pm.Model()
 
         with growth_model:
-            # Growth rate
-            div = pm.Lognormal('div', np.log(0.02), 1)
-
-            # Rate of moving from apoptosis to death
-            d = pm.Lognormal('d', np.log(0.01), 1)
-
-            # Rate of entering apoptosis or skipping straight to death
-            deathRate = pm.Lognormal('deathRate', np.log(0.01), 1)
-
-            # Fraction of dying cells that go through apoptosis
-            apopfrac = pm.Uniform('apopfrac')
-
-            # Calculate the growth rate
-            GR = div - deathRate
-
-            # Calculate the number of live cells
-            lnum = pm.math.exp(GR * self.timeV)
-
-            # cGDd is used later
-            cGRd = deathRate * apopfrac / (GR + d)
-
-            # Number of early apoptosis cells at start is 0.0
-            eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
-
-            # b is the rate straight to death
-            b = deathRate * (1 - apopfrac)
-
-            # Calculate dead cells
-            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) -1)
-            deadnec = b * (lnum -1) / GR
-#            dead = ((b * lnum + cGRd * d * lnum - b - cGRd * d) / GR +
-#                    cGRd * pm.math.exp(-d * self.timeV) - cGRd)
-
-            ssqErr = 0.0
-
             # Set up conversion rates
             confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
             apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0 * 0.25), 0.4)
@@ -157,31 +124,63 @@ class GrowthModel:
             pm.Lognormal('confl_apop', np.log(0.25), 0.2, observed=apop_conv / confl_conv)
             pm.Lognormal('confl_dna', np.log(0.144), 0.2, observed=dna_conv / confl_conv)
             
-            # TODO: Account for the fact that apop and dna can't exceed confl
-            if 'confl' in self.expTable.keys():
-                ssqErr += ssq((lnum + eap + deadapop + deadnec), self.expTable['confl'] / confl_conv)
-            if 'apop' in self.expTable.keys():
-                ssqErr += ssq((eap + deadapop), self.expTable['apop'] / apop_conv)
-            if 'dna' in self.expTable.keys():
-                ssqErr += ssq((deadapop + deadnec), self.expTable['dna'] / dna_conv)
-            if 'overlap' in self.expTable.keys():
-                ssqErr += ssq(deadapop, self.expTable['overlap'] / dna_conv)
+            std = pm.Lognormal('std', 0, 1)
+            stdad = pm.Lognormal('stdad',-3,1)
 
-            # Save the sum of squared error
-            ssqErr = pm.Deterministic('ssqErr', ssqErr)
+            # Iterate over each dose
+            for dose in self.doses:
+                # Specify vectors of prior distributions
+                # Growth rate
+                div = pm.Lognormal('div '+str(dose), np.log(0.02), 1)
 
-            # Error distribution for the expt observations
-            pm.ChiSquared('dataFit', self.nobs,
-                          observed=ssqErr / pm.Lognormal('std', -2, 1))
+                # Rate of moving from apoptosis to death
+                d = pm.Lognormal('d '+str(dose), np.log(0.01), 1)
+
+                # Rate of entering apoptosis or skipping straight to death
+                deathRate = pm.Lognormal('deathRate '+str(dose), np.log(0.01), 1)
+
+                # Fraction of dying cells that go through apoptosis
+                apopfrac = pm.Uniform('apopfrac '+str(dose))
+                
+                # Calculate the growth rate
+                GR = div - deathRate
+
+                # Calculate the number of live cells
+                lnum = pm.math.exp(GR * self.timeV)
+
+                # cGDd is used later
+                cGRd = deathRate * apopfrac / (GR + d)
+
+                # Number of early apoptosis cells at start is 0.0
+                eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
+
+                # b is the rate straight to death
+                b = deathRate * (1 - apopfrac)
+
+                # Calculate dead cells via apoptosis and via necrosis
+                deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) -1)
+                deadnec = b * (lnum -1) / GR
+
+                # Fit model to confl, apop, and dna measurements 
+                if (dose, 'confl') in self.expTable.keys():
+                    pm.Normal('dataFit '+str(dose), sd = std, 
+                              observed = (lnum + eap + deadapop + deadnec) * confl_conv - self.expTable[(dose, 'confl')])
+                if (dose, 'apop') in self.expTable.keys():
+                    pm.Normal('dataFita '+str(dose), sd = stdad, 
+                              observed = (eap + deadapop) * apop_conv - self.expTable[(dose, 'apop')])
+                if (dose, 'dna') in self.expTable.keys():
+                    pm.Normal('dataFitd '+str(dose), sd = stdad, 
+                              observed = (deadapop + deadnec) * dna_conv - self.expTable[(dose, 'dna')])
+                if (dose, 'overlap') in self.expTable.keys():
+                    pm.Normal('dataFito '+str(dose), sd = stdad, 
+                              observed = deadapop * dna_conv - self.expTable[(dose, 'overlap')])
+            logp = pm.Deterministic('logp', growth_model.logpt)
 
         return growth_model
 
-    def importData(self, selCol, loadFile=None, drop24=True):
-        # If no filename is given use a default
-        if loadFile is None:
-            self.loadFile = "042017_PC9"
-        else:
-            self.loadFile = loadFile
+    # Directly import one column of data
+    def importData(self, firstCols, drug, drop24=False):
+        self.drug = drug
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
@@ -193,7 +192,10 @@ class GrowthModel:
         pathcsv = join(dirname(abspath(__file__)), 'data/' + self.loadFile)
 
         # Pull out selected column data
-        self.selCol = selCol
+        self.selCols = []
+        self.condNames = []
+        self.doses = []
+        selconv0 =[]
 
         # Get dict started
         self.expTable = dict()
@@ -210,13 +212,10 @@ class GrowthModel:
                     data = dataset
                 if key == 'confl':
                     data0 = dataset.loc[dataset['Elapsed'] == 0]
-                    self.conv0 = np.mean(data0.iloc[:, self.selCol])
+                    conv0 = np.mean(data0.iloc[:, firstCols:])
             except FileNotFoundError:
                 print("No file for key: " + key)
                 continue
-
-            # Write data into array
-            self.expTable[key] = data.iloc[:, self.selCol].as_matrix()
 
             if hasattr(self, 'timeV'):
                 # Compare to existing vector
@@ -226,11 +225,42 @@ class GrowthModel:
                 # Set the time vector
                 self.timeV = data.iloc[:, 1].as_matrix()
 
-                # Set the name of the condition we're considering
-                self.condName = data.columns.values[self.selCol]
+            if not hasattr(self, 'totalCols'):
+                self.totalCols = len(data.columns)
+            if self.totalCols < firstCols + 2:
+                raise ValueError("Didn't find many columns.")
+
+            for col in list(range(firstCols, self.totalCols)):
+            # Set the name of the condition we're considering
+                condName = data.columns.values[col]
+                if condName.split(' ')[0] == self.drug:
+                    # Add the name of the condition we're considering
+                    try:
+                        dose = float(condName.split(' ')[1])
+                    except IndexError:
+                        dose = 0
+                    
+                    # Add data to expTable
+                    self.expTable[(dose,key)] = data.iloc[:, col].as_matrix()
+                    
+                    # Add conv0
+                    if key == 'confl':
+                        self.doses.append(dose)
+                        self.condNames.append(condName)
+                        self.selCols.append(col)
+                        selconv0.append(conv0[col-firstCols])
+        # Record averge conv0 for confl prior
+        self.conv0 = np.mean(selconv0)
 
         # Record the number of observations we've made
-        self.nobs = len(self.expTable) * len(self.timeV)
+        self.nobs = len(properties) * len(self.timeV)
 
         # Build the model
         self.model = self.build_model()
+
+    def __init__(self, loadFile = None):
+        # If no filename is given use a default
+        if loadFile is None:
+            self.loadFile = "030317-2_H1299"
+        else:
+            self.loadFile = loadFile

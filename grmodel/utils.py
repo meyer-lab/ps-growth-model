@@ -15,26 +15,27 @@ def makePlot(cols, drugs):
     dose_response_plot(drugs)
     violinplot(drugs)
 
-def hist_plot(cols):
+def hist_plot(drug):
     """
     Display histograms of parameter values across conditions
     """
     import seaborn as sns
     # Read in dataset to Pandas data frame
-    df = readCols(cols)[1]
+    models, df = readCols([drug])
 
     print(df.columns)
 
-    # Get conditions
-    cond = df.loc[:,'Condition']
-    cond = list(cond.drop_duplicates(keep='first'))
+    # Get doses
+    doses = models[drug].doses
+    cond = [drug + ' ' + str(dose) for dose in doses]
     condidx = dict(zip(cond, sns.color_palette()))
 
     # Log transformation
-    params = ['div', 'd', 'deathRate', 'apopfrac']
-    logparams = ['div', 'd', 'deathRate']
+    params = ['div ', 'd ', 'deathRate ', 'apopfrac ']
+    logparams = ['div ', 'd ', 'deathRate ']
     for param in logparams:
-        df[param] = np.log10(df[param])
+        for dose in doses:
+            df[param+str(dose)] = np.log10(df[param+str(dose)])
 
     #Set context for seaborn
     sns.set_context("paper", font_scale=1.4)
@@ -93,47 +94,43 @@ def PCA(cols):
     plt.show()
 
 
-def dose_response_plot(drugs, log=True, columns = None, logdose = False, show = True):
+def dose_response_plot(drugs = None, log=True, logdose = False, show = True):
     '''
     Takes in a list of drugs
     Makes 1*num(parameters) plots for each drug
     ''' 
     # Read in dataframe
-    if columns == None: 
-        df = readCols(list(range(2,19)))[1]
+    if drugs == None: 
+        classdict, df = readCols()
     else:
-        df = readCols(columns)[1]
+        classdict, df = readCols(drugs)
 
-    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
+    params = ['div', 'd', 'deathRate', 'apopfrac']
     
     # Make plots for each drug
-    f, axis = plt.subplots(len(drugs),6,figsize=(15,2.5*len(drugs)), sharex=False, sharey='col')
+    f, axis = plt.subplots(len(drugs),4,figsize=(15,2.5*len(drugs)), sharex=False, sharey='col')
 
     # Get control parameter fits
-    dfc = df.loc[df['Condition'].str.contains('Control')]
+    dfc = df.loc[df['Drug'].str.contains('Control')]
 
     # Interate over each drug
     for drug in drugs:
         # Set up table for the drug
-        dfd = df[df['Condition'].str.contains(drug+' ')]
+        dfd = df[df['Drug'] == drug]
         # Break if drug not in dataset
         if dfd.empty:
             print("Error: Drug not in dataset")
             break
 
-        # Add dose to table
-        dfd = dfd.copy()
-        dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
-        dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
         # Add control
         if logdose == False:
             dfcon = dfc.copy()
             dfcon[drug+'-dose'] = 0
             dfd = pd.concat([dfd, dfcon])
-        
+
         # Set up mean and confidence interval
         if log: 
-            logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
+            logparams = ['div', 'd', 'deathRate']
             for param in logparams:
                 dfd.loc[:, param] = dfd[param].apply(np.log10)
         if logdose:
