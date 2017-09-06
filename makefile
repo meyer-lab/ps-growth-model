@@ -1,11 +1,10 @@
 fdir = ./Manuscript/Figures
 tdir = ./Manuscript/Templates
-pan_common = -F pandoc-crossref -F pandoc-citeproc -f markdown ./Manuscript/Text/*.md
-# --filter=$(tdir)/figure-filter.py
+pan_common = -s -F pandoc-crossref -F pandoc-citeproc -f markdown
 
 .PHONY: clean test profile testcover all
 
-all: Manuscript/index.html
+all: Manuscript/index.html Manuscript/Manuscript.pdf
 
 $(fdir)/Figure%.svg: genFigures.py
 	mkdir -p ./Manuscript/Figures
@@ -14,18 +13,11 @@ $(fdir)/Figure%.svg: genFigures.py
 $(fdir)/Figure%pdf: $(fdir)/Figure%svg
 	rsvg-convert -f pdf $< -o $@
 
-$(fdir)/Figure%eps: $(fdir)/Figure%svg
-	rsvg-convert -f eps $< -o $@
+Manuscript/Manuscript.pdf: Manuscript/Text/*.md Manuscript/index.html $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf
+	(cd ./Manuscript && pandoc $(pan_common) --filter=./Templates/figure-filter.py --template=./Templates/default.latex -Vcsl=./Templates/nature.csl -Vbibliography=./References.bib ./Text/*.md -o Manuscript.pdf)
 
-Manuscript/Manuscript.pdf: Manuscript/Manuscript.tex
-	(cd ./Manuscript && latexmk -xelatex -f -quiet)
-	rm -f ./Manuscript/Manuscript.b* ./Manuscript/Manuscript.aux ./Manuscript/Manuscript.fls
-
-Manuscript/Manuscript.tex: Manuscript/Text/*.md Manuscript/index.html
-	pandoc -s $(pan_common) --template=$(tdir)/default.latex --latex-engine=xelatex -o $@
-
-Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.svg $(fdir)/Figure3.svg
-	pandoc -s $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -o $@
+Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.svg $(fdir)/Figure3.svg $(fdir)/Figure4.svg $(fdir)/Figure5.svg
+	pandoc $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -Vcsl=./Manuscript/Templates/nature.csl -Vbibliography=./Manuscript/References.bib ./Manuscript/Text/*.md -o $@
 
 clean:
 	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure*

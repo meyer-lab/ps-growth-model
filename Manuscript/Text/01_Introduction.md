@@ -2,17 +2,23 @@
 title: Growth measurement and models taking into account mechanisms of cell death capture hidden variation in compound response
 author:
 - name: Song Yi Bae
-  affiliation: Koch Institute for Integrative Cancer Research, Massachusetts Institute of Technology, Cambridge, MA
+  affilnum: a
 - name: Ning Guan
-  affiliation: Koch Institute for Integrative Cancer Research, Massachusetts Institute of Technology, Cambridge, MA
-- name: Aaron S Meyer*
-  affiliation: Department of Bioengineering, University of California, Los Angeles
+  affilnum: b
+- name: Colton Stearns
+  affilnum: b
+- name: Aaron S. Meyer
+  affilnum: a,c
 keywords: [growth models, inference]
-institute: A
-bibliography: ./Manuscript/References.bib
+affiliation:
+- name: Department of Bioengineering, University of California, Los Angeles
+  key: a
+- name: Massachusetts Institute of Technology, Cambridge, MA
+  key: b
+- name: Contact info
+  key: c
 abstract: Cancer cell sensitivity or resistance is nearly universally quantified through a direct or surrogate measure of cell number over time. However, 
 link-citations: true
-csl: ./Manuscript/Templates/nature.csl
 ---
 
 # Introduction

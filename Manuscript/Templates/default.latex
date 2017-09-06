@@ -1,13 +1,12 @@
-\documentclass[12pt]{article}
+\documentclass[11pt]{article}
 
-\usepackage{libertine}
-\usepackage{amssymb,amsmath}
-\usepackage{ifxetex,ifluatex}
-\usepackage{fixltx2e} % provides \textsubscript
-\usepackage{mathspec}
-\usepackage{fontspec}
-\defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
 \usepackage{microtype}
+
+\usepackage[scaled]{helvet}
+\renewcommand\familydefault{\sfdefault} 
+\usepackage[T1]{fontenc}
+
+\usepackage[affil-it]{authblk}
 
 \PassOptionsToPackage{hyphens}{url} % url is loaded by hyperref
 
@@ -101,23 +100,6 @@ $else$
 \renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
 \fi
 $endif$
-$if(dir)$
-\ifxetex
-  % load bidi as late as possible as it modifies e.g. graphicx
-  $if(latex-dir-rtl)$
-  \usepackage[RTLdocument]{bidi}
-  $else$
-  \usepackage{bidi}
-  $endif$
-\fi
-\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
-  \TeXXeTstate=1
-  \newcommand{\RL}[1]{\beginR #1\endR}
-  \newcommand{\LR}[1]{\beginL #1\endL}
-  \newenvironment{RTL}{\beginR}{\endR}
-  \newenvironment{LTR}{\beginL}{\endL}
-\fi
-$endif$
 
 % set default figure placement to htbp
 \makeatletter
@@ -127,22 +109,17 @@ $endif$
 $if(title)$
 \title{$title$$if(thanks)$\thanks{$thanks$}$endif$}
 $endif$
-$if(subtitle)$
-\providecommand{\subtitle}[1]{}
-\subtitle{$subtitle$}
-$endif$
-$if(author)$
-\author{$for(author)$$author$$sep$ \and $endfor$}
-$endif$
-$if(institute)$
-\providecommand{\institute}[1]{}
-\institute{$for(institute)$$institute$$sep$ \and $endfor$}
-$endif$
-\date{$date$}
+
+$for(author)$
+\author[$author.affilnum$]{$author.name$}
+$endfor$
+
+$for(affiliation)$
+\affil[$affiliation.key$]{$affiliation.name$}
+$endfor$
 
 \begin{document}
 \maketitle
-
 
 \begin{abstract}
 $abstract$

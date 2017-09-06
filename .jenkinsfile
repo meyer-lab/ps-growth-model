@@ -1,6 +1,12 @@
 pipeline {
   agent any
   stages {
+    stage('Clean') {
+      steps {
+        sh 'git clean -ffdx'
+        sh 'make clean'
+      }
+    }
     stage('Build') {
       steps {
         sh 'make -j 8'
@@ -45,7 +51,7 @@ pipeline {
           unstableTotalAll: '1000',
           usePreviousBuildAsReference: true])
 
-        //archiveArtifacts artifacts: 'Manuscript/Manuscript.pdf', onlyIfSuccessful: true
+        archiveArtifacts artifacts: 'Manuscript/Manuscript.pdf', onlyIfSuccessful: true
 
         publishHTML([
           allowMissing: false,

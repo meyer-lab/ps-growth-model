@@ -4,4 +4,4 @@ This work was supported by NIH DP5-OD019815 and a Terri Brodeur Fellowship Grant
 
 # Author contributions statement
 
-A.S.M. and S.Y.B. conceived the experiment(s),  A.S.M., N.G., and S.Y.B. conducted the experiments and analyzed the results.  All authors reviewed the manuscript.
+A.S.M. conceived the project.  A.S.M., N.G., and S.Y.B. conducted the experiments and analyzed the results.  All authors reviewed the manuscript.

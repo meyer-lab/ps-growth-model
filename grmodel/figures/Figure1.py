@@ -40,7 +40,7 @@ def cartoonFig(gs1, fig):
     ax3 = plt.Subplot(fig, inner[2])
 
     # Let's calculate everything within three logs of the IC50
-    xx = np.linspace(-3, 3, num=100)
+    xx = np.linspace(-3, 3, num=30)
 
     # Let's calculate everything for an experiment in which we have normaled cell numbers
     response = 10.0 + (1.0 - 10.0) / (1 + np.power(10, -xx))
