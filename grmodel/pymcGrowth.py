@@ -71,6 +71,7 @@ class MultiSample:
         for drug in alldrugs:
             if drug not in drugs:
                 drugs.append(drug)
+        drugs = [x for x in drugs if 'Control' not in x]
         for drug in drugs:
             gr = GrowthModel()
             gr.importData(firstCols, drug)
@@ -117,12 +118,12 @@ class GrowthModel:
         with growth_model:
             # Set up conversion rates
             confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
-            apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0 * 0.25), 0.4)
-            dna_conv = pm.Lognormal('dna_conv', np.log(self.conv0 * 0.144), 0.4)
+            apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0 * 0.25), 0.2)
+            dna_conv = pm.Lognormal('dna_conv', np.log(self.conv0 * 0.144), 0.2)
 
             # Priors on conv factors
-            pm.Lognormal('confl_apop', np.log(0.25), 0.2, observed=apop_conv / confl_conv)
-            pm.Lognormal('confl_dna', np.log(0.144), 0.2, observed=dna_conv / confl_conv)
+            pm.Lognormal('confl_apop', np.log(0.25), 0.1, observed=apop_conv / confl_conv)
+            pm.Lognormal('confl_dna', np.log(0.144), 0.1, observed=dna_conv / confl_conv)
             
             std = pm.Lognormal('std', 0, 1)
             stdad = pm.Lognormal('stdad',-3,1)
@@ -230,16 +231,21 @@ class GrowthModel:
             if self.totalCols < firstCols + 2:
                 raise ValueError("Didn't find many columns.")
 
+            doses = []
             for col in list(range(firstCols, self.totalCols)):
             # Set the name of the condition we're considering
                 condName = data.columns.values[col]
-                if condName.split(' ')[0] == self.drug:
+                if condName.split(' ')[0] == self.drug or 'Control' in condName:
                     # Add the name of the condition we're considering
                     try:
-                        dose = float(condName.split(' ')[1])
+                        dose = condName.split(' ')[1]
                     except IndexError:
-                        dose = 0
-                    
+                        dose = 0.0
+
+                    if dose in doses:
+                        dose = str(dose)+' 2'
+                    doses.append(dose)
+
                     # Add data to expTable
                     self.expTable[(dose,key)] = data.iloc[:, col].as_matrix()
                     
@@ -249,6 +255,7 @@ class GrowthModel:
                         self.condNames.append(condName)
                         self.selCols.append(col)
                         selconv0.append(conv0[col-firstCols])
+
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
 
@@ -261,6 +268,6 @@ class GrowthModel:
     def __init__(self, loadFile = None):
         # If no filename is given use a default
         if loadFile is None:
-            self.loadFile = "030317-2_H1299"
+            self.loadFile = "030317-2-R1_H1299"
         else:
             self.loadFile = loadFile

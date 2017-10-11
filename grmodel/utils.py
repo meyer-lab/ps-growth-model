@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-from .sampleAnalysis import readCols
+from .sampleAnalysis import readModels
 
 try:
     import cPickle as pickle
@@ -15,63 +15,103 @@ def makePlot(cols, drugs):
     dose_response_plot(drugs)
     violinplot(drugs)
 
+def reformatData(dfd, drug, doses, params, log = True, nsamples = 1000):
+    """
+    Sample nsamples number of points from sampling results,
+    Reformat dataframe so that columns of the dataframe are params
+    """
+    dfplot = pd.DataFrame()
+
+    if dfd.shape[0] > nsamples:
+        dfd = dfd.sample(nsamples)
+
+    # Interate over each dose
+    # Columns: div, d, deathRate, apopfrac, condition
+    for dose in doses:
+        dftemp = pd.DataFrame()
+        for param in params:
+            dftemp[param] = dfd[param+' '+str(dose)]
+        dftemp['drug'] = drug 
+        dftemp['dose'] = dose
+        dfplot = pd.concat([dfplot, dftemp], axis = 0)
+
+    # Log transformation
+    logparams = ['div', 'd', 'deathRate']
+    for param in logparams:
+        dfplot[param] = dfplot[param].apply(np.log10)
+    return dfplot
+
 def hist_plot(drug):
     """
     Display histograms of parameter values across conditions
     """
     import seaborn as sns
-    # Read in dataset to Pandas data frame
-    models, df = readCols([drug])
+    # Read in dataframe
+    classdict, df = readModels([drug])
 
-    print(df.columns)
+    params = ['div', 'd', 'deathRate', 'apopfrac']
 
-    # Get doses
-    doses = models[drug].doses
-    cond = [drug + ' ' + str(dose) for dose in doses]
-    condidx = dict(zip(cond, sns.color_palette()))
+    # Set up table for the drug
+    dfd = df[drug]
+    # Set up list of doses
+    classM = classdict[drug]
+    doses = classM.doses
 
-    # Log transformation
-    params = ['div ', 'd ', 'deathRate ', 'apopfrac ']
-    logparams = ['div ', 'd ', 'deathRate ']
-    for param in logparams:
-        for dose in doses:
-            df[param+str(dose)] = np.log10(df[param+str(dose)])
+    dfplot = reformatData(dfd, drug, doses, params)
+    
+    dfplot['Condition'] = dfplot.apply(lambda row: row.drug + ' ' + str(row.dose), axis=1)
 
     #Set context for seaborn
     sns.set_context("paper", font_scale=1.4)
 
     # Main plot organization
-    sns.pairplot(df, diag_kind="kde", hue='Condition', vars=params,
+    sns.pairplot(dfplot, diag_kind="kde", hue='Condition', vars=params,
                  plot_kws=dict(s=5, linewidth=0),
                  diag_kws=dict(shade=True), size = 2)
 
-    # Shuffle positions to show legend
+    # Get conditions
+    cond = dfplot.Condition.unique()
+    condidx = dict(zip(cond, sns.color_palette()))
+    # Make legend
     patches = list()
     for key, val in zip(cond, [condidx[con] for con in cond]):
         patches.append(matplotlib.patches.Patch(color=val, label=key))
-    plt.legend(handles=patches, bbox_to_anchor=(0, 6.5), loc=2)
+    # Show legend
+    plt.legend(handles=patches, bbox_to_anchor=(-3, 4.5), loc=2)
 
     # Draw plot
     plt.show()
 
 
-def PCA(cols):
+def PCA(drugs):
     """
     Principle components analysis of sampling results for parameter values
     """
     from sklearn.decomposition import PCA
     import seaborn as sns
+    from matplotlib.patches import Patch
 
-    df = readCols(cols)[1]
-    print(df.columns)
+    # Read in dataframe
+    conditions = drugs[:]
+    classdict, df = readModels(conditions)
 
-    # Log transformation
-    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
-    for param in params:
-        df[param] = np.log10(df[param])
+    params = ['div', 'd', 'deathRate', 'apopfrac']
+
+    # Interate over each drug
+    dfplot = pd.DataFrame()
+    for drug in drugs:
+        # Set up table for the drug
+        dfd = df[drug]
+
+        # Set up list of doses
+        classM = classdict[drug]
+        doses = classM.doses
+
+        dftemp = reformatData(dfd, drug, doses, params, nsamples = 100)
+        dfplot = pd.concat([dfplot, dftemp], axis = 0)
 
     # Keep columns in params
-    dfmain = df.loc[:,params]
+    dfmain = dfplot.loc[:,params]
 
     # Run PCA
     pca = PCA(n_components=3)
@@ -82,15 +122,30 @@ def PCA(cols):
     dftran = pca.fit_transform(dfmain)
     dftran = pd.DataFrame(dftran, columns = ['PC 1', 'PC 2', 'PC 3'])
     # Add condition column to PCA scores
-    condition = np.asarray(df.loc[:,'Condition'])
-    dftran['Conditions'] = condition 
+    alldrugs = np.asarray(dfplot.loc[:,'drug'])
+    dftran['drug'] = alldrugs
+    alldoses = np.asarray(dfplot.loc[:,'dose'])
+    dftran['dose'] = alldoses
 
     # Plot first 2 principle components
-    ax = sns.lmplot('PC 1', 'PC 2', data = dftran, hue = 'Conditions', fit_reg = False, scatter_kws={"s": 10})
+    plt.figure(figsize=[6,6])
+    markers = ['o','^', '+', '_', 'x', '*']
+    colors = ['b', 'g', 'r', 'm', 'y', 'c']
+    for drug in drugs:
+        dfp = dftran.loc[dftran['drug'] == drug]
+        classM = classdict[drug]
+        doses = classM.doses
+        for dose in doses:
+            i = doses.index(dose)
+            dfdose = dfp.loc[dfp['dose'] == dose]
+            plt.scatter(dfdose['PC 1'], dfdose['PC 2'], c = colors[drugs.index(drug)], marker = markers[i], s=10)
+    #ax = sns.lmplot('PC 1', 'PC 2', data = dftran, hue = 'drug', markers = ['o', '.'], fit_reg = False, scatter_kws={"s": 10})
     # Set axis labels
-    ax.set_xlabels('PC 1 ('+str(round(float(expvar[0])*100, 0))[:-2]+'%)', fontsize = 15)
-    ax.set_ylabels('PC 2 ('+str(round(float(expvar[1])*100, 0))[:-2]+'%)', fontsize = 15)
-    plt.title('PCA', fontsize = 15)
+    patches = [Patch(color=colors[j], label=drugs[j]) for j in range(len(drugs))]
+    plt.legend(handles = patches, bbox_to_anchor=(0, 1.2))
+    plt.xlabel('PC 1 ('+str(round(float(expvar[0])*100, 0))[:-2]+'%)', fontsize = 20)
+    plt.ylabel('PC 2 ('+str(round(float(expvar[1])*100, 0))[:-2]+'%)', fontsize = 20)
+    plt.title('PCA', fontsize = 20)
     plt.show()
 
 
@@ -101,55 +156,79 @@ def dose_response_plot(drugs = None, log=True, logdose = False, show = True):
     ''' 
     # Read in dataframe
     if drugs == None: 
-        classdict, df = readCols()
+        classdict, df = readModels()
+        drugs = list(classdict.keys())
     else:
-        classdict, df = readCols(drugs)
+        conditions = drugs[:]
+        classdict, df = readModels(conditions)
 
-    params = ['div', 'd', 'deathRate', 'apopfrac']
-    
+    params = ['div ', 'd ', 'deathRate ', 'apopfrac ']
+
     # Make plots for each drug
-    f, axis = plt.subplots(len(drugs),4,figsize=(15,2.5*len(drugs)), sharex=False, sharey='col')
-
-    # Get control parameter fits
-    dfc = df.loc[df['Drug'].str.contains('Control')]
+    f, axis = plt.subplots(len(drugs),4,figsize=(12,2.5*len(drugs)), sharex=False, sharey='col')
 
     # Interate over each drug
     for drug in drugs:
         # Set up table for the drug
-        dfd = df[df['Drug'] == drug]
+        dfd = df[drug]
+        if dfd.shape[0] > 1000:
+            dfd = dfd.sample(1000)
+
+        # Set up list of doses
+        classM = classdict[drug]
+        doses = classM.doses
+        if logdose:
+            doses.remove(0.0)
+
         # Break if drug not in dataset
         if dfd.empty:
             print("Error: Drug not in dataset")
             break
 
-        # Add control
-        if logdose == False:
-            dfcon = dfc.copy()
-            dfcon[drug+'-dose'] = 0
-            dfd = pd.concat([dfd, dfcon])
+        dfj = pd.DataFrame()
+        for param in params:
+            for dose in doses: 
+                dfj = pd.concat([dfj, dfd[param+str(dose)]], axis=1)
+
+        # Convert sampling values for specific parameters to logspace
+        if log:
+            logparams = ['div ', 'd ', 'deathRate ']
+            for param in logparams:
+                dfj.loc[:, dfj.columns.to_series().str.contains(param).tolist()] = dfj[dfj.columns[dfj.columns.to_series().str.contains(param)]].apply(np.log10)
 
         # Set up mean and confidence interval
-        if log: 
-            logparams = ['div', 'd', 'deathRate']
-            for param in logparams:
-                dfd.loc[:, param] = dfd[param].apply(np.log10)
-        if logdose:
-            dfd.loc[:, drug+'-dose'] = dfd[drug+'-dose'].apply(np.log10)
-        dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
-        dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
-        dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean
+        dfmean = dfj.mean(axis=0)
+        dferr1 = dfmean-dfj.quantile(0.05, axis=0)
+        dferr2 = dfj.quantile(0.95, axis=0)-dfmean
+        
+        # Set up table for plots
+        dfplots = []
+        for dftemp in [dfmean, dferr1, dferr2]:
+            dfplot = pd.DataFrame()
+            dfplot['dose'] = doses
+            for param in params:
+                temp = []
+                for dose in doses:
+                    temp.append(dftemp[param+str(dose)])
+                dfplot[param] = temp
+            dfplots.append(dfplot)
+        dfmean = dfplots[0]
+        dferr1 = dfplots[1]
+        dferr2 = dfplots[2]
 
         # Plot params vs. drug dose
         j = drugs.index(drug)
+        if logdose:
+            doses = np.log10(doses)
         for i in range(len(params)):
-            axis[j,i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
+            axis[j,i].errorbar(doses,dfmean[params[i]],
                                [dferr1[params[i]],dferr2[params[i]]],
                                fmt='.',capsize=5,capthick=1)
             axis[j,i].set_xlabel(drug+'-dose')
             axis[j,i].set_ylabel(params[i])
 
     plt.tight_layout()
-    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
+    plt.title('Dose-response Plot (Drugs: '+str(drugs)[1:-1]+')', x = -3, y = 5.1)
     if show:
         plt.show()
     else:
@@ -162,117 +241,39 @@ def violinplot(drugs,log=True):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    df = readCols(list(range(2,19)))[1]
+    sns.set_context("paper", font_scale=1.4)
+    # Read in dataframe
+    conditions = drugs[:]
+    classdict, df = readModels(conditions)
 
-    params = ['div', 'd', 'deathRate', 'apopfrac', 'confl_conv', 'std']
-    logparams = ['div', 'd', 'deathRate', 'confl_conv', 'std']
-    
-    #Set context for seaborn
-    sns.set_context("paper", font_scale = 1.7)
+    params = ['div', 'd', 'deathRate', 'apopfrac']
     
     # Make plots for each drug
-    f, axis = plt.subplots(len(drugs),6,figsize=(18,3*len(drugs)), sharex=False, sharey='col')
-    # Get control parameter fits
-    dfc = df.loc[df['Condition'].str.contains('Control')]
-    dfc = dfc.copy()
-    # Iterate over each drug 
+    f, axis = plt.subplots(len(drugs),4,figsize=(12,2.5*len(drugs)), sharex=False, sharey='col')
+
+
+    # Interate over each drug
     for drug in drugs:
         # Set up table for the drug
-        dfd = df[df['Condition'].str.contains(drug+' ')]
-        # Break if drug not in dataset
-        if dfd.empty:
-            print("Error: Drug not in dataset")
-            break 
+        dfd = df[drug]
 
-        # Add dose to table
-        dfd = dfd.copy()
-        dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
-        dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
-        # Add control
-        dfc[drug+'-dose'] = 0
-        dfd = pd.concat([dfd, dfc])
+        # Set up list of doses
+        classM = classdict[drug]
+        doses = classM.doses
+
+        # Reshape table for violinplot
+        # Columns: div, d, deathRate, apopfrac, dose
+        dfplot = reformatData(dfd, drug, doses, params)
 
         # Plot params vs. drug dose
         j = drugs.index(drug)
         for i in range(len(params)):
-            if log and params[i] in logparams:
-                sns.violinplot(dfd[drug+'-dose'],np.log10(dfd[params[i]]),ax=axis[j,i])
-            else:
-                sns.violinplot(dfd[drug+'-dose'],dfd[params[i]],ax=axis[j,i])
+            if params[i] == 'apopfrac':
+                axis[j,i].set_ylim([0,1])
+            sns.violinplot(dfplot['dose'],dfplot[params[i]],ax=axis[j,i],cut=0)
 
     plt.tight_layout()
-    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -5, y = 4.9)
-    plt.show()
-
-
-def plot_dose_fits(columns, drugs, params, dic, dist = False):
-    df = readCols(columns)[1]
-    
-    fig, axis = plt.subplots(len(drugs),len(params),figsize=(3.5*len(params),3.1*len(drugs)), sharex= 'row', sharey='col')
-    for drug in drugs:
-        # Set up table for the drug
-        dfd = df[df['Condition'].str.contains(drug+' ')]
-        # Break if drug not in dataset
-        if dfd.empty:
-            print("Error: Drug not in dataset")
-            break
-
-        # Add dose to table
-        dfd = dfd.copy()
-        dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
-        dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
-        # log10 transform drug dosage
-        dfd.loc[:, drug+'-dose'] = dfd[drug+'-dose'].apply(np.log10)
-        doses = list(dfd.loc[:,drug+'-dose'].drop_duplicates(keep='first'))
-        mindose = min(doses)
-        maxdose = max(doses)
-
-        # log10 transform parameters besides 'apopfrac'
-        for param in params:
-            if param != 'apopfrac':
-                dfd.loc[:, param] = dfd[param].apply(np.log10)
-
-        # Set up dicval, a dictionary of params: list of lists of parameter values for each dose
-        dicval = {}
-        for param in params:
-            dataset = []
-            for dose in doses:
-                dataset.append(list(dfd[dfd[drug+'-dose'] == dose][param]))
-            dicval[param] = dataset
-
-        # Set up mean and confidence interval
-        dfmean = dfd.groupby([drug+'-dose'])[params].mean().reset_index()
-        dferr1 = dfmean-dfd.groupby([drug+'-dose'])[params].quantile(0.05).reset_index()
-        dferr2 = dfd.groupby([drug+'-dose'])[params].quantile(0.95).reset_index()-dfmean
-
-        # Plot params vs. drug dose
-        j = drugs.index(drug)
-        for i in range(len(params)):
-            # Plot dose response
-            axis[j,i].violinplot(dicval[params[i]], doses, showextrema=False, widths = 0.3)
-            axis[j,i].errorbar(dfmean[drug+'-dose'],dfmean[params[i]],
-                               [dferr1[params[i]],dferr2[params[i]]],
-                               fmt='o',capsize=5,capthick=1)
-            # Plot dose response curves
-            if not dist: # plot MAP curve
-                paramfits = dic[str(drug)+'-'+str(params[i])]
-                bottom = np.exp(paramfits['bottom_log__'])
-                top = np.exp(paramfits['top_log__'])
-                logIC50 = paramfits['logIC50']
-                hillslope = np.exp(paramfits['hillslope_log__'])
-                doserange = np.arange(mindose, maxdose, (maxdose - mindose)/200)
-                paramfit = []
-                for x in doserange:
-                    y = bottom + (top - bottom) / (1 + np.power(10., (logIC50 - x)*hillslope))
-                    paramfit.append(np.log10(y))
-                # Plot IC50
-                axis[j,i].axvline(logIC50, color = 'k')
-                axis[j,i].plot(doserange, paramfit)
-            axis[j,i].set_xlabel(drug+'-dose ($\log_{10}$)', fontsize = 20)
-            axis[j,i].set_ylabel(params[i], fontsize = 20)
-
-    plt.tight_layout()
-    plt.title('Dose-response Curves (Drugs: '+str(drugs)[1:-1]+')', x = 0, y = 2.5, fontsize = 20)
+    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x = -3, y = 5.1)
     plt.show()
 
 

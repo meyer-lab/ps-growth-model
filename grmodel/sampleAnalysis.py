@@ -35,7 +35,7 @@ def readModels(drugs=None, trim = False):
     grdf: dict of drug: df
     '''
     grModels = dict()
-    grdf = []
+    grdf = dict()
     classList = read_dataset()
     for ii, item in enumerate(classList):
         if drugs==None or item.drug in drugs:
@@ -43,14 +43,13 @@ def readModels(drugs=None, trim = False):
             df = pm.backends.tracetab.trace_to_dataframe(item.samples)
             df['Columns'] = str(item.selCols)
             df['Drug'] = item.drug
-
+            # trim 
             if trim:
                 for name in df.columns.values:
-                    if 'ssqErr' in str(name):
+                    if 'logp' in str(name):
                         cutoff = np.amin(df[name])+50
                         df = df.loc[df[name] < cutoff,:]
-            grdf.append(df)
-    grdf = pd.concat(grdf)
+            grdf[item.drug] = df
 
     return (grModels, grdf)
 
@@ -159,7 +158,8 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
     axis: pass in figure axis
     """
     # Read in dataset to Pandas data frame
-    classdict, pdset = readModels([drug])
+    classdict, pdsetdict = readModels([drug])
+    pdset = pdsetdict[drug]
     classM = classdict[drug]
 
     if printt:
@@ -185,7 +185,11 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
         colors = ['b', 'g', 'r']
     else:
         colors = ['g', 'r']
-    f, ax = plt.subplots(1, len(classM.doses), figsize = (3*len(classM.doses), 3), sharex = True, sharey = False)
+
+    # Initiate subplots
+    f, ax = plt.subplots(1, len(classM.doses), figsize = (2.7*len(classM.doses), 3.5), sharex = True, sharey = True)
+
+    # Iterate over each dose
     for dose in classM.doses:
         calcset = np.full((pdset.shape[0], len(time)), np.inf)
         calcseta = np.full((pdset.shape[0], len(time)), np.inf)
@@ -235,7 +239,11 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
             ax[classM.doses.index(dose)].scatter(classM.timeV, classM.expTable[(dose,'apop')], color = 'g', marker = '.')
             ax[classM.doses.index(dose)].scatter(classM.timeV, classM.expTable[(dose,'dna')], color = 'r', marker = '.')
             ax[classM.doses.index(dose)].set_xlabel('Time (hr)')
-            ax[classM.doses.index(dose)].set_title(drug + ' ' + str(dose))
+            if dose == 0.0:
+                title = 'Control'
+            else:
+                title = drug + ' ' + str(dose) + ' nM'
+            ax[classM.doses.index(dose)].set_title(title)
             if classM.doses.index(dose) == 0:
                 ax[0].set_ylabel('% Confluence')
         else:
@@ -252,10 +260,12 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
 
 
 def sim_plots(drugs = None, confl = True, rep = None):
+    import seaborn as sns
+    sns.set_context("paper", font_scale=2)  
     if drugs!= None:
         for drug in drugs:
             sim_plot(drug, confl = confl, rep = rep)
     else:
-        classdict, pdset = readModels()
+        classdict, _ = readModels()
         for drug in classdict:
             sim_plot(drug, confl = confl, rep = rep)

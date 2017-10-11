@@ -1,146 +1,143 @@
-import bz2
-import os
-import pymc3 as pm
 import numpy as np
 import scipy as sp
 import pandas as pd
-from .sampleAnalysis import readCols
+import matplotlib.pyplot as plt
+from .sampleAnalysis import readModels
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
+def sigmoid(p,x):
+    """ Calculate value of sigmoid function y given equation and x value """
+    logIC50,bottom,top,hillslope = p
+    y = bottom + (top - bottom) / (1 + np.power(10., (logIC50-x)*hillslope))
+    return y
 
-class MultiDrugs:
-    def __init__(self, columns, drugs, fitparams):
-        self.columns = columns
-        self.drugs = drugs
-        self.fitparams = fitparams
+def residuals(p,x,y):
+    '''Return residue of sigmoid curve'''
+    return y - sigmoid(p,x)
 
-    def get_tables(self):
-        """ Get tables from base model sampling results """
-        # Read columns and get columns for params
-        df = readCols(self.columns)[1]
-        params = self.fitparams[:]
-        params.append('Column')
-        params.append('Condition')
-        df = df.loc[:, params]
-        # Set up table for each drug
-        drugdict = dict()
-        for drug in self.drugs:
-            dfd = df[df['Condition'].str.contains(drug+' ')]
-            # Break if drug not in dataset
-            if dfd.empty:
-                print("Error: Drug not in dataset")
-                break
+def prepdata(drugs, params, log = False):
+    """ 
+    Read in MCMC sampling results
+    Output dfdict: a dictionary, with keys (drug, param), of pandas dataframes
+    with shapes (len(samples), len(dose))
+    """
+    # Read in dataframe
+    conditions = drugs[:]
+    classdict, df = readModels(conditions)
+    # Initiate dictionary
+    dfdict = {}
 
-            # Add dose to table
-            dfd = dfd.copy()
-            dfd[drug+'-dose'] = dfd.loc[:, 'Condition'].str.split(' ').str[1]
-            dfd.loc[:, drug+'-dose'] = pd.to_numeric(dfd[drug+'-dose'])
-            dfd[drug+'-logdose'] = np.log10(dfd.loc[:, drug+'-dose'])
+    # Interate over each drug
+    for drug in drugs:
+        dfd = df[drug]
+        if dfd.shape[0]>1000:
+            dfd = dfd.sample(1000)
+        # Break if drug not in dataset
+        if dfd.empty:
+            print("Error: Drug not in dataset")
+            break
+
+        # Set up list of doses
+        classM = classdict[drug]
+        doses = classM.doses
+        doses.remove(0.0)
+        
+        # Make one pandas table for each parameter
+        for param in params:
+            dftemp = pd.DataFrame()
+            # Append one column per dose, in order of increasing dosage
+            for dose in doses:
+                dftemp = pd.concat([dftemp, dfd[param+' '+str(dose)]], axis=1)
+            dftemp.columns = np.log10(doses)
+            # Log10 transformation
+            if log and param in ['div', 'deathRate', 'd']:
+                dftemp = dftemp.apply(np.log10)
+            # Save table in dictionary
+            dfdict[(drug,param)] = dftemp
+
+    return dfdict
+
+def fitcurves(dfdict, drugs, params):
+    """
+    Fit dose-response curves to each parameter in params, for each drug in drugs.
+    Return curveparamsdict: a dictionary, with keys (drug, param), of curve
+    fit parameters. Each set of curve fit parameters corresponds to one sample.
+    """
+    curveparamsdict = {}
+    # Iterate over dfdict.keys
+    for key in dfdict.keys():
+        table = dfdict[key]
+        data = []
+        # doses
+        x = table.columns.tolist()
+        # Set limits on parameter values
+        mins = np.array([min(x),min(table.iloc[:,0]), min(table.iloc[:,-1]),0.5])
+        maxs = np.array([max(x),max(table.iloc[:,0]), max(table.iloc[:,-1]),5])
+        
+        # Fit sigmoid to each sample in dfdict[key]
+        for row in table.iterrows():
+            y = np.array(row[1].as_matrix())
+            p_guess= (np.mean(x), y[0], y[-1], 1)
+            res_1 = sp.optimize.least_squares(residuals,p_guess, bounds=(mins,maxs), args=(x,y))
+            # Save solution
+            data.append(list(res_1.x))
+        # Save curve fits
+        df = pd.DataFrame(data, columns = ['logIC50', 'bottom', 'top', 'hillslope'])
+        curveparamsdict[key] = df
+    return curveparamsdict
+
+def plotcurves(drugs, params, log = False):
+    """ Plot dose-response curves overlayed with sampling results"""
+    # Get dictionary of curve fits
+    dfdict = prepdata(drugs, params, log = log)
+    curveparamsdict = fitcurves(dfdict, drugs, params)
+
+    # Initialize subplots
+    f, axis = plt.subplots(len(drugs), len(params),figsize=(10,2.5*len(drugs)), sharex=False, sharey='col')
+    # Iterate over each parameter in each drug
+    for drug in drugs:
+        for param in params:
+            # Plot curve distribution
+            # Set up variables
+            df = curveparamsdict[(drug, param)]
+            table = dfdict[(drug, param)]
+            doses = table.columns.tolist()
+            doserange = np.arange(min(doses), max(doses), (max(doses) - min(doses))/200)
+            calcset = np.full((df.shape[0], len(doserange)), np.inf)
             
-            # Convert self.fitparams to ln space
-            for param in self.fitparams:
-                dfd.loc[:, param] = dfd[param].apply(np.log)
-            drugdict[drug] = dfd
-        return drugdict
+            # Get values for IogIC50 and hill-slope
+            logIC50 = round(np.mean(df['logIC50']), 2)
+            hillslope = round(np.mean(df['hillslope']), 2)
+            varr = 0
+            # Iterate over each curve
+            for row in df.iterrows():
+                # Calculate sigmoid curve value across doserange
+                curvefit = sigmoid(list(row[1].as_matrix()), doserange)
+                calcset[varr, :] = curvefit
+                varr += 1
+            # Get median & 90% confidence interval for each time point
+            qqq = np.percentile(calcset, [5, 25, 50, 75, 95], axis=0)
 
-    def fitCurves(self):
-        """ For each drug, fit dose response curves to each param in self.fitparams """
-        # Get tables and initialize dictionary
-        drugdict = self.get_tables()
-        curvefits = dict()
-        # Iiterate over each drug
-        for key in drugdict:
-            # Get table
-            val = drugdict[key]
-            # Fit curve to each param
-            for param in self.fitparams:
-                fit = CurveFit(key, val, param)
-                fitmap = fit.sampling()
-                curvefits[str(key)+'-'+str(param)] = fitmap
-        self.curvefits = curvefits
-        return curvefits
+            i = drugs.index(drug)
+            j = params.index(param)
+            # Plot curve distribution
+            axis[i, j].plot(doserange, qqq[2, :], color = 'b')
+            axis[i, j].fill_between(doserange, qqq[1, :], qqq[3, :], alpha=0.5)
+            axis[i, j].fill_between(doserange, qqq[0, :], qqq[4, :], alpha=0.2)
 
-    def saveCurves(self, filePrefix):
-        """ Saves curve fits """
-        # Remove file if already exists 
-        if os.path.exists(filePrefix + '_curves.pkl'):
-            os.remove(filePrefix + '_curves.pkl')
-        # Save sampling data
-        pickle.dump(self.curvefits, bz2.BZ2File(filePrefix + '_curves.pkl', 'w'))
+            # Plot 90% CI of MCMC sampling results
+            # Set up mean and confidence interval
+            dfmean = table.mean(axis=0)
+            dferr1 = dfmean-table.quantile(0.05, axis=0)
+            dferr2 = table.quantile(0.95,axis=0)-dfmean
 
-
-class CurveFit:
-    def __init__(self, drug, drugdf, fitparam): 
-        self.drug = drug
-        self.drugdf = drugdf
-        self.fitparam = fitparam
-
-    def get_dicts(self):
-        """ 
-        Returns a dictionary for sampling data at each dose, 
-        and a dictionary of kdes for sampling distribution at each dose
-        """
-        # Initialize variables
-        dosedata = dict()
-        kdes = dict()
-        drugdf = self.drugdf.copy()
-        # Get drug doses
-        logdoses = drugdf.loc[:,self.drug+'-logdose']
-        self.logdoses = list(logdoses.drop_duplicates(keep='first'))
-        # Iterate over each dose
-        for logdose in logdoses:
-            df = drugdf.loc[drugdf[self.drug+'-logdose'] == logdose]
-            kde = sp.stats.gaussian_kde(df.loc[:, self.fitparam])
-            dosedata[logdose] = df.loc[:, self.fitparam]
-            kdes[logdose] = kde
-        return (dosedata, kdes)
-
-    def build_model(self):
-        """ Builds and returns pymc model """
-        curve_model = pm.Model()
-        with curve_model:
-            # Set up parameters for prior distribution specification
-            dosedata, kdes = self.get_dicts()
-            mindose = np.amin(self.logdoses)
-            maxdose = np.amax(self.logdoses)
-            mindoseparam = np.mean(dosedata[mindose])
-            maxdoseparam = np.mean(dosedata[maxdose])
-            sdparam = np.std(self.drugdf[self.fitparam])/5
-            if mindoseparam < maxdoseparam:
-                minparam = np.amin(dosedata[mindose])
-                maxparam = np.amax(dosedata[maxdose])
-                minrange = minparam - 2 * sdparam
-                maxrange = maxparam + 2 * sdparam
-            else: 
-                minparam = np.amax(dosedata[mindose])
-                maxparam = np.amin(dosedata[maxdose])
-                minrange= maxparam - 2 * sdparam
-                maxrange = minparam + 2 * sdparam
-            # Specify priors
-            bottom = pm.Lognormal('bottom', (mindoseparam+minparam)/2, sdparam)
-            top = pm.Lognormal('top', (maxdoseparam+maxparam)/2, sdparam)
-            logIC50 = pm.Normal('logIC50', np.mean(self.logdoses), np.std(self.logdoses))
-            hillslope = pm.Lognormal('hillslope', 0, 1)
-            
-            # Set up data input for interpolated distribution
-            datarange = np.arange(minrange, maxrange, (maxrange-minrange)/200)
-            for logdose in self.logdoses:
-                kde = kdes[logdose]
-                # Interpolates kde distribution
-                y = bottom + (top - bottom) / (1 + np.power(10., (logIC50-logdose)*hillslope))
-                pm.Interpolated('dis'+str(logdose), np.exp(datarange), kde.pdf(datarange), observed = y)
-
-        return curve_model
-
-    def sampling(self):
-        """ Run pymc sampling """
-        self.model = self.build_model()
-        get_MAP = pm.find_MAP(model=self.model)
-        return get_MAP
-#        print(get_MAP)
-#        with self.model:
-#            self.samples = pm.sample()
-#        return self.samples
+            # Plot 90% CI
+            axis[i, j].errorbar(doses, dfmean, [dferr1,dferr2],
+                               fmt='o',ms=5,capsize=5,capthick=1)
+            axis[i, j].set_title(drug+', logIC50 = '+str(logIC50)+', hillslope = '+str(hillslope))
+            axis[i, j].set_xlabel(drug+' logdose')
+            axis[i, j].set_ylabel(param)
+    plt.tight_layout()
