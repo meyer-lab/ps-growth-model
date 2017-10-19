@@ -54,7 +54,7 @@ class MultiSample:
     def __init__(self):
         self.models = list()
 
-    def loadModels(self, firstCols, fileName = None):
+    def loadModels(self, firstCols, fileName = None, seldrugs = None, comb = None):
         """  Initialize GrowthModel for each drug. Load data for each drug in."""
         # Get LoadFile from GrowthModel()
         temp = GrowthModel(fileName)
@@ -65,16 +65,19 @@ class MultiSample:
         # Find path for csv files in the repository.
         pathcsv = join(dirname(abspath(__file__)), 'data/' + temp.loadFile)
         dataset = pandas.read_csv(pathcsv + '_confluence_phase.csv')
-        conditions = dataset.columns.values[firstCols:]
-        alldrugs = [cond.split(' ')[0] for cond in conditions]
-        drugs = []
-        for drug in alldrugs:
-            if drug not in drugs:
-                drugs.append(drug)
-        drugs = [x for x in drugs if 'Control' not in x]
+        if seldrugs:
+            drugs = seldrugs
+        else:
+            conditions = dataset.columns.values[firstCols:]
+            alldrugs = [cond.split(' ')[0] for cond in conditions]
+            drugs = []
+            for drug in alldrugs:
+                if drug not in drugs:
+                    drugs.append(drug)
+            drugs = [x for x in drugs if 'Control' not in x]
         for drug in drugs:
             gr = GrowthModel()
-            gr.importData(firstCols, drug)
+            gr.importData(firstCols, drug, comb = comb)
             self.models.append(gr)
         return drugs
 
@@ -96,13 +99,14 @@ class GrowthModel:
 
     def sample(self):
         ''' A '''
-
-        if 500*len(self.doses) > 1000:
-            num = 500*len(self.doses)
-        else:
-            num = 1000
+#        if 500*len(self.doses) > 1000:
+#            num = 500*len(self.doses)
+#        else:
+#            num = 1000
+        num = 1000
+        print(len(self.doses))
         with self.model:
-            self.samples = pm.sample(draws=num, tune = num, njobs=3,  # Run three parallel chains
+            self.samples = pm.sample(draws=num, tune = num, njobs=2,  # Run three parallel chains
                                      nuts_kwargs={'target_accept': 0.99})
 
     def build_model(self):
@@ -180,7 +184,7 @@ class GrowthModel:
         return growth_model
 
     # Directly import one column of data
-    def importData(self, firstCols, drug, drop24=False):
+    def importData(self, firstCols, drug, drop24=False, comb = None):
         self.drug = drug
 
         # Property list
@@ -233,28 +237,60 @@ class GrowthModel:
 
             doses = []
             for col in list(range(firstCols, self.totalCols)):
-            # Set the name of the condition we're considering
+                # Set the name of the condition we're considering
                 condName = data.columns.values[col]
-                if condName.split(' ')[0] == self.drug or 'Control' in condName:
-                    # Add the name of the condition we're considering
-                    try:
-                        dose = condName.split(' ')[1]
-                    except IndexError:
-                        dose = 0.0
 
-                    if dose in doses:
-                        dose = str(dose)+' 2'
-                    doses.append(dose)
+                if comb != None: # For data with combination therapies
+                    # Select columns with drug/combination of interest
+                    if condName.split(' ')[0] == self.drug or condName.split(' ')[0] == comb or 'Control' in condName:
+                        # Represent dose with a tuple of len(2) in each case
+                        if 'Control' in condName:
+                            dose1 = 0
+                            dose2 = 0
+                        elif condName.split(' ')[0] == comb:
+                            dose1 = 0
+                            dose2 = float(condName.split(' ')[1])
+                        elif condName.split(' ')[0] == self.drug:
+                            try:
+                                drug1str = condName.split(', ')[0]
+                                dose1 = float(drug1str.split(' ')[1])
+                                combstr = condName.split(', ')[1]
+                                dose2 = float(combstr.split(' ')[1])
+                            except IndexError:
+                                dose2 = 0
+                        dose = (dose1, dose2)
 
-                    # Add data to expTable
-                    self.expTable[(dose,key)] = data.iloc[:, col].as_matrix()
-                    
-                    # Add conv0
-                    if key == 'confl':
-                        self.doses.append(dose)
-                        self.condNames.append(condName)
-                        self.selCols.append(col)
-                        selconv0.append(conv0[col-firstCols])
+                        doses.append(dose)
+
+                        # Add data to expTable
+                        self.expTable[(dose,key)] = data.iloc[:, col].as_matrix()
+
+                        # Add conv0
+                        if key == 'confl':
+                            self.doses.append(dose)
+                            self.condNames.append(condName)
+                            self.selCols.append(col)
+                            selconv0.append(conv0[col-firstCols])
+
+                else: # For data without combinations
+                    if condName.split(' ')[0] == self.drug or 'Control' in condName:
+                        # Add the name of the condition we're considering
+                        try:
+                            dose = condName.split(' ')[1]
+                        except IndexError:
+                            dose = 0
+
+                        doses.append(dose)
+
+                        # Add data to expTable
+                        self.expTable[(dose,key)] = data.iloc[:, col].as_matrix()
+
+                        # Add conv0
+                        if key == 'confl':
+                            self.doses.append(dose)
+                            self.condNames.append(condName)
+                            self.selCols.append(col)
+                            selconv0.append(conv0[col-firstCols])
 
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
