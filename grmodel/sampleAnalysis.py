@@ -19,7 +19,7 @@ def read_dataset(ff=None):
     ''' Read the specified column from the shared test file. '''
 
     if ff is None:
-        ff = "030317-2_H1299"
+        ff = "101117_H1299"
 
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
@@ -174,7 +174,7 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
 
     # Get indexes for params
     idic = {}
-    for param in ['confl_conv', 'apop_conv', 'dna_conv', 'std', 'stdad']:
+    for param in ['confl_conv', 'apop_conv', 'dna_conv', 'std', 'stdad', 'gos', 'ros', 'oos']:
         idic[param] = pdset.columns.get_loc(param)
     for param in ['div ', 'd ', 'deathRate ', 'apopfrac ']:
         for dose in classM.doses: 
@@ -208,8 +208,8 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
             # Calculate predictions for total, apop, and dead cells over time
             if confl:
                 calcset[varr, :] = np.sum(simret, axis=1) * row[1].as_matrix()[idic['confl_conv']]
-            calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1) * row[1].as_matrix()[idic['apop_conv']]
-            calcsetd[varr, :] = np.sum(simret[:, 2:4], axis=1) * row[1].as_matrix()[idic['dna_conv']]
+            calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1) * row[1].as_matrix()[idic['apop_conv']] + row[1].as_matrix()[idic['gos']]
+            calcsetd[varr, :] = np.sum(simret[:, 2:4], axis=1) * row[1].as_matrix()[idic['dna_conv']] + row[1].as_matrix()[idic['ros']]
 
             varr = varr + 1
 
@@ -242,7 +242,9 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
             if dose == 0.0:
                 title = 'Control'
             else:
-                title = drug + ' ' + str(dose) + ' nM'
+                title = drug + ' ' + str(dose)
+            if not confl:
+                ax[classM.doses.index(dose)].set_ylim([0,0.7])
             ax[classM.doses.index(dose)].set_title(title)
             if classM.doses.index(dose) == 0:
                 ax[0].set_ylabel('% Confluence')

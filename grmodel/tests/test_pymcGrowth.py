@@ -9,7 +9,7 @@ class TestgrMethods(unittest.TestCase):
         a.loadModels(2)
         
     def test_model(self):
-        GR = GrowthModel()
+        GR = GrowthModel(loadFile = "030317-2-R1_H1299")
 
         GR.importData(2, 'NVB', comb='R')
 
@@ -19,7 +19,7 @@ class TestgrMethods(unittest.TestCase):
         self.assertIsInstance(model, pm.Model)
 
     def test_MAP(self):
-        GR = GrowthModel()
+        GR = GrowthModel(loadFile = "030317-2-R1_H1299")
 
         GR.importData(2, 'NVB', comb='R')
 
@@ -27,4 +27,4 @@ class TestgrMethods(unittest.TestCase):
             start, nuts = pm.sampling.init_nuts(n_init=10,
                                                 progressbar=False)
 
-        self.assertEqual(len(start), 50)
+        self.assertEqual(len(start), 53)

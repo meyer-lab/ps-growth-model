@@ -74,7 +74,7 @@ class MultiSample:
             for drug in alldrugs:
                 if drug not in drugs:
                     drugs.append(drug)
-            drugs = [x for x in drugs if 'Control' not in x]
+            drugs = [x for x in drugs if 'Control' and 'Blank' not in x]
         for drug in drugs:
             gr = GrowthModel()
             gr.importData(firstCols, drug, comb = comb)
@@ -129,8 +129,14 @@ class GrowthModel:
             pm.Lognormal('confl_apop', np.log(0.25), 0.1, observed=apop_conv / confl_conv)
             pm.Lognormal('confl_dna', np.log(0.144), 0.1, observed=dna_conv / confl_conv)
             
+            # Standard deviation parameters for experimental data
             std = pm.Lognormal('std', 0, 1)
             stdad = pm.Lognormal('stdad',-3,1)
+            
+            # Offset values for green and red
+            gos = pm.Uniform('gos', lower=0, upper=0.2)
+            ros = pm.Uniform('ros', lower=0, upper=0.2)
+            oos = pm.Uniform('oos', lower=0, upper=0.05)
 
             # Iterate over each dose
             for dose in self.doses:
@@ -166,19 +172,19 @@ class GrowthModel:
                 deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) -1)
                 deadnec = b * (lnum -1) / GR
 
-                # Fit model to confl, apop, and dna measurements 
+                # Fit model to confl, apop, dna, and overlap measurements 
                 if (dose, 'confl') in self.expTable.keys():
                     pm.Normal('dataFit '+str(dose), sd = std, 
                               observed = (lnum + eap + deadapop + deadnec) * confl_conv - self.expTable[(dose, 'confl')])
                 if (dose, 'apop') in self.expTable.keys():
                     pm.Normal('dataFita '+str(dose), sd = stdad, 
-                              observed = (eap + deadapop) * apop_conv - self.expTable[(dose, 'apop')])
+                              observed = (eap + deadapop) * apop_conv + gos - self.expTable[(dose, 'apop')])
                 if (dose, 'dna') in self.expTable.keys():
                     pm.Normal('dataFitd '+str(dose), sd = stdad, 
-                              observed = (deadapop + deadnec) * dna_conv - self.expTable[(dose, 'dna')])
+                              observed = (deadapop + deadnec) * dna_conv + ros - self.expTable[(dose, 'dna')])
                 if (dose, 'overlap') in self.expTable.keys():
                     pm.Normal('dataFito '+str(dose), sd = stdad, 
-                              observed = deadapop * dna_conv - self.expTable[(dose, 'overlap')])
+                              observed = deadapop * dna_conv + oos - self.expTable[(dose, 'overlap')])
             logp = pm.Deterministic('logp', growth_model.logpt)
 
         return growth_model
@@ -304,6 +310,6 @@ class GrowthModel:
     def __init__(self, loadFile = None):
         # If no filename is given use a default
         if loadFile is None:
-            self.loadFile = "030317-2-R1_H1299"
+            self.loadFile = "101117_H1299"
         else:
             self.loadFile = loadFile

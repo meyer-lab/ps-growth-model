@@ -43,7 +43,15 @@ def prepdata(drugs, params, log = False):
         # Set up list of doses
         classM = classdict[drug]
         doses = classM.doses
-        doses.remove(0.0)
+        doses.remove(0)
+        numdoses = []
+        for dose in doses:
+            try:
+                dose = int(dose)
+            except ValueError:
+                dose = float(dose)
+            numdoses.append(dose)
+        doses = numdoses
         
         # Make one pandas table for each parameter
         for param in params:
