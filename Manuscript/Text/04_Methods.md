@@ -11,20 +11,28 @@ Cells were seeded at XXX density in XXX-well plates and cultured overnight. The 
 ## Growth model inference
 
 
-$$ \frac{\delta L}{\delta t} = $$
+$$ \frac{\delta L}{\delta t} = gL$$
 
-$$ \frac{\delta E}{\delta t} = $$
+$$ \frac{\delta E}{\delta t} = aL - dE$$
 
-$$ \frac{\delta D}{\delta t} = $$
+$$ \frac{\delta D_a}{\delta t} = dE$$
+
+$$ \frac{\delta D_n}{\delta t} = bL$$
+
+Where $g = div - deathRate$, $a = deathRate \cdot apopfrac$, and 
+$d = deathRate(1-apopfrac)$. 
 
 Integrating these equations provides the following solution:
 
-$$ L(t) = $$
+$$ L(t) = e^{gt}$$
 
-$$ E(t) = $$
+$$ E(t) = c(L-e^{-dt})$$
 
-$$ D(t) = $$
+$$ D_a(t) = \frac{dc(L-1)}{g} + c(e^{-dt}-1)$$
 
+$$ D_n(t) = \frac{d(L-1)}{g}$$
+
+Where $c = \frac{a}{g+d}$. 
 
 [@Salvatier:2016ki]
 
