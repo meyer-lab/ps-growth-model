@@ -9,7 +9,7 @@ pipeline {
     }
     stage('Build') {
       steps {
-        sh 'make -j 8'
+        sh 'make -j 33'
       }
     }
     stage('Test'){
@@ -56,7 +56,7 @@ pipeline {
         publishHTML([
           allowMissing: false,
           alwaysLinkToLastBuild: false,
-          keepAll: false,
+          keepAll: true,
           reportDir: 'Manuscript',
           reportFiles: 'index.html',
           reportName: 'Manuscript',

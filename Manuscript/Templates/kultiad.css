@@ -303,6 +303,9 @@ caption{display:table-caption;font-weight:300;font-size:1.3em;text-transform:upp
 .affiliation {
     margin-top: 0;
     margin-bottom: 0.25em;
+    padding-bottom: 0;
+    padding-top: 0.25em;
+    line-height: 0;
 }
 
 .caption {

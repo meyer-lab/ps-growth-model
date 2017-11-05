@@ -1,5 +1,6 @@
 \documentclass[11pt]{article}
 
+\usepackage{amssymb, amsmath, mathtools}
 \usepackage{microtype}
 
 \usepackage[scaled]{helvet}
@@ -35,7 +36,7 @@ $endif$
             breaklinks=true}
 \urlstyle{same}  % don't use monospace font for urls
 
-\usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
+\usepackage[margin=0.75in, letterpaper]{geometry}
 
 \usepackage[$if(biblio-style)$style=$biblio-style$,$endif$$for(biblatexoptions)$$biblatexoptions$$sep$,$endfor$]{biblatex}
 $for(bibliography)$
@@ -106,9 +107,10 @@ $endif$
 \def\fps@figure{htbp}
 \makeatother
 
-$if(title)$
-\title{$title$$if(thanks)$\thanks{$thanks$}$endif$}
-$endif$
+% Defines absolute value paired delimiter "\abs{}"
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+\title{$title$}
 
 $for(author)$
 \author[$author.affilnum$]{$author.name$}
@@ -117,6 +119,15 @@ $endfor$
 $for(affiliation)$
 \affil[$affiliation.key$]{$affiliation.name$}
 $endfor$
+
+\date{$date$}
+
+\newcommand{\beginsupplement}{\cleardoublepage%
+      \setcounter{table}{0}
+      \renewcommand{\thetable}{S\arabic{table}}%
+      \setcounter{figure}{0}
+      \renewcommand{\thefigure}{S\arabic{figure}}%
+}
 
 \begin{document}
 \maketitle
@@ -129,15 +140,6 @@ $for(include-before)$
 $include-before$
 
 $endfor$
-$if(toc)$
-{
-$if(colorlinks)$
-\hypersetup{linkcolor=$if(toccolor)$$toccolor$$else$black$endif$}
-$endif$
-\setcounter{tocdepth}{$toc-depth$}
-\tableofcontents
-}
-$endif$
 
 $body$
 

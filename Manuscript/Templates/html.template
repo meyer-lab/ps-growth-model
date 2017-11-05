@@ -41,18 +41,13 @@ $endif$
 
 <h1 class="title">$title$</h1>
 
+<h2 class="author">$for(author)$$author.name$<sup>$author.affilnum$</sup>$sep$, $endfor$</h2>
 
-$for(author)$
-<h2 class="author">$author.name$</h2>
-<p class="affilation"><em>$author.affilnum$</em></p>
+$for(affiliation)$
+<h5 class="affilation"><sup>$affiliation.key$</sup>$affiliation.name$</h5>
 $endfor$
 
 </header>
-$endif$
-$if(toc)$
-<nav id="$idprefix$TOC">
-$toc$
-</nav>
 $endif$
 
 $if(abstract)$

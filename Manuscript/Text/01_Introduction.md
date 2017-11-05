@@ -11,7 +11,7 @@ author:
   affilnum: a,c
 keywords: [growth models, inference]
 affiliation:
-- name: Department of Bioengineering, University of California, Los Angeles
+- name: Department of Bioengineering, Jonsson Comprehensive Cancer Center, Eli and Edythe Broad Center of Regenerative Medicine and Stem Cell Research; University of California, Los Angeles
   key: a
 - name: Massachusetts Institute of Technology, Cambridge, MA
   key: b
