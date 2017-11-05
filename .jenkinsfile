@@ -7,15 +7,11 @@ pipeline {
         sh 'make clean'
       }
     }
-    stage('Build') {
-      steps {
-        sh 'make -j 33'
-      }
-    }
-    stage('Test'){
-      steps {
-        sh 'make testcover'
-        sh '(pylint3 --rcfile=./grmodel/tests/.pylintrc grmodel > pylint.log || echo "pylint exited with $?")'
+    stage('Build/Test') {
+      parallel {
+        stage('Build') { steps { sh 'make -j 8' } }
+        stage('Test')  { steps { sh 'make testcover' } }
+        stage('Lint')  { steps { sh '(pylint3 --rcfile=./grmodel/tests/.pylintrc grmodel > pylint.log || echo "pylint exited with $?")' } }
       }
     }
     stage('Report') {
