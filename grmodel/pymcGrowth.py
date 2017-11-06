@@ -3,6 +3,7 @@ from os.path import join, dirname, abspath, exists
 import pandas
 import numpy as np
 import pymc3 as pm
+import theano.tensor as T
 
 try:
     import cPickle as pickle
@@ -99,10 +100,6 @@ class GrowthModel:
 
     def sample(self):
         ''' A '''
-#        if 500*len(self.doses) > 1000:
-#            num = 500*len(self.doses)
-#        else:
-#            num = 1000
         num = 1000
         print(len(self.doses))
         with self.model:
@@ -129,23 +126,19 @@ class GrowthModel:
             pm.Lognormal('confl_apop', np.log(0.25), 0.1, observed=apop_conv / confl_conv)
             pm.Lognormal('confl_dna', np.log(0.144), 0.1, observed=dna_conv / confl_conv)
             
-            # Standard deviation parameters for experimental data
-            std = pm.Lognormal('std', 0, 1)
-            stdad = pm.Lognormal('stdad',-3,1)
-            
             # Offset values for green and red
             gos = pm.Uniform('gos', lower=0, upper=0.2)
             ros = pm.Uniform('ros', lower=0, upper=0.2)
             oos = pm.Uniform('oos', lower=0, upper=0.05)
+
+            # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
+            d = pm.Lognormal('d', np.log(0.01), 1)
 
             # Iterate over each dose
             for dose in self.doses:
                 # Specify vectors of prior distributions
                 # Growth rate
                 div = pm.Lognormal('div '+str(dose), np.log(0.02), 1)
-
-                # Rate of moving from apoptosis to death
-                d = pm.Lognormal('d '+str(dose), np.log(0.01), 1)
 
                 # Rate of entering apoptosis or skipping straight to death
                 deathRate = pm.Lognormal('deathRate '+str(dose), np.log(0.01), 1)
@@ -174,17 +167,25 @@ class GrowthModel:
 
                 # Fit model to confl, apop, dna, and overlap measurements 
                 if (dose, 'confl') in self.expTable.keys():
-                    pm.Normal('dataFit '+str(dose), sd = std, 
-                              observed = (lnum + eap + deadapop + deadnec) * confl_conv - self.expTable[(dose, 'confl')])
+                    # Observed error values for confl
+                    confl_obs = (lnum + eap + deadapop + deadnec) * confl_conv - self.expTable[(dose, 'confl')]
+
+                    pm.Normal('dataFit '+str(dose), sd = T.std(confl_obs), observed = confl_obs)
                 if (dose, 'apop') in self.expTable.keys():
-                    pm.Normal('dataFita '+str(dose), sd = stdad, 
-                              observed = (eap + deadapop) * apop_conv + gos - self.expTable[(dose, 'apop')])
+                    # Observed error values for apop
+                    apop_obs = (eap + deadapop) * apop_conv + gos - self.expTable[(dose, 'apop')]
+
+                    pm.Normal('dataFita '+str(dose), sd = T.std(apop_obs), observed = apop_obs)
                 if (dose, 'dna') in self.expTable.keys():
-                    pm.Normal('dataFitd '+str(dose), sd = stdad, 
-                              observed = (deadapop + deadnec) * dna_conv + ros - self.expTable[(dose, 'dna')])
+                    # Observed error values for dna
+                    dna_obs = (deadapop + deadnec) * dna_conv + ros - self.expTable[(dose, 'dna')]
+
+                    pm.Normal('dataFitd '+str(dose), sd = T.std(dna_obs), observed = dna_obs)
                 if (dose, 'overlap') in self.expTable.keys():
-                    pm.Normal('dataFito '+str(dose), sd = stdad, 
-                              observed = deadapop * dna_conv + oos - self.expTable[(dose, 'overlap')])
+                    # Observed error values for overlap
+                    ovlap_obs = deadapop * dna_conv + oos - self.expTable[(dose, 'overlap')]
+
+                    pm.Normal('dataFito '+str(dose), sd = T.std(ovlap_obs), observed = ovlap_obs)
             logp = pm.Deterministic('logp', growth_model.logpt)
 
         return growth_model
