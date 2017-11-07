@@ -3,10 +3,7 @@ import scipy as sp
 import pandas as pd
 import matplotlib.pyplot as plt
 from .sampleAnalysis import readModels
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+
 
 def sigmoid(p,x):
     """ Calculate value of sigmoid function y given equation and x value """

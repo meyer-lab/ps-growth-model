@@ -4,10 +4,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from .sampleAnalysis import readModels
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 def makePlot(cols, drugs):
     hist_plot(cols)
