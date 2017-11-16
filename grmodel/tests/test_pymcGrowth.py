@@ -15,7 +15,7 @@ class TestgrMethods(unittest.TestCase):
 
         model = GR.build_model()
 
-        self.assertEqual(len(GR.expTable), 44)
+        self.assertEqual(len(GR.expTable), 4)
         self.assertIsInstance(model, pm.Model)
 
     def test_MAP(self):
@@ -27,4 +27,4 @@ class TestgrMethods(unittest.TestCase):
             start, nuts = pm.sampling.init_nuts(n_init=2,
                                                 progressbar=False)
 
-        self.assertEqual(len(start), 10)
+        self.assertEqual(len(start), 4)

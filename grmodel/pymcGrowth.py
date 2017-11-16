@@ -5,7 +5,7 @@ import numpy as np
 import pymc3 as pm
 import theano.tensor as T
 import theano
-
+from theano.sandbox.linalg import ops as linOps
 
 try:
     import cPickle as pickle
@@ -13,8 +13,20 @@ except ImportError:
     import pickle
 
 
-def ssq(expc, expt):
-    return np.square(expc - expt).sum()
+def lRegRes(inputs, outputs):
+    """
+    Computers the least squares estimator (LSE) B_hat that minimises the sum of the
+    squared errors. Returns the residuals.
+    Returns:
+        residuals: output_hat - output
+        B_hat: [offset, conv_factor]
+    """
+    X = T.transpose(T.stack([inputs, T.ones([inputs.shape[0]])], axis=0))
+
+    B_hat = T.dot(T.dot(linOps.matrix_inverse(T.dot(X.T, X)),X.T), outputs)
+
+    return (T.dot(X, B_hat) - outputs, B_hat)
+
 
 def simulate(params, ttime):
     ''' Takes in params for parameter values and ttimes, a list or array of times
@@ -119,20 +131,6 @@ class GrowthModel:
         growth_model = pm.Model()
 
         with growth_model:
-            # Set up conversion rates
-            confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
-            apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0 * 0.25), 0.2)
-            dna_conv = pm.Lognormal('dna_conv', np.log(self.conv0 * 0.144), 0.2)
-
-            # Priors on conv factors
-            pm.Lognormal('confl_apop', np.log(0.25), 0.1, observed=apop_conv / confl_conv)
-            pm.Lognormal('confl_dna', np.log(0.144), 0.1, observed=dna_conv / confl_conv)
-            
-            # Offset values for green and red
-            gos = pm.Uniform('gos', lower=0, upper=0.2)
-            ros = pm.Uniform('ros', lower=0, upper=0.2)
-            oos = pm.Uniform('oos', lower=0, upper=0.05)
-
             # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
             d = pm.Lognormal('d', np.log(0.01), 1)
 
@@ -173,34 +171,36 @@ class GrowthModel:
             deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) - 1)
 
             # Convert to measurement units
-            confl_exp = (lnum + eap + deadapop + deadnec) * confl_conv
-            apop_exp = (eap + deadapop) * apop_conv + gos
-            dna_exp = (deadapop + deadnec) * dna_conv + ros
-            ovlap_exp = deadapop * dna_conv + oos
+            confl_exp = lnum + eap + deadapop + deadnec
+            apop_exp = eap + deadapop
+            dna_exp = (deadapop + deadnec)
+            ovlap_exp = deadapop
 
 
             # Fit model to confl, apop, dna, and overlap measurements 
             if ('confl') in self.expTable.keys():
                 # Observed error values for confl
-                confl_obs = T.reshape(confl_exp, (-1, )) - self.expTable['confl']
-
+                confl_obs, confl_B_hat = lRegRes(T.reshape(confl_exp, (-1, )), self.expTable['confl'])
+                pm.Deterministic('confl_B_hat', confl_B_hat)
                 pm.Normal('dataFit', sd=T.std(confl_obs), observed=confl_obs)
+
             if ('apop') in self.expTable.keys():
                 # Observed error values for apop
-                apop_obs = T.reshape(apop_exp, (-1, )) - self.expTable['apop']
+                apop_obs, apop_B_hat = lRegRes(T.reshape(apop_exp, (-1, )), self.expTable['apop'])
+                pm.Deterministic('apop_B_hat', apop_B_hat)
+                pm.Normal('dataFita', sd=T.std(apop_exp), observed=apop_obs)
 
-                pm.Normal('dataFita', sd=T.std(apop_obs), observed=apop_obs)
             if ('dna') in self.expTable.keys():
                 # Observed error values for dna
-                dna_obs = T.reshape(dna_exp, (-1, )) - self.expTable['dna']
-
+                dna_obs, dna_B_hat = lRegRes(T.reshape(dna_exp, (-1, )), self.expTable['dna'])
+                pm.Deterministic('dna_B_hat', dna_B_hat)
                 pm.Normal('dataFitd', sd=T.std(dna_obs), observed=dna_obs)
+
             if ('overlap') in self.expTable.keys():
                 # Observed error values for overlap
-                ovlap_obs = T.reshape(ovlap_exp, (-1, )) - self.expTable['overlap']
-
+                ovlap_obs, ovlap_B_hat = lRegRes(T.reshape(ovlap_exp, (-1, )), self.expTable['overlap'])
+                pm.Deterministic('ovlap_B_hat',ovlap_B_hat)
                 pm.Normal('dataFito', sd=T.std(ovlap_obs), observed=ovlap_obs)
-                
             pm.Deterministic('logp', growth_model.logpt)
 
         return growth_model
@@ -285,7 +285,7 @@ class GrowthModel:
                         doses.append(dose)
 
                         # Add data to expTable
-                        self.expTable[(dose,key)] = data.iloc[:, col].as_matrix()
+                        self.expTable.setdefault(key, []).append(data.iloc[:, col].as_matrix())
 
                         # Add conv0
                         if key == 'confl':
@@ -305,7 +305,7 @@ class GrowthModel:
                         doses.append(dose)
 
                         # Add data to expTable
-                        self.expTable[(dose,key)] = data.iloc[:, col].as_matrix()
+                        self.expTable.setdefault(key, []).append(data.iloc[:, col].as_matrix())
 
                         # Add conv0
                         if key == 'confl':
@@ -313,6 +313,7 @@ class GrowthModel:
                             self.condNames.append(condName)
                             self.selCols.append(col)
                             selconv0.append(conv0[col-firstCols])
+            self.expTable[key] = np.array(self.expTable[key]).reshape((-1, ))
 
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
