@@ -3,9 +3,8 @@ import os
 import pymc3 as pm
 import numpy as np
 import scipy as sp
-import pandas as pd
 import matplotlib
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from matplotlib.backends import backend_pdf
 from .pymcGrowth import simulate
 
@@ -28,8 +27,8 @@ def read_dataset(ff=None):
 
     return classList
 
-def readModels(drugs=None, trim = False):
-    ''' 
+def readModels(drugs=None, trim=False):
+    '''
     Load specified drugs
     grModels: dict of drug : GrowthModel object
     grdf: dict of drug: df
@@ -37,18 +36,18 @@ def readModels(drugs=None, trim = False):
     grModels = dict()
     grdf = dict()
     classList = read_dataset()
-    for ii, item in enumerate(classList):
-        if drugs==None or item.drug in drugs:
+    for _, item in enumerate(classList):
+        if drugs is None or item.drug in drugs:
             grModels[item.drug] = item
             df = pm.backends.tracetab.trace_to_dataframe(item.samples)
             df['Columns'] = str(item.selCols)
             df['Drug'] = item.drug
-            # trim 
+            # trim
             if trim:
                 for name in df.columns.values:
                     if 'logp' in str(name):
                         cutoff = np.amin(df[name])+50
-                        df = df.loc[df[name] < cutoff,:]
+                        df = df.loc[df[name] < cutoff, :]
             grdf[item.drug] = df
 
     return (grModels, grdf)
@@ -56,8 +55,8 @@ def readModels(drugs=None, trim = False):
 def diagnostics(classList, plott=False):
     """ Check the convergence and general posterior properties of a chain. """
     flag = True
-    # Iterate over sampling columns
-    for ii, item in enumerate(classList):
+    # Iterate over sampling classes
+    for _, item in enumerate(classList):
 
         # Calc Geweke stats
         geweke = pm.geweke(item.samples)
@@ -77,15 +76,16 @@ def diagnostics(classList, plott=False):
         divparamnum = 0
         divparam = []
 
-        for key, value in geweke.items():
+        for _, value in geweke.items():
             for kk, vv in value.items():
                 Vec = np.absolute(vv[:, 1])
                 intervals = len(Vec)
-                VecDiv= [val for val in Vec if val >= 1]
+                VecDiv = [val for val in Vec if val >= 1]
                 divnum = len([val for val in Vec if val >= 1.96])
-                
-                gewekeDivnum += len(VecDiv)
-                if len(VecDiv) > 0:
+
+                lenVecDiv = len(VecDiv)
+                gewekeDivnum += lenVecDiv
+                if lenVecDiv > 0:
                     gewekeDiv.extend(VecDiv)
                     gewekeDivparam.append(kk)
                 gewekeOut += np.sum(Vec)
@@ -102,7 +102,8 @@ def diagnostics(classList, plott=False):
         # TODO: Need to come up with a null model for Geweke to test for convergence
         if gewekeDivnum > 3:
             print('Column ' + str(item.selCols) + ' sampling not converged according to Geweke.')
-            print('z-score surpassed 1 for ' + str(gewekeDivnum) + ' times for parameters ' + str(gewekeDivparam) + ': \n' + str(gewekeDiv)) 
+            print('z-score surpassed 1 for ' + str(gewekeDivnum)
+                  + ' times for parameters ' + str(gewekeDivparam) + ': \n' + str(gewekeDiv))
 #            print('p-value = ' +str(1-sp.stats.chi2.cdf(gewekeOut, gewekeNum)))
 #            print('gewekeOut = ' + str(gewekeOut))
 #            print('gewekeNum = ' + str(gewekeNum))
@@ -149,9 +150,9 @@ def saveplot(cols, func):
             matplotlib.pyplot.close()
 
 
-def sim_plot(drug, confl = True, rep=None, printt=False):
-    """ 
-    Given column, plots simulation of predictions overlaying observed data 
+def sim_plot(drug, confl=True, rep=None, printt=False):
+    """
+    Given column, plots simulation of predictions overlaying observed data
     rep: number of replicates per column
     printt: print dataset and dataset shape
     show: show figure
@@ -166,7 +167,7 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
         print(pdset.shape)
         print(pdset)
 
-    #Initialize variables 
+    #Initialize variables
     if rep != None:
         time = classM.timeV.reshape(rep, int(len(classM.timeV) / rep))[0, :]
     else:
@@ -177,27 +178,32 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
     for param in ['confl_conv', 'apop_conv', 'dna_conv', 'std', 'stdad', 'gos', 'ros', 'oos']:
         idic[param] = pdset.columns.get_loc(param)
     for param in ['div ', 'd ', 'deathRate ', 'apopfrac ']:
-        for dose in classM.doses: 
+        for dose in classM.doses:
             idic[param+str(dose)] = pdset.columns.get_loc(param+str(dose))
 
     # Set up colors and subplots
     if confl:
-        colors = ['b', 'g', 'r']
+        colors = ['b', 'g', 'r', 'y']
     else:
-        colors = ['g', 'r']
+        colors = ['g', 'r', 'y']
 
     # Initiate subplots
-    f, ax = plt.subplots(1, len(classM.doses), figsize = (2.7*len(classM.doses), 3.5), sharex = True, sharey = True)
+    _, ax = plt.subplots(1, len(classM.doses), figsize=(2.7*len(classM.doses), 3.5),
+                         sharex=True, sharey=True)
 
     # Iterate over each dose
     for dose in classM.doses:
         calcset = np.full((pdset.shape[0], len(time)), np.inf)
         calcseta = np.full((pdset.shape[0], len(time)), np.inf)
         calcsetd = np.full((pdset.shape[0], len(time)), np.inf)
+        calcseto = np.full((pdset.shape[0], len(time)), np.inf)
         varr = 0
         # Evaluate predictions for each set of parameter fits
         for row in pdset.iterrows():
-            mparm = np.copy(np.array(row[1].as_matrix()[[idic['div '+str(dose)], idic['d '+str(dose)], idic['deathRate '+str(dose)], idic['apopfrac '+str(dose)]]]))
+            mparm = np.copy(np.array(row[1].as_matrix()[[idic['div '+str(dose)],
+                                                         idic['d '+str(dose)],
+                                                         idic['deathRate '+str(dose)],
+                                                         idic['apopfrac '+str(dose)]]]))
 
             # Use old_model to calculate lnum, eap, and dead over time
             simret = simulate(mparm, time)
@@ -208,16 +214,22 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
             # Calculate predictions for total, apop, and dead cells over time
             if confl:
                 calcset[varr, :] = np.sum(simret, axis=1) * row[1].as_matrix()[idic['confl_conv']]
-            calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1) * row[1].as_matrix()[idic['apop_conv']] + row[1].as_matrix()[idic['gos']]
-            calcsetd[varr, :] = np.sum(simret[:, 2:4], axis=1) * row[1].as_matrix()[idic['dna_conv']] + row[1].as_matrix()[idic['ros']]
+            calcseta[varr, :] = (np.sum(simret[:, 1:3], axis=1)
+                                 * row[1].as_matrix()[idic['apop_conv']]
+                                 + row[1].as_matrix()[idic['gos']])
+            calcsetd[varr, :] = (np.sum(simret[:, 2:4], axis=1)
+                                 * row[1].as_matrix()[idic['dna_conv']]
+                                 + row[1].as_matrix()[idic['ros']])
+            calcseto[varr, :] = (simret[:, 2] * row[1].as_matrix()[idic['dna_conv']]
+                                 + row[1].as_matrix()[idic['oos']])
 
             varr = varr + 1
 
         # Iterate over total, apop, and dead cels
-        if confl: 
-            calcsets = [calcset, calcseta, calcsetd]
+        if confl:
+            calcsets = [calcset, calcseta, calcsetd, calcseto]
         else:
-            calcsets = [calcseta, calcsetd]
+            calcsets = [calcseta, calcsetd, calcseto]
         for i in list(range(len(calcsets))):
             calc = calcsets[i]
             c = colors[i]
@@ -225,34 +237,41 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
             qqq = np.percentile(calc, [5, 25, 50, 75, 95], axis=0)
             # Plot confidence interval
             if len(classM.doses) > 1:
-                ax[classM.doses.index(dose)].plot(time, qqq[2, :], color = c)
-                ax[classM.doses.index(dose)].fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
-                ax[classM.doses.index(dose)].fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
+                doseidx = classM.doses.index(dose)
+                ax[doseidx].plot(time, qqq[2, :], color=c)
+                ax[doseidx].fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
+                ax[doseidx].fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
             else:
-                ax.plot(time, qqq[2, :], color = c)
+                ax.plot(time, qqq[2, :], color=c)
                 ax.fill_between(time, qqq[1, :], qqq[3, :], alpha=0.5)
                 ax.fill_between(time, qqq[0, :], qqq[4, :], alpha=0.2)
-        # Plot observation 
-        if len(classM.doses) > 1: 
-            if confl: 
-                ax[classM.doses.index(dose)].scatter(classM.timeV, classM.expTable[(dose,'confl')], color = 'b', marker = '.')
-            ax[classM.doses.index(dose)].scatter(classM.timeV, classM.expTable[(dose,'apop')], color = 'g', marker = '.')
-            ax[classM.doses.index(dose)].scatter(classM.timeV, classM.expTable[(dose,'dna')], color = 'r', marker = '.')
-            ax[classM.doses.index(dose)].set_xlabel('Time (hr)')
+        # Plot observation
+        if len(classM.doses) > 1:
+            doseidx = classM.doses.index(dose)
+            if confl:
+                ax[doseidx].scatter(classM.timeV, classM.expTable[(dose, 'confl')],
+                                    color='b', marker='.')
+            ax[doseidx].scatter(classM.timeV, classM.expTable[(dose, 'apop')],
+                                color='g', marker='.')
+            ax[doseidx].scatter(classM.timeV, classM.expTable[(dose, 'dna')],
+                                color='r', marker='.')
+            ax[doseidx].scatter(classM.timeV, classM.expTable[(dose, 'overlap')],
+                                color='y', marker='.')
+            ax[doseidx].set_xlabel('Time (hr)')
             if dose == 0.0:
                 title = 'Control'
             else:
                 title = drug + ' ' + str(dose)
             if not confl:
-                ax[classM.doses.index(dose)].set_ylim([0,0.7])
-            ax[classM.doses.index(dose)].set_title(title)
-            if classM.doses.index(dose) == 0:
+                ax[doseidx].set_ylim([0, 0.7])
+            ax[doseidx].set_title(title)
+            if doseidx == 0:
                 ax[0].set_ylabel('% Confluence')
         else:
-            if confl: 
-                ax.scatter(classM.timeV, classM.expTable[(dose,'confl')], color = 'b', marker = '.')
-            ax.scatter(classM.timeV, classM.expTable[(dose,'apop')], color = 'g', marker = '.')
-            ax.scatter(classM.timeV, classM.expTable[(dose,'dna')], color = 'r', marker = '.')
+            if confl:
+                ax.scatter(classM.timeV, classM.expTable[(dose, 'confl')], color='b', marker='.')
+            ax.scatter(classM.timeV, classM.expTable[(dose, 'apop')], color='g', marker='.')
+            ax.scatter(classM.timeV, classM.expTable[(dose, 'dna')], color='r', marker='.')
             ax.set_xlabel('Time (hr)')
             ax.set_ylabel('% Confluence')
             plt.title('Sim_plot '+str(drug))
@@ -261,13 +280,14 @@ def sim_plot(drug, confl = True, rep=None, printt=False):
     plt.show()
 
 
-def sim_plots(drugs = None, confl = True, rep = None):
+def sim_plots(drugs=None, confl=True, rep=None):
+    ''' Plot sampling predictions overlaying experimental data for multiple drug conditions '''
     import seaborn as sns
-    sns.set_context("paper", font_scale=2)  
-    if drugs!= None:
+    sns.set_context("paper", font_scale=2)
+    if drugs != None:
         for drug in drugs:
-            sim_plot(drug, confl = confl, rep = rep)
+            sim_plot(drug, confl=confl, rep=rep)
     else:
         classdict, _ = readModels()
         for drug in classdict:
-            sim_plot(drug, confl = confl, rep = rep)
+            sim_plot(drug, confl=confl, rep=rep)
