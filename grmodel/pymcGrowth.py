@@ -4,6 +4,8 @@ import pandas
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
+import theano
+
 
 try:
     import cPickle as pickle
@@ -134,59 +136,72 @@ class GrowthModel:
             # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
             d = pm.Lognormal('d', np.log(0.01), 1)
 
-            # Iterate over each dose
-            for dose in self.doses:
-                # Specify vectors of prior distributions
-                # Growth rate
-                div = pm.Lognormal('div '+str(dose), np.log(0.02), 1)
+            # Specify vectors of prior distributions
+            # Growth rate
+            div = pm.Lognormal('div', np.log(0.02), 1, shape=len(self.doses))
 
-                # Rate of entering apoptosis or skipping straight to death
-                deathRate = pm.Lognormal('deathRate '+str(dose), np.log(0.01), 1)
+            # Rate of entering apoptosis or skipping straight to death
+            deathRate = pm.Lognormal('deathRate', np.log(0.01), 1, shape=len(self.doses))
 
-                # Fraction of dying cells that go through apoptosis
-                apopfrac = pm.Uniform('apopfrac '+str(dose))
+            # Fraction of dying cells that go through apoptosis
+            apopfrac = pm.Uniform('apopfrac', shape=len(self.doses))
+
+
+            # Make a vector of time and one for time-constant values
+            timeV = T._shared(self.timeV)
+            constV = T.ones_like(timeV, dtype=theano.config.floatX)
+
+
+            # Calculate the growth rate
+            GR = T.outer(div - deathRate, constV)
+
+            # cGDd is used later
+            cGRd = T.outer(deathRate * apopfrac, constV) / (GR + d)
+
+            # b is the rate straight to death
+            b = T.outer(deathRate * (1 - apopfrac), constV)
+
+
+            # Calculate the number of live cells
+            lnum = T.exp(GR * timeV)
+
+            # Number of early apoptosis cells at start is 0.0
+            eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
+
+            # Calculate dead cells via apoptosis and via necrosis
+            deadnec = b * (lnum - 1) / GR
+            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) - 1)
+
+            # Convert to measurement units
+            confl_exp = (lnum + eap + deadapop + deadnec) * confl_conv
+            apop_exp = (eap + deadapop) * apop_conv + gos
+            dna_exp = (deadapop + deadnec) * dna_conv + ros
+            ovlap_exp = deadapop * dna_conv + oos
+
+
+            # Fit model to confl, apop, dna, and overlap measurements 
+            if ('confl') in self.expTable.keys():
+                # Observed error values for confl
+                confl_obs = T.reshape(confl_exp, (-1, )) - self.expTable['confl']
+
+                pm.Normal('dataFit', sd=T.std(confl_obs), observed=confl_obs)
+            if ('apop') in self.expTable.keys():
+                # Observed error values for apop
+                apop_obs = T.reshape(apop_exp, (-1, )) - self.expTable['apop']
+
+                pm.Normal('dataFita', sd=T.std(apop_obs), observed=apop_obs)
+            if ('dna') in self.expTable.keys():
+                # Observed error values for dna
+                dna_obs = T.reshape(dna_exp, (-1, )) - self.expTable['dna']
+
+                pm.Normal('dataFitd', sd=T.std(dna_obs), observed=dna_obs)
+            if ('overlap') in self.expTable.keys():
+                # Observed error values for overlap
+                ovlap_obs = T.reshape(ovlap_exp, (-1, )) - self.expTable['overlap']
+
+                pm.Normal('dataFito', sd=T.std(ovlap_obs), observed=ovlap_obs)
                 
-                # Calculate the growth rate
-                GR = div - deathRate
-
-                # Calculate the number of live cells
-                lnum = pm.math.exp(GR * self.timeV)
-
-                # cGDd is used later
-                cGRd = deathRate * apopfrac / (GR + d)
-
-                # Number of early apoptosis cells at start is 0.0
-                eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
-
-                # b is the rate straight to death
-                b = deathRate * (1 - apopfrac)
-
-                # Calculate dead cells via apoptosis and via necrosis
-                deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) -1)
-                deadnec = b * (lnum -1) / GR
-
-                # Fit model to confl, apop, dna, and overlap measurements 
-                if (dose, 'confl') in self.expTable.keys():
-                    # Observed error values for confl
-                    confl_obs = (lnum + eap + deadapop + deadnec) * confl_conv - self.expTable[(dose, 'confl')]
-
-                    pm.Normal('dataFit '+str(dose), sd = T.std(confl_obs), observed = confl_obs)
-                if (dose, 'apop') in self.expTable.keys():
-                    # Observed error values for apop
-                    apop_obs = (eap + deadapop) * apop_conv + gos - self.expTable[(dose, 'apop')]
-
-                    pm.Normal('dataFita '+str(dose), sd = T.std(apop_obs), observed = apop_obs)
-                if (dose, 'dna') in self.expTable.keys():
-                    # Observed error values for dna
-                    dna_obs = (deadapop + deadnec) * dna_conv + ros - self.expTable[(dose, 'dna')]
-
-                    pm.Normal('dataFitd '+str(dose), sd = T.std(dna_obs), observed = dna_obs)
-                if (dose, 'overlap') in self.expTable.keys():
-                    # Observed error values for overlap
-                    ovlap_obs = deadapop * dna_conv + oos - self.expTable[(dose, 'overlap')]
-
-                    pm.Normal('dataFito '+str(dose), sd = T.std(ovlap_obs), observed = ovlap_obs)
-            logp = pm.Deterministic('logp', growth_model.logpt)
+            pm.Deterministic('logp', growth_model.logpt)
 
         return growth_model
 

@@ -22,4 +22,4 @@ class TestgrMethods(unittest.TestCase):
             start, nuts = pm.sampling.init_nuts(n_init=2,
                                                 progressbar=False)
 
-        self.assertEqual(len(start), 40)
+        self.assertEqual(len(start), 10)
