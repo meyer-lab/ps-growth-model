@@ -80,11 +80,15 @@ class doseResponseModel:
         doseResponseModel = pm.Model()
 
         with doseResponseModel:
-            # Build model here
-            print("Something here")
+            # The three values here are div and deathrate
+            # Apopfrac is on end of only IC50s
             IC50s = pm.Lognormal('IC50s', np.log(0.01), 1, shape=3)
-            Emin = pm.Lognormal('Emins', np.log(0.01), 1, shape=3)
-            Emax = pm.Lognormal('Emaxs', np.log(0.01), 1, shape=3)
+            Emin = pm.Lognormal('Emins', np.log(0.01), 1, shape=2)
+            Emax = pm.Lognormal('Emaxs', np.log(0.01), 1, shape=2)
+
+            # Apopfrac range handled separately due to bounds
+            Emin_apop = pm.Uniform('Emin_apop')
+            Emax_apop = pm.Uniform('Emax_apop')
 
             # D should be constructed the same as in other analysis
             # TODO: Need test for d equivalence
@@ -93,8 +97,11 @@ class doseResponseModel:
             # Import drug concentrations into theano vector
             drugCs = T._shared(self.drugCs)
 
+            EminV = T.concatenate(Emin, Emin_apop)
+            EmaxV = T.concatenate(Emax, Emax_apop)
+
             # This is the value of each parameter, at each drug concentration
-            IC50[2] + (IC50[1] - IC50[2]) / (1 + 10**(X - np.log10(IC50[0])))
+            IC50[2] + (IC50[1] - IC50[2]) / (1 + 10**(drugCs - np.log10(IC50s)))
 
 
             # Calculate the number of live cells
