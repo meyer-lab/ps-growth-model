@@ -7,10 +7,20 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from .FigureCommon import getSetup, subplotLabel
+import seaborn as sns
+import scipy.optimize as opt
+from grmodel.fitcurves import sigmoid, residuals
+from ..pymcDoseResponse import loadCellTiter
 
 
 def makeFigure():
-    ''' XXX '''
+    '''
+    Generate Figure 1
+
+    Broadly, this figure should motivate looking at cell death.
+    This should be by showing that it's not captured in existing
+    measurements.
+    '''
 
     # Get list of axis objects
     ax, f, gs1 = getSetup((7, 6), (3, 3))
@@ -20,6 +30,8 @@ def makeFigure():
 
     for ii, item in enumerate(ax):
         subplotLabel(item, ascii_uppercase[ii])
+
+    doseResponseTiter(ax[1])
 
     # Try and fix overlapping elements
     f.tight_layout()
@@ -63,3 +75,28 @@ def cartoonFig(gs1, fig):
     ax3.plot(xx, gr[0] - gr)
     ax3.set_xlabel('Test')
     ax3.set_ylabel('Growth Rate')
+
+
+def doseResponseTiter(ax=None):
+    """ Dose response of celltiter glo data. """
+
+    if ax is None:
+        ax = plt.axes()
+
+    data = loadCellTiter()
+
+    refDose = np.linspace(min(data.logDose),max(data.logDose), 300)
+
+    g = sns.FacetGrid(data, hue="Drug")
+
+    g = (g.map(ax.scatter, 'logDose', 'response', s=3).add_legend())
+
+    for _, group in data.groupby(['Drug']):
+        retVal = opt.least_squares(residuals, x0=[0, 0.1, 0.1, 0], args=(group.logDose, group.response))
+        
+        ax.plot(refDose, sigmoid(retVal['x'], refDose))
+
+    ax.set_ylabel('Viability')
+    ax.set_xlabel('Log Drug Concentration')
+    ax.set_ylim(0, 1)
+

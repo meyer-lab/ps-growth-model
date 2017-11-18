@@ -1,8 +1,12 @@
 import unittest
-from ..pymcDoseResponse import doseResponseModel
+import pandas as pd
+from ..pymcDoseResponse import doseResponseModel, loadCellTiter
 
 
 class TestDoseResponseMethods(unittest.TestCase):
-    def test_model(self):
+    def test_loadCellTiter(self):
 
-        self.assertEqual(4, 4)
+        data = loadCellTiter()
+
+        self.assertIsInstance(data, pd.DataFrame)
+

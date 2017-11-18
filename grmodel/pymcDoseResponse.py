@@ -1,8 +1,9 @@
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
-import theano
+import pandas as pd
 import matplotlib.pyplot as plt
+from os.path import join, dirname, abspath
 from .pymcGrowth import simulate
 
 
@@ -54,6 +55,16 @@ def plotCurves(IC_Div, IC_DR, d, apopfrac, ttime):
     plt.show()
 
 
+def loadCellTiter():
+    """ Load Dox and NVB cellTiter Glo data. """
+    filename = join(dirname(abspath(__file__)), 'data/initial-data/2017.07.10-H1299-celltiter.csv')
+
+    data = pd.read_csv(filename)
+
+    data['response'] = data['CellTiter'] / np.max(data['CellTiter'])
+    data['logDose'] = np.log(data['Conc (nM)'] + 0.1)
+
+    return data
 
 
 #num(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]), np.array([0.,0.1,0.3,0.5,1]))
