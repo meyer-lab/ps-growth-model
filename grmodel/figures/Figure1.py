@@ -4,6 +4,8 @@ This creates Figure 1.
 
 from string import ascii_uppercase
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from .FigureCommon import getSetup, subplotLabel
