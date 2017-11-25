@@ -3,6 +3,7 @@ import pymc3 as pm
 import theano.tensor as T
 import pandas as pd
 import matplotlib.pyplot as plt
+import theano
 from os.path import join, dirname, abspath
 from .pymcGrowth import simulate
 
@@ -93,30 +94,54 @@ class doseResponseModel:
         with doseResponseModel:
             # The three values here are div and deathrate
             # Apopfrac is on end of only IC50s
-            IC50s = pm.Lognormal('IC50s', np.log(0.01), 1, shape=3)
-            Emin = pm.Lognormal('Emins', np.log(0.01), 1, shape=2)
-            Emax = pm.Lognormal('Emaxs', np.log(0.01), 1, shape=2)
+            IC50s = pm.Lognormal('IC50s', np.log(0.01), 1, shape=3, testval=[1.0, 2.0, 3.0])
+            Emin = pm.Lognormal('Emins', np.log(0.01), 1, shape=2, testval=[0.3, 0.3])
+            Emax = pm.Lognormal('Emaxs', np.log(0.01), 1, shape=2, testval=[0.9, 0.1])
 
             # Apopfrac range handled separately due to bounds
-            Emin_apop = pm.Uniform('Emin_apop')
-            Emax_apop = pm.Uniform('Emax_apop')
+            Emin_apop = pm.Uniform('Emin_apop', testval=0.1)
+            Emax_apop = pm.Uniform('Emax_apop', testval=0.9)
 
             # D should be constructed the same as in other analysis
-            # TODO: Need test for d equivalence
+            # TODO: Test for d equivalence
             d = pm.Lognormal('d', np.log(0.01), 1)
 
             # Import drug concentrations into theano vector
             drugCs = T._shared(self.drugCs)
 
-            EminV = T.concatenate(Emin, Emin_apop)
-            EmaxV = T.concatenate(Emax, Emax_apop)
+            drugsT = T.transpose(T.outer(T.transpose(drugCs), T.ones_like(IC50s, dtype=theano.config.floatX)))
+            
+            constV = T.ones_like(drugCs, dtype=theano.config.floatX)
+
+            EminV = T.concatenate((Emin, T.stack(Emin_apop)))
+            EmaxV = T.concatenate((Emax, T.stack(Emax_apop)))
 
             # This is the value of each parameter, at each drug concentration
-            IC50[2] + (IC50[1] - IC50[2]) / (1 + 10**(drugCs - np.log10(IC50s)))
+            rangeT = T.outer(EmaxV - EminV, constV)
+            lIC50T = T.outer(T.log10(IC50s), constV)
 
+            params = T.outer(EminV, constV) + rangeT / (1 + 10**(drugsT - lIC50T))
+
+            # Calculate the growth rate
+            GR = params[0, :] - params[1, :]
 
             # Calculate the number of live cells
             lnum = T.exp(GR * self.time)
+
+            # cGDd is used later
+            cGRd = (params[1, :] * params[2, :]) / (GR + d)
+
+            # b is the rate straight to death
+            b = params[1, :] * (1 - params[2, :])
+
+            # Number of early apoptosis cells at start is 0.0
+            eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
+
+            # Calculate dead cells via apoptosis and via necrosis
+            deadnec = b * (lnum - 1) / GR
+            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) - 1)
+
+            lnum_print = T.printing.Print('lnum')(lnum)
 
             # TODO: Fit live cell number to data
 
@@ -126,6 +151,8 @@ class doseResponseModel:
     # Directly import one column of data
     def importData(self):
         # Handle data import here
+        self.drugCs = np.logspace(-3.0, 3.0, num=10)
+        self.time = 72.0
 
         # Build the model
         self.model = self.build_model()
