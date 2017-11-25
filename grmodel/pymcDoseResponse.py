@@ -56,16 +56,40 @@ def plotCurves(IC_Div, IC_DR, d, apopfrac, ttime):
     plt.show()
 
 
-def loadCellTiter():
+def loadCellTiter(drug=None):
     """ Load Dox and NVB cellTiter Glo data. """
     filename = join(dirname(abspath(__file__)), 'data/initial-data/2017.07.10-H1299-celltiter.csv')
 
     data = pd.read_csv(filename)
 
-    data['response'] = data['CellTiter'] / np.max(data['CellTiter'])
+    # Response should be normalized to the control
+    data['response'] = data['CellTiter'] / np.mean(data.loc[data['Conc (nM)'] == 0.0, 'CellTiter'])
+
+    # Put the dose on a log scale as well
     data['logDose'] = np.log(data['Conc (nM)'] + 0.1)
 
-    return data
+    if drug is None:
+        return data
+    else:
+        return data[data['Drug'] == drug]
+
+
+def loadIncucyte(drug=None):
+    """ Load Dox and NVB Incucyte data. """
+    filename = join(dirname(abspath(__file__)), 'data/initial-data/2017.07.10-H1299-red.csv')
+
+    df = pd.read_csv(filename)
+
+    df = pd.melt(df, id_vars = ['Elapsed'], var_name = 'Condition')
+
+    df['Drug'], df['Concentration'] = df['Condition'].str.split('-', 1).str
+
+    df.drop('Condition', axis=1, inplace=True)
+
+    if drug is None:
+        return df
+    else:
+        return df[df['Drug'] == drug]
 
 
 #num(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]), np.array([0.,0.1,0.3,0.5,1]))
@@ -126,7 +150,7 @@ class doseResponseModel:
             GR = params[0, :] - params[1, :]
 
             # Calculate the number of live cells
-            lnum = T.exp(GR * self.time)
+            lnum = pm.Deterministic('lnum', T.exp(GR * self.time))
 
             # cGDd is used later
             cGRd = (params[1, :] * params[2, :]) / (GR + d)
@@ -135,31 +159,32 @@ class doseResponseModel:
             b = params[1, :] * (1 - params[2, :])
 
             # Number of early apoptosis cells at start is 0.0
-            eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
+            eap = cGRd * (lnum - pm.math.exp(-d * self.time))
 
             # Calculate dead cells via apoptosis and via necrosis
             deadnec = b * (lnum - 1) / GR
-            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) - 1)
-
-            lnum_print = T.printing.Print('lnum')(lnum)
+            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.time) - 1)
 
             # TODO: Fit live cell number to data
-
 
         return doseResponseModel
 
     # Directly import one column of data
     def importData(self):
+        dataLoad = loadCellTiter(self.drug)
+
         # Handle data import here
-        self.drugCs = np.logspace(-3.0, 3.0, num=10)
+        self.drugCs = dataLoad['logDose'].as_matrix()
         self.time = 72.0
+
+        self.lObs = dataLoad['response'].as_matrix()
 
         # Build the model
         self.model = self.build_model()
 
-    def __init__(self, loadFile = None):
+    def __init__(self, Drug = None):
         # If no filename is given use a default
-        if loadFile is None:
-            self.loadFile = "Filename here"
+        if Drug is None:
+            self.drug = "DOX"
         else:
-            self.loadFile = loadFile
+            self.drug = Drug
