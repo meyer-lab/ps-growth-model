@@ -24,7 +24,7 @@ def lRegRes(inputs, outputs):
     X = T.transpose(T.stack([inputs, T.ones([inputs.shape[0]])], axis=0))
 
     B_hat = T.dot(T.dot(linOps.matrix_inverse(T.dot(X.T, X)),X.T), outputs)
-
+    
     return (T.dot(X, B_hat) - outputs, B_hat)
 
 

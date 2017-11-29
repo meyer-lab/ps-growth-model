@@ -165,8 +165,15 @@ class doseResponseModel:
             deadnec = b * (lnum - 1) / GR
             deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.time) - 1)
 
-            # TODO: Fit live cell number to data
+            # Conversion value is used to match lObs and lnum
+            conv = pm.Lognormal('conv', mu=np.log(0.01), sd=1)
 
+            # TODO: Fit live cell number to data
+            lObs = self.lObs
+            lExp = pm.Deterministic('lExp', lnum * conv)
+            residual = lObs - lExp
+            pm.Normal('dataFitlnum', sd = T.std(residual), observed = residual)
+                
         return doseResponseModel
 
     # Directly import one column of data
