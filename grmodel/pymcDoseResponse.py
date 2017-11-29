@@ -168,11 +168,9 @@ class doseResponseModel:
             # Conversion value is used to match lObs and lnum
             conv = pm.Lognormal('conv', mu=np.log(0.01), sd=1)
 
-            # TODO: Fit live cell number to data
-            lObs = self.lObs
-            lExp = pm.Deterministic('lExp', lnum * conv)
-            residual = lObs - lExp
-            pm.Normal('dataFitlnum', sd = T.std(residual), observed = residual)
+            # Fit live cell number to data
+            residual = self.lObs - lnum * conv
+            pm.Normal('dataFitlnum', sd=T.std(residual), observed=residual)
                 
         return doseResponseModel
 
