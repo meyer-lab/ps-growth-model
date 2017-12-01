@@ -4,6 +4,7 @@ import theano.tensor as T
 import pandas as pd
 import matplotlib.pyplot as plt
 import theano
+import pickle
 from os.path import join, dirname, abspath
 from .pymcGrowth import simulate
 
@@ -92,9 +93,23 @@ def loadIncucyte(drug=None):
         return df[df['Drug'] == drug]
 
 
-#num(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]), np.array([0.,0.1,0.3,0.5,1]))
-#plotCurves(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]))
+def save(classname, filename):
+    with open(filename,"wb") as file:
+         pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
 
+
+def read(filename):
+    with open(filename,"rb") as file:
+        try:
+            while True:
+                pickel_model = pickle.load(file)
+                print(pickel_model)
+        except EOFError:
+            pass
+
+ #num(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]), np.array([0.,0.1,0.3,0.5,1]))
+ #plotCurves(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]))
+         
 class doseResponseModel:
 
     def sample(self):
@@ -173,8 +188,12 @@ class doseResponseModel:
             lExp = pm.Deterministic('lExp', lnum * conv)
             residual = lObs - lExp
             pm.Normal('dataFitlnum', sd = T.std(residual), observed = residual)
-                
+
         return doseResponseModel
+
+    # Traceplot
+    def plot(self):
+        pm.traceplot(self.samples)
 
     # Directly import one column of data
     def importData(self):
