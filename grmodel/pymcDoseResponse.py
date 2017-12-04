@@ -103,7 +103,7 @@ def read(filename):
         try:
             while True:
                 pickel_model = pickle.load(file)
-                print(pickel_model)
+                return pickel_model
         except EOFError:
             pass
 
