@@ -11,7 +11,7 @@ class TestgrMethods(unittest.TestCase):
     def test_model(self):
         GR = GrowthModel(loadFile="030317-2-R1_H1299")
 
-        GR.importData(2, 'NVB', comb='R')
+        GR.importData(2)
 
         model = GR.build_model()
 
@@ -21,7 +21,7 @@ class TestgrMethods(unittest.TestCase):
     def test_MAP(self):
         GR = GrowthModel(loadFile="030317-2-R1_H1299")
 
-        GR.importData(2, 'NVB', comb='R')
+        GR.importData(2)
 
         with GR.model:
             start, nuts = pm.sampling.init_nuts(n_init=2,

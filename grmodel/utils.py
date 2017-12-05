@@ -25,16 +25,16 @@ def reformatData(dfd, drug, doses, params):
     # Interate over each dose
     # Columns: div, d, deathRate, apopfrac, condition
     for dose in doses:
+        doseidx = doses.index(dose)
         dftemp = pd.DataFrame()
         for param in params:
-            dftemp[param] = dfd[param+' '+str(dose)]
+            dftemp[param] = dfd[param+'__'+str(doseidx)]
         dftemp['drug'] = drug
         dftemp['dose'] = dose
         dfplot = pd.concat([dfplot, dftemp], axis=0)
 
     # Log transformation
-    logparams = ['div', 'd', 'deathRate']
-    for param in logparams:
+    for param in ['div', 'deathRate']:
         dfplot[param] = dfplot[param].apply(np.log10)
     return dfplot
 
@@ -240,15 +240,15 @@ def violinplot(drugs):
     Makes 1*num(parameters) boxplots for each drug
     '''
     import seaborn as sns
-    sns.set_context("paper", font_scale=1.4)
+    sns.set_context("paper", font_scale=1.2)
     # Read in dataframe
     conditions = drugs[:]
     classdict, df = readModels(conditions)
 
-    params = ['div', 'd', 'deathRate', 'apopfrac']
+    params = ['div', 'deathRate', 'apopfrac']
 
     # Make plots for each drug
-    _, axis = plt.subplots(len(drugs), 4, figsize=(12, 2.5*len(drugs)), sharex=False, sharey='col')
+    _, axis = plt.subplots(len(drugs), 3, figsize=(9, 2.5*len(drugs)), sharex=False, sharey='col')
 
 
     # Interate over each drug
@@ -270,9 +270,10 @@ def violinplot(drugs):
             if params[i] == 'apopfrac':
                 axis[j, i].set_ylim([0, 1])
             sns.violinplot(dfplot['dose'], dfplot[params[i]], ax=axis[j,i], cut=0)
+            axis[j, i].set_xlabel(drug+' dose')
 
     plt.tight_layout()
-    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x=-3, y=5.1)
+    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x=-2, y=1.3*len(drugs))
     plt.show()
 
 

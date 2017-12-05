@@ -19,7 +19,7 @@ def lRegRes(inputs, outputs):
     squared errors. Returns the residuals.
     Returns:
         residuals: output_hat - output
-        B_hat: [offset, conv_factor]
+        B_hat: [conv_factor, offset]
     """
     X = T.transpose(T.stack([inputs, T.ones([inputs.shape[0]])], axis=0))
 
@@ -72,29 +72,10 @@ class MultiSample:
     def loadModels(self, firstCols, fileName = None, seldrugs = None, comb = None):
         """  Initialize GrowthModel for each drug. Load data for each drug in."""
         # Get LoadFile from GrowthModel()
-        temp = GrowthModel(fileName)
-
-        if not hasattr(self, 'filePrefix'):
-            self.filePrefix = './grmodel/data/' + temp.loadFile
-
-        # Find path for csv files in the repository.
-        pathcsv = join(dirname(abspath(__file__)), 'data/' + temp.loadFile)
-        dataset = pandas.read_csv(pathcsv + '_confluence_phase.csv')
-        if seldrugs:
-            drugs = seldrugs
-        else:
-            conditions = dataset.columns.values[firstCols:]
-            alldrugs = [cond.split(' ')[0] for cond in conditions]
-            drugs = []
-            for drug in alldrugs:
-                if drug not in drugs:
-                    drugs.append(drug)
-            drugs = [x for x in drugs if 'Control' and 'Blank' not in x]
-        for drug in drugs:
-            gr = GrowthModel()
-            gr.importData(firstCols, drug, comb = comb)
-            self.models.append(gr)
-        return drugs
+        gr = GrowthModel(fileName)
+        gr.importData(firstCols, comb = comb)
+        self.models.append(gr)
+        return gr.drugs
 
     def sample(self):
         ''' Map over sampling runs. '''
@@ -114,7 +95,7 @@ class GrowthModel:
 
     def sample(self):
         ''' A '''
-        num = 1000
+        num = 500
         print(len(self.doses))
         with self.model:
             self.samples = pm.sample(draws=num, tune = num, njobs=2,  # Run three parallel chains
@@ -180,34 +161,34 @@ class GrowthModel:
             # Fit model to confl, apop, dna, and overlap measurements 
             if ('confl') in self.expTable.keys():
                 # Observed error values for confl
-                confl_obs, confl_B_hat = lRegRes(T.reshape(confl_exp, (-1, )), self.expTable['confl'])
-                pm.Deterministic('confl_B_hat', confl_B_hat)
+                confl_obs, conflBhat = lRegRes(T.reshape(confl_exp, (-1, )), self.expTable['confl'])
+                pm.Deterministic('conflBhat', conflBhat)
                 pm.Normal('dataFit', sd=T.std(confl_obs), observed=confl_obs)
 
             if ('apop') in self.expTable.keys():
                 # Observed error values for apop
-                apop_obs, apop_B_hat = lRegRes(T.reshape(apop_exp, (-1, )), self.expTable['apop'])
-                pm.Deterministic('apop_B_hat', apop_B_hat)
+                apop_obs, apopBhat = lRegRes(T.reshape(apop_exp, (-1, )), self.expTable['apop'])
+                pm.Deterministic('apopBhat', apopBhat)
                 pm.Normal('dataFita', sd=T.std(apop_exp), observed=apop_obs)
 
             if ('dna') in self.expTable.keys():
                 # Observed error values for dna
-                dna_obs, dna_B_hat = lRegRes(T.reshape(dna_exp, (-1, )), self.expTable['dna'])
-                pm.Deterministic('dna_B_hat', dna_B_hat)
+                dna_obs, dnaBhat = lRegRes(T.reshape(dna_exp, (-1, )), self.expTable['dna'])
+                pm.Deterministic('dnaBhat', dnaBhat)
                 pm.Normal('dataFitd', sd=T.std(dna_obs), observed=dna_obs)
 
             if ('overlap') in self.expTable.keys():
                 # Observed error values for overlap
-                ovlap_obs, ovlap_B_hat = lRegRes(T.reshape(ovlap_exp, (-1, )), self.expTable['overlap'])
-                pm.Deterministic('ovlap_B_hat',ovlap_B_hat)
+                ovlap_obs, ovlapBhat = lRegRes(T.reshape(ovlap_exp, (-1, )), self.expTable['overlap'])
+                pm.Deterministic('ovlapBhat',ovlapBhat)
                 pm.Normal('dataFito', sd=T.std(ovlap_obs), observed=ovlap_obs)
             pm.Deterministic('logp', growth_model.logpt)
 
         return growth_model
 
     # Directly import one column of data
-    def importData(self, firstCols, drug, drop24=False, comb = None):
-        self.drug = drug
+    def importData(self, firstCols, drop24=False, comb = None):
+        
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
@@ -222,6 +203,7 @@ class GrowthModel:
         self.selCols = []
         self.condNames = []
         self.doses = []
+        self.drugs = []
         selconv0 =[]
 
         # Get dict started
@@ -257,7 +239,6 @@ class GrowthModel:
             if self.totalCols < firstCols + 2:
                 raise ValueError("Didn't find many columns.")
 
-            doses = []
             for col in list(range(firstCols, self.totalCols)):
                 # Set the name of the condition we're considering
                 condName = data.columns.values[col]
@@ -267,6 +248,7 @@ class GrowthModel:
                     if condName.split(' ')[0] == self.drug or condName.split(' ')[0] == comb or 'Control' in condName:
                         # Represent dose with a tuple of len(2) in each case
                         if 'Control' in condName:
+                            drug = 'Control'
                             dose1 = 0
                             dose2 = 0
                         elif condName.split(' ')[0] == comb:
@@ -282,8 +264,6 @@ class GrowthModel:
                                 dose2 = 0
                         dose = (dose1, dose2)
 
-                        doses.append(dose)
-
                         # Add data to expTable
                         self.expTable.setdefault(key, []).append(data.iloc[:, col].as_matrix())
 
@@ -295,20 +275,21 @@ class GrowthModel:
                             selconv0.append(conv0[col-firstCols])
 
                 else: # For data without combinations
-                    if condName.split(' ')[0] == self.drug or 'Control' in condName:
+                    if 'Blank' not in condName:
                         # Add the name of the condition we're considering
                         try:
+                            drug = condName.split(' ')[0]
                             dose = condName.split(' ')[1]
                         except IndexError:
+                            drug = 'Control'
                             dose = 0
-
-                        doses.append(dose)
 
                         # Add data to expTable
                         self.expTable.setdefault(key, []).append(data.iloc[:, col].as_matrix())
 
                         # Add conv0
                         if key == 'confl':
+                            self.drugs.append(drug)
                             self.doses.append(dose)
                             self.condNames.append(condName)
                             self.selCols.append(col)
@@ -317,9 +298,6 @@ class GrowthModel:
 
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
-
-        # Record the number of observations we've made
-        self.nobs = len(properties) * len(self.timeV)
 
         # Build the model
         self.model = self.build_model()
