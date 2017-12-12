@@ -7,6 +7,7 @@ import theano
 import pickle
 from os.path import join, dirname, abspath
 from .pymcGrowth import simulate
+from pymc3.backends.tracetab import trace_to_dataframe
 
 
 def IC(IC50, X):
@@ -98,17 +99,18 @@ def save(classname, filename):
          pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
 
 
-def read(filename):
-    with open(filename,"rb") as file:
-        try:
-            while True:
-                pickel_model = pickle.load(file)
-                return pickel_model
-        except EOFError:
-            pass
+def readSamples(filename="sampling.pkl", asdf=False):
+    """ Read in sampling file and return it. """
+    fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
 
- #num(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]), np.array([0.,0.1,0.3,0.5,1]))
- #plotCurves(np.array([0.5, 1, 0.1]), np.array([0.3, 0.6, 0]), 0.2, 0.6, np.array([72.]))
+    with open(fname,"rb") as file:
+        M = pickle.load(file, encoding='latin1')
+
+    if asdf:
+        return trace_to_dataframe(M.samples)
+    else:
+        return M
+
          
 class doseResponseModel:
 
@@ -142,7 +144,6 @@ class doseResponseModel:
             Emax_apop = pm.Uniform('Emax_apop', testval=0.9)
 
             # D should be constructed the same as in other analysis
-            # TODO: Test for d equivalence
             d = pm.Lognormal('d', np.log(0.01), 1)
 
             # Import drug concentrations into theano vector
@@ -183,16 +184,17 @@ class doseResponseModel:
             # Conversion value is used to match lObs and lnum
             conv = pm.Lognormal('conv', mu=np.log(0.01), sd=1)
 
-            # TODO: Fit live cell number to data
-            lObs = self.lObs
             lExp = pm.Deterministic('lExp', lnum * conv)
-            residual = lObs - lExp
+
+            # Residual between model prediction and measurement
+            residual = self.lObs - lExp
+
             pm.Normal('dataFitlnum', sd = T.std(residual), observed = residual)
 
         return doseResponseModel
 
     # Traceplot
-    def plot(self):
+    def traceplot(self):
         pm.traceplot(self.samples)
 
     # Directly import one column of data

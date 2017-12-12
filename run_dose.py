@@ -1,8 +1,10 @@
 from grmodel.pymcDoseResponse import doseResponseModel
-from grmodel.pymcDoseResponse import save, read
+from grmodel.pymcDoseResponse import save, readSamples
 import matplotlib.pyplot as plt
-
-filename = "pickle_file.p"
+from pymc3.backends.tracetab import trace_to_dataframe
+from sklearn.decomposition import PCA
+from sklearn import preprocessing
+import seaborn as sns
 
 #M = doseResponseModel()
 
@@ -14,8 +16,16 @@ filename = "pickle_file.p"
 
 #save(M, filename)
 
-M = read(filename)
+df = readSamples(asdf=True)
 
-M.plot()
+df.drop(list(df.filter(regex = 'lnum')), axis = 1, inplace = True)
+df.drop(list(df.filter(regex = 'lExp')), axis = 1, inplace = True)
+df.drop(list(df.filter(regex = 'apop')), axis = 1, inplace = True)
+
+
+sns.pairplot(df)
+
+
+#M.traceplot()
 
 plt.show()
