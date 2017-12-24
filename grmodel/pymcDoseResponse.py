@@ -205,17 +205,19 @@ class doseResponseModel:
         
         # Compare the plots of (lObs vs. X and lExp vs. X)
         # Using five sets of lExp values
-        for i in range(0,5):
-            ax1.scatter(self.drugCs, self.samples['lExp'][i,:])
-            ax1.set_title('lnum vs. X')
-            ax1.set_xlabel("X")
-            ax1.set_ylabel("the number of live cells")
+        for i in np.random.choice(self.samples['lExp'].shape[0], 5):
+            ax1.scatter(self.drugCs, self.samples['lExp'][i, :])
+
+        ax1.set_title('lnum vs. X')
+        ax1.set_xlabel("X")
+        ax1.set_ylabel("the number of live cells")
         
         # Using all sets of lExp values
-        for i in range(0,2000):
-            ax2.scatter(self.drugCs, self.samples['lExp'][i,:])
-            ax2.set_xlabel("X")
-            ax2.set_ylabel("the number of live cells")
+        for i in np.random.choice(self.samples['lExp'].shape[0], 200):
+            ax2.scatter(self.drugCs, self.samples['lExp'][i, :])
+
+        ax2.set_xlabel("X")
+        ax2.set_ylabel("the number of live cells")
         
         ax1.plot(self.drugCs, self.lObs,'^', color="black")
         ax2.plot(self.drugCs, self.lObs,'^', color="black")
