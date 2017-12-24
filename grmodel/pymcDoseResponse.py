@@ -94,7 +94,8 @@ def loadIncucyte(drug=None):
         return df[df['Drug'] == drug]
 
 
-def save(classname, filename):
+def save(classname, filename="sampling.pkl"):
+    """ Save to sampling file. """
     with open(filename,"wb") as file:
          pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
 
@@ -188,15 +189,39 @@ class doseResponseModel:
 
             # Residual between model prediction and measurement
             residual = self.lObs - lExp
-
+            
             pm.Normal('dataFitlnum', sd = T.std(residual), observed = residual)
-
+                        
         return doseResponseModel
 
     # Traceplot
     def traceplot(self):
         pm.traceplot(self.samples)
+    
+    # Check that MCMC actually fit the data provided
+    def plot(self):
+        """ Plot the curves for (lnum vs. X) """
+        f, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
+        
+        # Compare the plots of (lObs vs. X and lExp vs. X)
+        # Using five sets of lExp values
+        for i in range(0,5):
+            ax1.scatter(self.drugCs, self.samples['lExp'][i,:])
+            ax1.set_title('lnum vs. X')
+            ax1.set_xlabel("X")
+            ax1.set_ylabel("the number of live cells")
+        
+        # Using all sets of lExp values
+        for i in range(0,2000):
+            ax2.scatter(self.drugCs, self.samples['lExp'][i,:])
+            ax2.set_xlabel("X")
+            ax2.set_ylabel("the number of live cells")
+        
+        ax1.plot(self.drugCs, self.lObs,'^', color="black")
+        ax2.plot(self.drugCs, self.lObs,'^', color="black")
 
+        plt.show()
+    
     # Directly import one column of data
     def importData(self):
         dataLoad = loadCellTiter(self.drug)
