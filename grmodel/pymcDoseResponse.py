@@ -148,7 +148,7 @@ class doseResponseModel:
             d = pm.Lognormal('d', np.log(0.01), 1)
 
             # Import drug concentrations into theano vector
-            drugCs = T._shared(self.drugCs)
+            drugCs = T._shared(np.power(10, self.drugCs))
 
             drugsT = T.transpose(T.outer(T.transpose(drugCs), T.ones_like(IC50s, dtype=theano.config.floatX)))
             
@@ -159,9 +159,9 @@ class doseResponseModel:
 
             # This is the value of each parameter, at each drug concentration
             rangeT = T.outer(EmaxV - EminV, constV)
-            lIC50T = T.outer(T.log10(IC50s), constV)
+            IC50T = T.outer(IC50s, constV)
 
-            params = T.outer(EminV, constV) + rangeT / (1 + 10**(drugsT - lIC50T))
+            params = T.outer(EminV, constV) + rangeT / (1 + drugsT/IC50T)
 
             # Calculate the growth rate
             GR = params[0, :] - params[1, :]
