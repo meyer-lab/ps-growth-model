@@ -182,10 +182,8 @@ class doseResponseModel:
             deadnec = b * (lnum - 1) / GR
             deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.time) - 1)
 
-            # Conversion value is used to match lObs and lnum
-            conv = pm.Lognormal('conv', mu=np.log(0.01), sd=1)
-
-            lExp = pm.Deterministic('lExp', lnum * conv)
+            # Normalize live cell data to max, as is similar to measurements
+            lExp = pm.Deterministic('lExp', lnum / T.max(lnum))
 
             # Residual between model prediction and measurement
             residual = self.lObs - lExp
