@@ -68,7 +68,7 @@ def loadCellTiter(drug=None):
     data['response'] = data['CellTiter'] / np.mean(data.loc[data['Conc (nM)'] == 0.0, 'CellTiter'])
 
     # Put the dose on a log scale as well
-    data['logDose'] = np.log(data['Conc (nM)'] + 0.1)
+    data['logDose'] = np.log10(data['Conc (nM)'] + 0.1)
 
     if drug is None:
         return data
@@ -96,7 +96,9 @@ def loadIncucyte(drug=None):
 
 def save(classname, filename="sampling.pkl"):
     """ Save to sampling file. """
-    with open(filename,"wb") as file:
+    fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
+
+    with open(fname, "wb") as file:
          pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
 
 
@@ -104,7 +106,7 @@ def readSamples(filename="sampling.pkl", asdf=False):
     """ Read in sampling file and return it. """
     fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
 
-    with open(fname,"rb") as file:
+    with open(fname, "rb") as file:
         M = pickle.load(file, encoding='latin1')
 
     if asdf:
@@ -135,57 +137,33 @@ class doseResponseModel:
 
         with doseResponseModel:
             # The three values here are div and deathrate
-            # Apopfrac is on end of only IC50s
-            IC50s = pm.Lognormal('IC50s', np.log(0.01), 1, shape=3, testval=[1.0, 2.0, 3.0])
-            Emin = pm.Lognormal('Emins', np.log(0.01), 1, shape=2, testval=[0.3, 0.3])
-            Emax = pm.Lognormal('Emaxs', np.log(0.01), 1, shape=2, testval=[0.9, 0.1])
-
-            # Apopfrac range handled separately due to bounds
-            Emin_apop = pm.Uniform('Emin_apop', testval=0.1)
-            Emax_apop = pm.Uniform('Emax_apop', testval=0.9)
-
-            # D should be constructed the same as in other analysis
-            d = pm.Lognormal('d', np.log(0.01), 1)
+            # Assume just one IC50 for simplicity
+            lIC50 = pm.Normal('IC50s', 2.0, 1.0)
+            hill = pm.Lognormal('hill', 0.0)
+            Emin_growth = pm.Lognormal('Emin_growth', -2.0, 2.0, testval=1.0)
+            Emax_growth = pm.Lognormal('Emax_growth', -3.0, 2.0, testval=0.1)
+            Emax_death  = pm.Lognormal('Emax_death',  -2.0, 2.0, testval=1.0)
 
             # Import drug concentrations into theano vector
             drugCs = T._shared(self.drugCs)
 
-            drugsT = T.transpose(T.outer(T.transpose(drugCs), T.ones_like(IC50s, dtype=theano.config.floatX)))
-            
-            constV = T.ones_like(drugCs, dtype=theano.config.floatX)
+            # Drug term since we're using constant IC50 and hill slope
+            drugTerm = 1.0 / (1.0 + T.pow(10.0, (lIC50 - drugCs) * hill))
 
-            EminV = T.concatenate((Emin, T.stack(Emin_apop)))
-            EmaxV = T.concatenate((Emax, T.stack(Emax_apop)))
-
-            # This is the value of each parameter, at each drug concentration
-            rangeT = T.outer(EmaxV - EminV, constV)
-            lIC50T = T.outer(T.log10(IC50s), constV)
-
-            params = T.outer(EminV, constV) + rangeT / (1 + 10**(drugsT - lIC50T))
+            # Do actual conversion to parameters for each drug condition
+            growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
+            # _Assuming deathrate in the absence of drug is zero
+            deathV = Emax_death * drugTerm
 
             # Calculate the growth rate
-            GR = params[0, :] - params[1, :]
+            GR = growthV - deathV
 
             # Calculate the number of live cells
-            lnum = pm.Deterministic('lnum', T.exp(GR * self.time))
+            lnum = T.exp(GR * self.time)
 
-            # cGDd is used later
-            cGRd = (params[1, :] * params[2, :]) / (GR + d)
-
-            # b is the rate straight to death
-            b = params[1, :] * (1 - params[2, :])
-
-            # Number of early apoptosis cells at start is 0.0
-            eap = cGRd * (lnum - pm.math.exp(-d * self.time))
-
-            # Calculate dead cells via apoptosis and via necrosis
-            deadnec = b * (lnum - 1) / GR
-            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.time) - 1)
-
-            # Conversion value is used to match lObs and lnum
-            conv = pm.Lognormal('conv', mu=np.log(0.01), sd=1)
-
-            lExp = pm.Deterministic('lExp', lnum * conv)
+            # Normalize live cell data to control, as is similar to measurements
+            # _Should be index 0
+            lExp = pm.Deterministic('lExp', lnum / lnum[0])
 
             # Residual between model prediction and measurement
             residual = self.lObs - lExp
@@ -205,17 +183,19 @@ class doseResponseModel:
         
         # Compare the plots of (lObs vs. X and lExp vs. X)
         # Using five sets of lExp values
-        for i in range(0,5):
-            ax1.scatter(self.drugCs, self.samples['lExp'][i,:])
-            ax1.set_title('lnum vs. X')
-            ax1.set_xlabel("X")
-            ax1.set_ylabel("the number of live cells")
+        for i in np.random.choice(self.samples['lExp'].shape[0], 5):
+            ax1.scatter(self.drugCs, self.samples['lExp'][i, :])
+
+        ax1.set_title('lnum vs. X')
+        ax1.set_xlabel("X")
+        ax1.set_ylabel("the number of live cells")
         
         # Using all sets of lExp values
-        for i in range(0,2000):
-            ax2.scatter(self.drugCs, self.samples['lExp'][i,:])
-            ax2.set_xlabel("X")
-            ax2.set_ylabel("the number of live cells")
+        for i in np.random.choice(self.samples['lExp'].shape[0], 200):
+            ax2.scatter(self.drugCs, self.samples['lExp'][i, :])
+
+        ax2.set_xlabel("X")
+        ax2.set_ylabel("the number of live cells")
         
         ax1.plot(self.drugCs, self.lObs,'^', color="black")
         ax2.plot(self.drugCs, self.lObs,'^', color="black")
