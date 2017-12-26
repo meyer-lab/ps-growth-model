@@ -8,6 +8,7 @@ import pickle
 from os.path import join, dirname, abspath
 from .pymcGrowth import simulate
 from pymc3.backends.tracetab import trace_to_dataframe
+from sklearn.decomposition import PCA
 
 
 def IC(IC50, X):
@@ -36,21 +37,21 @@ def plotCurves(IC_Div, IC_DR, d, apopfrac, ttime):
 
     fig, ax = plt.subplots(1,3,figsize=(10,3))
     
-    ax[0].set_title("lnum vs. X")
-    ax[0].set_xlabel("X")
-    ax[0].set_ylabel("the number of live cells")
+    ax[0].set_title('lnum vs. X')
+    ax[0].set_xlabel('X')
+    ax[0].set_ylabel('the number of live cells')
     ax[0].plot(X, lnum)
     ax[0].set_xscale('log')
 
-    ax[1].set_title("eap vs. X")
-    ax[1].set_xlabel("X")
-    ax[1].set_ylabel("the number of early apoptosis cells")
+    ax[1].set_title('eap vs. X')
+    ax[1].set_xlabel('X')
+    ax[1].set_ylabel('the number of early apoptosis cells')
     ax[1].plot(X, eap)
     ax[1].set_xscale('log')
 
-    ax[2].set_title("dead vs. X")
-    ax[2].set_xlabel("X")
-    ax[2].set_ylabel("the number of dead cells")
+    ax[2].set_title('dead vs. X')
+    ax[2].set_xlabel('X')
+    ax[2].set_ylabel('the number of dead cells')
     ax[2].plot(X, dead)
     ax[2].set_xscale('log')
     
@@ -94,19 +95,19 @@ def loadIncucyte(drug=None):
         return df[df['Drug'] == drug]
 
 
-def save(classname, filename="sampling.pkl"):
+def save(classname, filename='sampling.pkl'):
     """ Save to sampling file. """
     fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
 
-    with open(fname, "wb") as file:
+    with open(fname, 'wb') as file:
          pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
 
 
-def readSamples(filename="sampling.pkl", asdf=False):
+def readSamples(filename='sampling.pkl', asdf=False):
     """ Read in sampling file and return it. """
     fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
 
-    with open(fname, "rb") as file:
+    with open(fname, 'rb') as file:
         M = pickle.load(file, encoding='latin1')
 
     if asdf:
@@ -114,7 +115,7 @@ def readSamples(filename="sampling.pkl", asdf=False):
     else:
         return M
 
-         
+
 class doseResponseModel:
 
     def sample(self):
@@ -131,7 +132,7 @@ class doseResponseModel:
         '''
 
         if not hasattr(self, 'drugCs'):
-            raise ValueError("Need to import data first.")
+            raise ValueError('Need to import data first.')
 
         doseResponseModel = pm.Model()
 
@@ -187,20 +188,27 @@ class doseResponseModel:
             ax1.scatter(self.drugCs, self.samples['lExp'][i, :])
 
         ax1.set_title('lnum vs. X')
-        ax1.set_xlabel("X")
-        ax1.set_ylabel("the number of live cells")
+        ax1.set_xlabel('X')
+        ax1.set_ylabel('the number of live cells')
         
         # Using all sets of lExp values
         for i in np.random.choice(self.samples['lExp'].shape[0], 200):
             ax2.scatter(self.drugCs, self.samples['lExp'][i, :])
 
-        ax2.set_xlabel("X")
-        ax2.set_ylabel("the number of live cells")
+        ax2.set_xlabel('X')
+        ax2.set_ylabel('the number of live cells')
         
-        ax1.plot(self.drugCs, self.lObs,'^', color="black")
-        ax2.plot(self.drugCs, self.lObs,'^', color="black")
+        ax1.plot(self.drugCs, self.lObs,'^', color='black')
+        ax2.plot(self.drugCs, self.lObs,'^', color='black')
 
         plt.show()
+    
+    # Check the dimensionality of the sampling uncertainty using PCA
+    def doPCA(self):
+        X = np.array([self.samples['IC50s'], self.samples['hill'], self.samples['Emin_growth'], self.samples['Emax_growth'], self.samples['Emax_death']])
+        pca = PCA()
+        pca.fit(X)
+        print(pca.explained_variance_ratio_)
     
     # Directly import one column of data
     def importData(self):
@@ -218,6 +226,6 @@ class doseResponseModel:
     def __init__(self, Drug = None):
         # If no filename is given use a default
         if Drug is None:
-            self.drug = "DOX"
+            self.drug = 'DOX'
         else:
             self.drug = Drug

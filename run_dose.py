@@ -14,14 +14,14 @@ M.importData()
 
 M.sample()
 
-M.plot()
-
 save(M, "sampling.pkl")
-'''
 
+'''
+    
 M = readSamples()
 #M.traceplot()
-M.plot()
+#M.plot()
+M.doPCA()
 
 '''
 df = readSamples(asdf=True)
@@ -32,7 +32,5 @@ df.drop(list(df.filter(regex = 'apop')), axis = 1, inplace = True)
 
 sns.pairplot(df)
 '''
-
-#M.traceplot()
 
 #plt.show()
