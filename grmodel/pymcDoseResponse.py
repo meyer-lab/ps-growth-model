@@ -9,6 +9,7 @@ from os.path import join, dirname, abspath
 from .pymcGrowth import simulate
 from pymc3.backends.tracetab import trace_to_dataframe
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 
 def IC(IC50, X):
@@ -18,7 +19,7 @@ def IC(IC50, X):
 
 def num(IC_Div, IC_DR, d, apopfrac, ttime, X):
     """ Define the num function to count lnum, eap and dead based on given parameters """
-    out = np.empty((len(X),1,4))
+    out = np.empty((len(X), 1, 4))
 
     for i, x in enumerate(X):
         params = np.array([IC(IC_Div, x), d, IC(IC_DR, x), apopfrac])
@@ -29,14 +30,14 @@ def num(IC_Div, IC_DR, d, apopfrac, ttime, X):
 
 def plotCurves(IC_Div, IC_DR, d, apopfrac, ttime):
     """ Plot the curves for (lnum vs. X, eap vs. X, dead vs. X) """
-    X = np.linspace(0,0.5)
+    X = np.linspace(0, 0.5)
     result = np.array(num(IC_Div, IC_DR, d, apopfrac, ttime, X))
-    lnum = result[:,0,0]
-    eap = result[:,0,1]
-    dead = result[:,0,2] + result[:,0,3]
+    lnum = result[:, 0, 0]
+    eap = result[:, 0, 1]
+    dead = result[:, 0, 2] + result[:, 0, 3]
 
-    fig, ax = plt.subplots(1,3,figsize=(10,3))
-    
+    fig, ax = plt.subplots(1, 3, figsize=(10, 3))
+
     ax[0].set_title('lnum vs. X')
     ax[0].set_xlabel('X')
     ax[0].set_ylabel('the number of live cells')
@@ -54,7 +55,7 @@ def plotCurves(IC_Div, IC_DR, d, apopfrac, ttime):
     ax[2].set_ylabel('the number of dead cells')
     ax[2].plot(X, dead)
     ax[2].set_xscale('log')
-    
+
     plt.tight_layout()
     plt.show()
 
@@ -83,7 +84,7 @@ def loadIncucyte(drug=None):
 
     df = pd.read_csv(filename)
 
-    df = pd.melt(df, id_vars = ['Elapsed'], var_name = 'Condition')
+    df = pd.melt(df, id_vars=['Elapsed'], var_name='Condition')
 
     df['Drug'], df['Concentration'] = df['Condition'].str.split('-', 1).str
 
@@ -100,7 +101,7 @@ def save(classname, filename='sampling.pkl'):
     fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
 
     with open(fname, 'wb') as file:
-         pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
 
 
 def readSamples(filename='sampling.pkl', asdf=False):
@@ -123,7 +124,7 @@ class doseResponseModel:
         num = 1000
 
         with self.model:
-            self.samples = pm.sample(draws=num, tune = num, njobs=2,  # Run three parallel chains
+            self.samples = pm.sample(draws=num, tune=num, njobs=2,  # Run three parallel chains
                                      nuts_kwargs={'target_accept': 0.99})
 
     def build_model(self):
@@ -143,7 +144,7 @@ class doseResponseModel:
             hill = pm.Lognormal('hill', 0.0)
             Emin_growth = pm.Lognormal('Emin_growth', -2.0, 2.0, testval=1.0)
             Emax_growth = pm.Lognormal('Emax_growth', -3.0, 2.0, testval=0.1)
-            Emax_death  = pm.Lognormal('Emax_death',  -2.0, 2.0, testval=1.0)
+            Emax_death = pm.Lognormal('Emax_death', -2.0, 2.0, testval=1.0)
 
             # Import drug concentrations into theano vector
             drugCs = T._shared(self.drugCs)
@@ -168,20 +169,20 @@ class doseResponseModel:
 
             # Residual between model prediction and measurement
             residual = self.lObs - lExp
-            
-            pm.Normal('dataFitlnum', sd = T.std(residual), observed = residual)
-                        
+
+            pm.Normal('dataFitlnum', sd=T.std(residual), observed=residual)
+
         return doseResponseModel
 
     # Traceplot
     def traceplot(self):
         pm.traceplot(self.samples)
-    
+
     # Check that MCMC actually fit the data provided
     def plot(self):
         """ Plot the curves for (lnum vs. X) """
         f, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
-        
+
         # Compare the plots of (lObs vs. X and lExp vs. X)
         # Using five sets of lExp values
         for i in np.random.choice(self.samples['lExp'].shape[0], 5):
@@ -190,26 +191,51 @@ class doseResponseModel:
         ax1.set_title('lnum vs. X')
         ax1.set_xlabel('X')
         ax1.set_ylabel('the number of live cells')
-        
+
         # Using all sets of lExp values
         for i in np.random.choice(self.samples['lExp'].shape[0], 200):
             ax2.scatter(self.drugCs, self.samples['lExp'][i, :])
 
         ax2.set_xlabel('X')
         ax2.set_ylabel('the number of live cells')
-        
-        ax1.plot(self.drugCs, self.lObs,'^', color='black')
-        ax2.plot(self.drugCs, self.lObs,'^', color='black')
+
+        ax1.plot(self.drugCs, self.lObs, '^', color='black')
+        ax2.plot(self.drugCs, self.lObs, '^', color='black')
 
         plt.show()
-    
+
     # Check the dimensionality of the sampling uncertainty using PCA
     def doPCA(self):
-        X = np.array([self.samples['IC50s'], self.samples['hill'], self.samples['Emin_growth'], self.samples['Emax_growth'], self.samples['Emax_death']])
+        X = np.array([self.samples['IC50s'], self.samples['hill'], self.samples['Emin_growth'], self.samples['Emin_growth'], self.samples['Emax_death']])
+        X = X.transpose()
+
+        # it is always good to scale the data
+        scaler = StandardScaler()
+        scaler.fit(X)
+        X = scaler.transform(X)
+
         pca = PCA()
-        pca.fit(X)
+        X_new = pca.fit_transform(X)
+
         print(pca.explained_variance_ratio_)
-    
+
+        # Scatter plot of PC1 vs. PC2
+        plt.scatter(X_new[:, 0], X_new[:, 1], c='aqua')
+        '''
+        # Plot the direction of each variable
+        coeff = pca.components_
+        n = coeff.shape[0]
+        labels = ['IC50s', 'hill', 'Emin_growth', 'Emin_growth', 'Emax_death']
+        for i in range(n):
+            plt.arrow(0, 0, coeff[i, 0], coeff[i, 1], color='r', alpha=0.5)
+            plt.text(coeff[i, 0]*1.15, coeff[i, 1]*1.15, labels[i], color='b', ha='center', va='center')
+        '''
+        plt.xlabel("PC{}".format(1))
+        plt.ylabel("PC{}".format(2))
+        plt.title("2 components PCA")
+        plt.grid()
+        plt.show()
+
     # Directly import one column of data
     def importData(self):
         dataLoad = loadCellTiter(self.drug)
@@ -223,7 +249,7 @@ class doseResponseModel:
         # Build the model
         self.model = self.build_model()
 
-    def __init__(self, Drug = None):
+    def __init__(self, Drug=None):
         # If no filename is given use a default
         if Drug is None:
             self.drug = 'DOX'
