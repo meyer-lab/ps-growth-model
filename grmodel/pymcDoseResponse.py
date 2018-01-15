@@ -1,5 +1,6 @@
 import numpy as np
 import pymc3 as pm
+import seaborn as sns
 import theano.tensor as T
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,8 +9,6 @@ import pickle
 from os.path import join, dirname, abspath
 from .pymcGrowth import simulate
 from pymc3.backends.tracetab import trace_to_dataframe
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 
 
 def IC(IC50, X):
@@ -109,7 +108,8 @@ def readSamples(filename='sampling.pkl', asdf=False):
     fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
 
     with open(fname, 'rb') as file:
-        M = pickle.load(file, encoding='latin1')
+        # M = pickle.load(file, encoding='latin1')
+        M = pickle.load(file)
 
     if asdf:
         return trace_to_dataframe(M.samples)
@@ -153,9 +153,12 @@ class doseResponseModel:
             drugTerm = 1.0 / (1.0 + T.pow(10.0, (lIC50 - drugCs) * hill))
 
             # Do actual conversion to parameters for each drug condition
-            growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
+            # growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
+            growthV = pm.Deterministic('growthV', Emin_growth + (Emax_growth - Emin_growth) * drugTerm)
+
             # _Assuming deathrate in the absence of drug is zero
-            deathV = Emax_death * drugTerm
+            # deathV = Emax_death * drugTerm
+            deathV = pm.Deterministic('deathV', Emax_death * drugTerm)
 
             # Calculate the growth rate
             GR = growthV - deathV
@@ -176,65 +179,7 @@ class doseResponseModel:
 
     # Traceplot
     def traceplot(self):
-        pm.traceplot(self.samples)
-
-    # Check that MCMC actually fit the data provided
-    def plot(self):
-        """ Plot the curves for (lnum vs. X) """
-        f, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
-
-        # Compare the plots of (lObs vs. X and lExp vs. X)
-        # Using five sets of lExp values
-        for i in np.random.choice(self.samples['lExp'].shape[0], 5):
-            ax1.scatter(self.drugCs, self.samples['lExp'][i, :])
-
-        ax1.set_title('lnum vs. X')
-        ax1.set_xlabel('X')
-        ax1.set_ylabel('the number of live cells')
-
-        # Using all sets of lExp values
-        for i in np.random.choice(self.samples['lExp'].shape[0], 200):
-            ax2.scatter(self.drugCs, self.samples['lExp'][i, :])
-
-        ax2.set_xlabel('X')
-        ax2.set_ylabel('the number of live cells')
-
-        ax1.plot(self.drugCs, self.lObs, '^', color='black')
-        ax2.plot(self.drugCs, self.lObs, '^', color='black')
-
-        plt.show()
-
-    # Check the dimensionality of the sampling uncertainty using PCA
-    def doPCA(self):
-        X = np.array([self.samples['IC50s'], self.samples['hill'], self.samples['Emin_growth'], self.samples['Emin_growth'], self.samples['Emax_death']])
-        X = X.transpose()
-
-        # it is always good to scale the data
-        scaler = StandardScaler()
-        scaler.fit(X)
-        X = scaler.transform(X)
-
-        pca = PCA()
-        X_new = pca.fit_transform(X)
-
-        print(pca.explained_variance_ratio_)
-
-        # Scatter plot of PC1 vs. PC2
-        plt.scatter(X_new[:, 0], X_new[:, 1], c='aqua')
-        '''
-        # Plot the direction of each variable
-        coeff = pca.components_
-        n = coeff.shape[0]
-        labels = ['IC50s', 'hill', 'Emin_growth', 'Emin_growth', 'Emax_death']
-        for i in range(n):
-            plt.arrow(0, 0, coeff[i, 0], coeff[i, 1], color='r', alpha=0.5)
-            plt.text(coeff[i, 0]*1.15, coeff[i, 1]*1.15, labels[i], color='b', ha='center', va='center')
-        '''
-        plt.xlabel("PC{}".format(1))
-        plt.ylabel("PC{}".format(2))
-        plt.title("2 components PCA")
-        plt.grid()
-        plt.show()
+        return pm.traceplot(self.samples)
 
     # Directly import one column of data
     def importData(self):
