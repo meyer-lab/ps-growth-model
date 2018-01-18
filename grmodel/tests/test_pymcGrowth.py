@@ -11,11 +11,11 @@ class TestgrMethods(unittest.TestCase):
     def test_model(self):
         GR = GrowthModel(loadFile="030317-2-R1_H1299")
 
-        GR.importData(2)
+        GR.importData(2, comb = 'R')
 
         model = GR.build_model()
 
-        self.assertEqual(len(GR.expTable), 4)
+        self.assertEqual(len(GR.expTable), 3)
         self.assertIsInstance(model, pm.Model)
 
     def test_MAP(self):
@@ -27,4 +27,4 @@ class TestgrMethods(unittest.TestCase):
             start, nuts = pm.sampling.init_nuts(n_init=2,
                                                 progressbar=False)
 
-        self.assertEqual(len(start), 4)
+        self.assertEqual(len(start), 9)

@@ -11,6 +11,6 @@ print(a.loadModels(2))
 a.sample()
 a.save()
 
-cL = read_dataset()
+cL = read_dataset(traceplot=True)
 
 diagnostics(cL)

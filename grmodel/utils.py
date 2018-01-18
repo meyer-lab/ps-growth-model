@@ -2,41 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-from .sampleAnalysis import readModels
+from collections import OrderedDict
+from .sampleAnalysis import readModel
 
-
-def makePlot(cols, drugs):
-    ''' Make hist_plot, PCA, dose_response_plot, and violinplot '''
-    hist_plot(cols)
-    PCA_plot(cols)
-    dose_response_plot(drugs)
-    violinplot(drugs)
-
-def reformatData(dfd, drug, doses, params):
-    """
-    Sample nsamples number of points from sampling results,
-    Reformat dataframe so that columns of the dataframe are params
-    """
-    dfplot = pd.DataFrame()
-
-    if dfd.shape[0] > 1000:
-        dfd = dfd.sample(1000)
-
-    # Interate over each dose
-    # Columns: div, d, deathRate, apopfrac, condition
-    for dose in doses:
-        doseidx = doses.index(dose)
-        dftemp = pd.DataFrame()
-        for param in params:
-            dftemp[param] = dfd[param+'__'+str(doseidx)]
-        dftemp['drug'] = drug
-        dftemp['dose'] = dose
-        dfplot = pd.concat([dfplot, dftemp], axis=0)
-
-    # Log transformation
-    for param in ['div', 'deathRate']:
-        dfplot[param] = dfplot[param].apply(np.log10)
-    return dfplot
 
 def hist_plot(drug):
     """
@@ -44,7 +12,7 @@ def hist_plot(drug):
     """
     import seaborn as sns
     # Read in dataframe
-    classdict, df = readModels([drug])
+    classdict, df = readModel([drug])
 
     params = ['div', 'd', 'deathRate', 'apopfrac']
 
@@ -90,7 +58,7 @@ def PCA_plot(drugs):
 
     # Read in dataframe
     conditions = drugs[:]
-    classdict, df = readModels(conditions)
+    classdict, df = readModel(conditions)
 
     params = ['div', 'd', 'deathRate', 'apopfrac']
 
@@ -155,11 +123,11 @@ def dose_response_plot(drugs=None, log=True, logdose=False, show=True):
     ''' 
     # Read in dataframe
     if drugs is None:
-        classdict, df = readModels()
+        classdict, df = readModel()
         drugs = list(classdict.keys())
     else:
         conditions = drugs[:]
-        classdict, df = readModels(conditions)
+        classdict, df = readModel(conditions)
 
     params = ['div ', 'd ', 'deathRate ', 'apopfrac ']
 
@@ -234,109 +202,96 @@ def dose_response_plot(drugs=None, log=True, logdose=False, show=True):
         return (f, axis)
 
 
-def violinplot(drugs):
+def reformatData(dfd, drug, doseidx, params):
+    """
+    Sample nsamples number of points from sampling results,
+    Reformat dataframe so that columns of the dataframe are params
+    Returns dataframe of columns: parameters and dose
+    """
+    dfplot = pd.DataFrame()
+
+    if dfd.shape[0] > 1000:
+        dfd = dfd.sample(1000)
+
+    # Interate over each dose
+    # Columns: div, d, deathRate, apopfrac, dose
+    for dose in doseidx:
+        dftemp = pd.DataFrame()
+        for param in params:
+            dftemp[param] = dfd[param+'__'+str(doseidx[dose])]
+        dftemp['dose'] = dose
+        dfplot = pd.concat([dfplot, dftemp], axis=0)
+
+    # Log transformation
+    for param in ['div', 'deathRate']:
+        dfplot[param] = dfplot[param].apply(np.log10)
+    return dfplot
+
+
+def violinplot(drugs=None):
     '''
     Takes in a list of drugs
-    Makes 1*num(parameters) boxplots for each drug
+    Makes 1*len(parameters) violinplots for each drug
     '''
     import seaborn as sns
     sns.set_context("paper", font_scale=1.2)
     # Read in dataframe
-    conditions = drugs[:]
-    classdict, df = readModels(conditions)
+    classM, df = readModel()
+    alldrugs = classM.drugs
+    alldoses = classM.doses
+    # Get a list of drugs
+    if drugs == None:
+        drugs = list(set(classM.drugs))
+        drugs.remove('Control')
 
     params = ['div', 'deathRate', 'apopfrac']
 
-    # Make plots for each drug
-    _, axis = plt.subplots(len(drugs), 3, figsize=(9, 2.5*len(drugs)), sharex=False, sharey='col')
-
+    # Set up a len(drugs)*len(params) grid of subplots
+    _, axis = plt.subplots(len(drugs), len(params), figsize=(12, 3*len(drugs)), sharex=False, sharey='col')
 
     # Interate over each drug
     for drug in drugs:
-        # Set up table for the drug
-        dfd = df[drug]
-
-        # Set up list of doses
-        classM = classdict[drug]
-        doses = classM.doses
+        # Set up ordered dictionary for dose:idx
+        doseidx = OrderedDict()
+        flag = True
+        # Iterate from the last condition to the first condition
+        for i in range(len(alldrugs)-1, -1, -1):
+            # Condition matches drug of interest
+            if alldrugs[i] == drug:
+                doseidx[alldoses[i]] = i
+            # Include the first control after drug conditions
+            elif alldrugs[i] == 'Control' and flag and bool(doseidx):
+                doseidx[alldoses[i]] = i
+                flag = False
+        # Put dictionary items in order of increasing dosage
+        doseidx = OrderedDict(reversed(list(doseidx.items())))
 
         # Reshape table for violinplot
-        # Columns: div, d, deathRate, apopfrac, dose
-        dfplot = reformatData(dfd, drug, doses, params)
+        # Columns: div, deathRate, apopfrac, dose
+        dfplot = reformatData(df, drug, doseidx, params)
 
         # Plot params vs. drug dose
+        # Get drug
         j = drugs.index(drug)
+        # Iterate over each parameter in params
         for i in range(len(params)):
+            # For apopfrac, set y-axis limit to [0,1]
             if params[i] == 'apopfrac':
                 axis[j, i].set_ylim([0, 1])
+            # Make violin plots
             sns.violinplot(dfplot['dose'], dfplot[params[i]], ax=axis[j,i], cut=0)
             axis[j, i].set_xlabel(drug+' dose')
 
     plt.tight_layout()
+    # Set plot title
     plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x=-2, y=1.3*len(drugs))
     plt.show()
+    return axis
 
 
-def plotSimulation(self, paramV):
-    """
-    Plots the results from a simulation.
-    TODO: Run simulation when this is called, and also plot observations.
-    TODO: If selCol is None, then plot simulation but not observations.
-    """
-
-    # Calculate model data table
-    params = mcFormat(paramV[:-4])
-    t_interval = np.arange(
-        0, self.data_confl.iloc[-1, 1], (self.data_confl.iloc[2, 1] - self.data_confl.iloc[1, 1]))
-
-    state = simulate(params, t_interval)
-
-    # plot simulation results; if selCol is not None, also plot observations
-    if self.selCol is not None:
-        # print(self.selCol)
-        data_confl_selCol = self.data_confl.iloc[:, self.selCol]
-        data_green_selCol = self.data_green.iloc[:, self.selCol]
-        t_interval_observ = self.data_confl.iloc[:, 1]
-
-        # get conversion constants
-        conv_confl, conv_green = np.power(10, paramV[-4:-2])
-
-        # adjust simulation values
-        simulation_confl = state.iloc[:, 1] * conv_confl
-        simulation_green = (state.iloc[:, 2] + state.iloc[:, 3]) * conv_green
-
-        _, axarr = plt.subplots(3, figsize=(10, 10))
-        axarr[0].set_title('Simulation Results')
-        t_interval = state.iloc[:, 0].values
-        axarr[0].plot(t_interval, state.iloc[:, 1], 'b-', label="live")
-        axarr[0].plot(t_interval, state.iloc[:, 2], 'r-', label="dead")
-        axarr[0].plot(t_interval, state.iloc[:, 3],
-                      'g-', label="early apoptosis")
-        axarr[0].plot(t_interval, state.iloc[:, 4], 'k-', label="gone")
-        axarr[0].legend(bbox_to_anchor=(1.04, 0.5),
-                        loc="center left", borderaxespad=0)
-
-        axarr[1].set_title('Observed: data_confl')
-        axarr[1].plot(t_interval_observ, data_confl_selCol, label='data_confl')
-        axarr[1].plot(t_interval, simulation_confl, label='simulation_confl')
-        axarr[1].legend(bbox_to_anchor=(1.04, 0.5),
-                        loc="center left", borderaxespad=0)
-
-        axarr[2].set_title('Observed: data_green')
-        axarr[2].plot(t_interval_observ, data_green_selCol, label='data_green')
-        axarr[2].plot(t_interval, simulation_green, label='simulation_green')
-        axarr[2].legend(bbox_to_anchor=(1.04, 0.5),
-                        loc="center left", borderaxespad=0)
-        plt.tight_layout()
-        plt.show()
-    else:
-        figure()
-        xlabel('Time')
-        ylabel('Number of Cells')
-        t_interval = state.iloc[:, 0].values
-        plt.plot(t_interval, state.iloc[:, 1], 'b-', label="live")
-        plt.plot(t_interval, state.iloc[:, 2], 'r-', label="dead")
-        plt.plot(t_interval, state.iloc[:, 3], 'g-', label="early apoptosis")
-        plt.plot(t_interval, state.iloc[:, 4], 'k-', label="gone")
-        plt.legend(loc='upper right')
-        show()
+def violinplot_split():
+    import seaborn as sns
+    
+    ax = sns.violinplot(x="day", y="total_bill", hue="smoker",
+                        data=tips, palette="muted", split=True)
+    return ax
