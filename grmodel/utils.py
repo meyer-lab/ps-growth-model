@@ -202,7 +202,7 @@ def dose_response_plot(drugs=None, log=True, logdose=False, show=True):
         return (f, axis)
 
 
-def reformatData(dfd, drug, doseidx, params):
+def reformatData(dfd, doseidx, params, dTypes=False):
     """
     Sample nsamples number of points from sampling results,
     Reformat dataframe so that columns of the dataframe are params
@@ -220,6 +220,8 @@ def reformatData(dfd, drug, doseidx, params):
         for param in params:
             dftemp[param] = dfd[param+'__'+str(doseidx[dose])]
         dftemp['dose'] = dose
+        if dTypes:
+            dftemp['Data Type'] = dfd['Data Type']
         dfplot = pd.concat([dfplot, dftemp], axis=0)
 
     # Log transformation
@@ -268,7 +270,7 @@ def violinplot(drugs=None):
 
         # Reshape table for violinplot
         # Columns: div, deathRate, apopfrac, dose
-        dfplot = reformatData(df, drug, doseidx, params)
+        dfplot = reformatData(df, doseidx, params)
 
         # Plot params vs. drug dose
         # Get drug
@@ -279,19 +281,72 @@ def violinplot(drugs=None):
             if params[i] == 'apopfrac':
                 axis[j, i].set_ylim([0, 1])
             # Make violin plots
-            sns.violinplot(dfplot['dose'], dfplot[params[i]], ax=axis[j,i], cut=0)
+            sns.violinplot(x='dose', y=params[i], data = dfplot, ax=axis[j,i], cut=0)
             axis[j, i].set_xlabel(drug+' dose')
 
     plt.tight_layout()
     # Set plot title
     plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x=-2, y=1.3*len(drugs))
-    plt.show()
     return axis
 
 
-def violinplot_split():
+def violinplot_split(filename, drugs=None):
     import seaborn as sns
+    # Read in model and dataframe
+    classM, df = readModel(filename)
+    df['Data Type'] = 'Kinetic'
+    # Read in dataframe for endpoint data
+    _, df2 = readModel(filename+'_ends')
+    df2['Data Type'] = 'End points'
+    # Concatinate the two data frames
+    df = pd.concat([df, df2], axis=0)
     
-    ax = sns.violinplot(x="day", y="total_bill", hue="smoker",
-                        data=tips, palette="muted", split=True)
+    alldrugs = classM.drugs
+    alldoses = classM.doses
+    # Get a list of drugs
+    if drugs == None:
+        drugs = list(set(classM.drugs))
+        drugs.remove('Control')
+
+    params = ['div', 'deathRate', 'apopfrac']
+
+    # Set up a len(drugs)*len(params) grid of subplots
+    _, axis = plt.subplots(len(drugs), len(params), figsize=(12, 3*len(drugs)), sharex=False, sharey='col')
+
+    # Interate over each drug
+    for drug in drugs:
+        # Set up ordered dictionary for dose:idx
+        doseidx = OrderedDict()
+        flag = True
+        # Iterate from the last condition to the first condition
+        for i in range(len(alldrugs)-1, -1, -1):
+            # Condition matches drug of interest
+            if alldrugs[i] == drug:
+                doseidx[alldoses[i]] = i
+            # Include the first control after drug conditions
+            elif alldrugs[i] == 'Control' and flag and bool(doseidx):
+                doseidx[alldoses[i]] = i
+                flag = False
+        # Put dictionary items in order of increasing dosage
+        doseidx = OrderedDict(reversed(list(doseidx.items())))
+
+        # Reshape table for violinplot
+        # Columns: div, deathRate, apopfrac, dose
+        dfplot = reformatData(df, doseidx, params, dTypes=True)
+
+        # Plot params vs. drug dose
+        # Get drug
+        j = drugs.index(drug)
+        # Iterate over each parameter in params
+        for i in range(len(params)):
+            # For apopfrac, set y-axis limit to [0,1]
+            if params[i] == 'apopfrac':
+                axis[j, i].set_ylim([0, 1])
+            # Make violin plots
+            ax = sns.violinplot(x="dose", y=params[i], hue="Data Type",
+                                data=dfplot, palette="muted", split=True, cut=0)
+            axis[j, i].set_xlabel(drug+' dose')
+
+    plt.tight_layout()
+
     return ax
