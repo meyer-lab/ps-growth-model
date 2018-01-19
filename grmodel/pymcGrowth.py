@@ -332,6 +332,6 @@ class GrowthModel:
     def __init__(self, loadFile = None):
         # If no filename is given use a default
         if loadFile is None:
-            self.loadFile = "111717_PC9"
+            self.loadFile = "101117_H1299"
         else:
             self.loadFile = loadFile
