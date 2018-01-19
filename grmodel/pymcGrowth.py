@@ -69,7 +69,7 @@ class MultiSample:
     def __init__(self):
         self.models = list()
 
-    def loadModels(self, firstCols, fileName = None, seldrugs = None, comb = None, interval = True):
+    def loadModels(self, firstCols, fileName=None, seldrugs=None, comb=None, interval=True):
         """  Initialize GrowthModel for each drug. Load data for each drug in."""
         # Get LoadFile from GrowthModel()
         gr = GrowthModel(fileName)
@@ -79,7 +79,7 @@ class MultiSample:
                 self.filePrefix = './grmodel/data/' + gr.loadFile
             else:
                 self.filePrefix = './grmodel/data/' + gr.loadFile + '_ends'
-        gr.importData(firstCols, comb = comb, interval = interval)
+        gr.importData(firstCols, comb = comb, interval=interval)
         self.models = gr
         return gr.drugs
 
@@ -198,7 +198,7 @@ class GrowthModel:
         return growth_model
 
     # Directly import one column of data
-    def importData(self, firstCols, drop24=False, comb = None, interval = True):
+    def importData(self, firstCols, drop24=False, comb=None, interval=True):
         
 
         # Property list

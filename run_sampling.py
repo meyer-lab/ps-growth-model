@@ -7,7 +7,7 @@ from grmodel.pymcGrowth import MultiSample
 from grmodel.sampleAnalysis import diagnostics, read_dataset
 
 a = MultiSample()
-print(a.loadModels(2))
+print(a.loadModels(2, interval=False))
 a.sample()
 a.save()
 

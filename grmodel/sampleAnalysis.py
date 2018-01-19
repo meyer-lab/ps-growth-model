@@ -22,7 +22,7 @@ def read_dataset(ff=None, traceplot = False):
     ''' Read the specified column from the shared test file. '''
 
     if ff is None:
-        ff = "111717_PC9"
+        ff = "111717_PC9_ends"
 
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
