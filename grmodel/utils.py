@@ -208,8 +208,9 @@ def reformatData(dfd, doseidx, params, dTypes=False):
     Reformat dataframe so that columns of the dataframe are params
     Returns dataframe of columns: parameters and dose
     """
+    # Initialize a dataframe
     dfplot = pd.DataFrame()
-
+    # Randomly sample 1000 rows from pymc sampling results
     if dfd.shape[0] > 1000:
         dfd = dfd.sample(1000)
 
@@ -291,16 +292,23 @@ def violinplot(drugs=None):
 
 
 def violinplot_split(filename, drugs=None):
+    """
+    Make split violin plots for comparison of sampling distributions from 
+    analyses of kinetic data and endpoint data.
+    """
     import seaborn as sns
-    # Read in model and dataframe
+    # Read in model and kinetic dataframe
     classM, df = readModel(filename)
+    
+    # Append a Data Type variable to dataframe
     df['Data Type'] = 'Kinetic'
     # Read in dataframe for endpoint data
     _, df2 = readModel(filename+'_ends')
-    df2['Data Type'] = 'End points'
+    df2['Data Type'] = 'Endpoints'
     # Concatinate the two data frames
     df = pd.concat([df, df2], axis=0)
     
+    # Get variables from model
     alldrugs = classM.drugs
     alldoses = classM.doses
     # Get a list of drugs
@@ -335,7 +343,7 @@ def violinplot_split(filename, drugs=None):
         dfplot = reformatData(df, doseidx, params, dTypes=True)
 
         # Plot params vs. drug dose
-        # Get drug
+        # Get drug index
         j = drugs.index(drug)
         # Iterate over each parameter in params
         for i in range(len(params)):
@@ -343,10 +351,11 @@ def violinplot_split(filename, drugs=None):
             if params[i] == 'apopfrac':
                 axis[j, i].set_ylim([0, 1])
             # Make violin plots
-            ax = sns.violinplot(x="dose", y=params[i], hue="Data Type",
-                                data=dfplot, palette="muted", split=True, cut=0)
+            sns.violinplot(x="dose", y=params[i], hue="Data Type",
+                                data=dfplot, palette="muted", split=True,ax=axis[j,i], cut=0)
             axis[j, i].set_xlabel(drug+' dose')
+            axis[j, i].legend_.remove()
 
     plt.tight_layout()
 
-    return ax
+    return axis
