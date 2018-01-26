@@ -83,7 +83,7 @@ def getListofValues(var):
 
 
 # Check that MCMC actually fit the data provided
-def DataFitCheckFigureMaker(DoseResponseM, ax1, ax2, ax3, ax4):
+def DataFitCheckFigureMaker(DoseResponseM, ax1, ax2, ax3, ax4, ax5):
     """ Plot the curves for (lnum vs. X) and (dead vs. X)"""
     # Plot the average lObs at each concentration X
     X = np.array(DoseResponseM.drugCs)
@@ -138,16 +138,15 @@ def DataFitCheckFigureMaker(DoseResponseM, ax1, ax2, ax3, ax4):
     ax3.set_xlabel('concentration')
     ax4.set_xlabel('concentration')
 
-
-# Plot growth rate vs. death rate
-def GRvsDRFigureMaker(DoseResponseM, ax):
-    for i in np.random.choice(DoseResponseM.samples['growthV'].shape[0], 50):
-        ax.scatter(DoseResponseM.samples['growthV'][i, :], DoseResponseM.samples['deathV'][i, :], color='b')
-        ax.set_xlim([0, 0.6])
-        ax.set_ylim([0, 0.6])
-        ax.set_xlabel('growthRate')
-        ax.set_ylabel('deathRate')
-        ax.set_title('growthRate vs. deathRate')
+    print(len(x))
+    # Plot growth rate vs. death rate
+    for n in range(len(x)):
+        ax5.scatter(df2['growthV'].iloc[n], df3['deathV'].iloc[n], color='b')
+        ax5.set_xlim([0, 0.1])
+        ax5.set_ylim([0, 0.05])
+        ax5.set_xlabel('growthRate')
+        ax5.set_ylabel('deathRate')
+        ax5.set_title('growthRate vs. deathRate')
 
 
 # Check the dimensionality of the sampling uncertainty using PCA
@@ -196,8 +195,7 @@ def makeFigure():
     ax, f, gs1 = getSetup((7, 6), (3, 3))
 
     #DataFitCheckFigureMaker(DoseResponseM, ax[2], ax[3], ax[4], ax[5])
-    DataFitCheckFigureMaker(DoseResponseM, ax[2], ax[3], ax[4], ax[5])
-    GRvsDRFigureMaker(DoseResponseM, ax[6])
+    DataFitCheckFigureMaker(DoseResponseM, ax[2], ax[3], ax[4], ax[5], ax[6])
     PCAFigureMaker(DoseResponseM, ax[7])
 
     # Make first cartoon

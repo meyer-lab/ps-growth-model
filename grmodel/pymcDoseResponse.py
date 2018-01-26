@@ -154,11 +154,11 @@ class doseResponseModel:
 
             # Do actual conversion to parameters for each drug condition
             # growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
-            growthV = pm.Deterministic('growthV', Emin_growth + (Emax_growth - Emin_growth) * drugTerm)
+            growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
 
             # _Assuming deathrate in the absence of drug is zero
             # deathV = Emax_death * drugTerm
-            deathV = pm.Deterministic('deathV', Emax_death * drugTerm)
+            deathV = Emax_death * drugTerm
 
             # Calculate the growth rate
             GR = growthV - deathV
