@@ -86,9 +86,9 @@ def DataFitCheckFigureMaker(DoseResponseM, ax1, ax2, ax3, ax4):
         else:
             df5 = df5.append(df3, ignore_index=True)
             df6 = df6.append(df4, ignore_index=True)
-    RangePlot(df5, 'growthRate', ax3)
+    RangePlot(df5, 'growthRate', 0.1, 0.9, ax3)
     ax3.set_xlabel('concentration')
-    RangePlot(df6, 'deathRate', ax4)
+    RangePlot(df6, 'deathRate', 0.1, 0.9, ax4)
     ax4.set_xlabel('concentration')
 
 
