@@ -138,7 +138,6 @@ def DataFitCheckFigureMaker(DoseResponseM, ax1, ax2, ax3, ax4, ax5):
     ax3.set_xlabel('concentration')
     ax4.set_xlabel('concentration')
 
-    print(len(x))
     # Plot growth rate vs. death rate
     for n in range(len(x)):
         ax5.scatter(df2['growthV'].iloc[n], df3['deathV'].iloc[n], color='b')
