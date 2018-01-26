@@ -17,6 +17,12 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from grmodel.fitcurves import sigmoid, residuals
 from ..pymcDoseResponse import loadCellTiter
+from grmodel.pymcDoseResponse import doseResponseModel
+from grmodel.pymcDoseResponse import save, readSamples, IC, num
+from .FigureCommon import getSetup, subplotLabel
+from string import ascii_uppercase
+
+DoseResponseM = readSamples()
 
 """
     Figure C: only the average of real data at each concentration X
@@ -25,8 +31,26 @@ from ..pymcDoseResponse import loadCellTiter
     Figrue F: no lines and only one color
 """
 
+'''
+def plotCurves(list, var, ax):
+    """ Plot the curves for (lnum vs. X, eap vs. X, dead vs. X) """
+    # list = [IC50s_fit, hill_fit, Emin_growth_fit, Emax_growth_fit, Emax_death_fit, time]
+    X = np.linspace(-1, 3)
+    drugTerm = 1.0 / (1.0 + np.power(10.0, (list[0] - X) * list[1]))
+    growthV = list[2] + (list[3] - list[2]) * drugTerm
+    deathV = list[4] * drugTerm
+    GR = growthV - deathV
+    lExp = np.exp(GR * list[5])
+    if var == 'lExp':
+        ax.scatter(X, lExp)
+    if var == 'growthV':
+        ax.scatter(X, growthV)
+    if var == 'deathV':
+        ax.scatter(X, deathV)
+'''
 
-# Print the average and 95 confidence interval
+
+# Plot the average and 95 confidence interval
 def CIPlot(_x, _y, confidence, ax):
     x_unique, y_mean = npi.group_by(_x).mean(_y)
     y_std = npi.group_by(_x).std(_y)[1]
@@ -38,6 +62,7 @@ def CIPlot(_x, _y, confidence, ax):
     ax.scatter(x_unique, y_mean)
 
 
+# Plot the average and low and high quantile
 def RangePlot(_df, var, low, high, ax):
     _x = _df['concentration'].tolist()
     _y = _df[var].tolist()
@@ -49,10 +74,18 @@ def RangePlot(_df, var, low, high, ax):
     ax.fill_between(x_unique, y_high, y_low, facecolor='blue', alpha=0.5)
 
 
+# def getFitValue(var):
+#    return pm.stats.quantiles(DoseResponseM.samples[var], [50]).get(50)
+
+
+def getListofValues(var):
+    return DoseResponseM.samples[var]
+
+
 # Check that MCMC actually fit the data provided
 def DataFitCheckFigureMaker(DoseResponseM, ax1, ax2, ax3, ax4):
     """ Plot the curves for (lnum vs. X) and (dead vs. X)"""
-    # Plot lObs at each concentration X
+    # Plot the average lObs at each concentration X
     X = np.array(DoseResponseM.drugCs)
     lObs = np.array(DoseResponseM.lObs)
     CIPlot(X, lObs, 0.95, ax1)
@@ -60,35 +93,49 @@ def DataFitCheckFigureMaker(DoseResponseM, ax1, ax2, ax3, ax4):
     ax1.set_xlabel('concentration')
     ax1.set_ylabel('the number of live cells')
 
-    # Using 1000 sets of lExp values
-    # Plot the average of lExp at each concentration X
-    for n, i in enumerate(np.random.choice(DoseResponseM.samples['lExp'].shape[0], 1000)):
-        lExp = np.array(DoseResponseM.samples['lExp'][i, :])
-        df1 = pd.DataFrame({'concentration': X, 'lExp': lExp})
+    # Plot the CI of lExp, growthV and deathV at each concentration X
+    #IC50s_fit = getFitValue('IC50s')
+    #hill_fit = getFitValue('hill')
+    #Emin_growth_fit = getFitValue('Emin_growth')
+    #Emax_growth_fit = getFitValue('Emax_growth')
+    #Emax_death_fit = getFitValue('Emax_death')
+    IC50s = getListofValues('IC50s')
+    hill = getListofValues('hill')
+    Emin_growth = getListofValues('Emin_growth')
+    Emax_growth = getListofValues('Emax_growth')
+    Emax_death = getListofValues('Emax_death')
+
+    df = pd.DataFrame({'IC50s': IC50s, 'hill': hill, 'Emin_growth': Emin_growth,
+                       'Emax_growth': Emax_growth, 'Emax_death': Emax_death})
+    for n in range(len(df.index)):
+        x = np.linspace(-1, 3)
+        drugTerm = 1.0 / (1.0 + np.power(10.0, (df['IC50s'].iloc[n] - x) * df['hill'].iloc[n]))
+        growthV = df['Emin_growth'].iloc[n] + ((df['Emax_growth'].iloc[n] - df['Emin_growth'].iloc[n]) * drugTerm)
+        deathV = df['Emax_death'].iloc[n] * drugTerm
+        GR = growthV - deathV
+        lnum = np.exp(GR * 72.0)
+        lExp = lnum / lnum[0]
+        df1 = pd.DataFrame({'concentration': x, 'lExp': lExp})
+        df2 = pd.DataFrame({'concentration': x, 'growthV': growthV})
+        df3 = pd.DataFrame({'concentration': x, 'deathV': deathV})
+
         if n == 0:
-            df2 = df1
+            df4 = df1
+            df5 = df2
+            df6 = df3
         else:
-            df2 = df2.append(df1, ignore_index=True)
+            df4 = df4.append(df1, ignore_index=True)
+            df5 = df5.append(df2, ignore_index=True)
+            df6 = df6.append(df3, ignore_index=True)
+
+    RangePlot(df4, 'lExp', 0.1, 0.9, ax2)
+    RangePlot(df5, 'growthV', 0.1, 0.9, ax3)
+    RangePlot(df6, 'deathV', 0.1, 0.9, ax4)
+
     ax2.set_title('lExp vs. concentration')
     ax2.set_xlabel('concentration')
     ax2.set_ylabel('the number of live cells')
-    RangePlot(df2, 'lExp', 0.1, 0.9, ax2)
-
-    # Plot the DeadExp at each concentration X
-    for n, i in enumerate(np.random.choice(DoseResponseM.samples['growthV'].shape[0], 1000)):
-        GR = np.array(DoseResponseM.samples['growthV'][i, :])
-        DR = np.array(DoseResponseM.samples['deathV'][i, :])
-        df3 = pd.DataFrame({'concentration': X, 'growthRate': GR})
-        df4 = pd.DataFrame({'concentration': X, 'deathRate': DR})
-        if n == 0:
-            df5 = df3
-            df6 = df4
-        else:
-            df5 = df5.append(df3, ignore_index=True)
-            df6 = df6.append(df4, ignore_index=True)
-    RangePlot(df5, 'growthRate', 0.1, 0.9, ax3)
     ax3.set_xlabel('concentration')
-    RangePlot(df6, 'deathRate', 0.1, 0.9, ax4)
     ax4.set_xlabel('concentration')
 
 
@@ -137,13 +184,6 @@ def PCAFigureMaker(self, ax):
 
 
 def makeFigure():
-    from grmodel.pymcDoseResponse import doseResponseModel
-    from grmodel.pymcDoseResponse import save, readSamples
-    from .FigureCommon import getSetup, subplotLabel
-    from string import ascii_uppercase
-
-    DoseResponseM = readSamples()
-
     '''
     Generate Figure 1
 
@@ -155,6 +195,7 @@ def makeFigure():
     # Get list of axis objects
     ax, f, gs1 = getSetup((7, 6), (3, 3))
 
+    #DataFitCheckFigureMaker(DoseResponseM, ax[2], ax[3], ax[4], ax[5])
     DataFitCheckFigureMaker(DoseResponseM, ax[2], ax[3], ax[4], ax[5])
     GRvsDRFigureMaker(DoseResponseM, ax[6])
     PCAFigureMaker(DoseResponseM, ax[7])

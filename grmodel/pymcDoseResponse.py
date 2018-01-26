@@ -179,6 +179,7 @@ class doseResponseModel:
 
     # Traceplot
     def traceplot(self):
+        pm.summary(self.samples)
         return pm.traceplot(self.samples)
 
     # Directly import one column of data

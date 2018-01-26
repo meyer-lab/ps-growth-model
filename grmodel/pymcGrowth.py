@@ -24,7 +24,7 @@ def lRegRes(inputs, outputs):
     X = T.transpose(T.stack([inputs, T.ones([inputs.shape[0]])], axis=0))
 
     B_hat = T.dot(T.dot(linOps.matrix_inverse(T.dot(X.T, X)),X.T), outputs)
-    
+
     return (T.dot(X, B_hat) - outputs, B_hat)
 
 
@@ -45,7 +45,7 @@ def simulate(params, ttime):
     lnum = np.exp(GR * ttime)
 
     # cGDd is used later
-    cGRd = params[2] * params[3] / (GR + params[1]) 
+    cGRd = params[2] * params[3] / (GR + params[1])
 
     # Number of early apoptosis cells at start is 0.0
     eap = cGRd * (lnum - np.exp(-params[1] * ttime))
@@ -177,7 +177,7 @@ class GrowthModel:
             ovlap_exp = deadapop
 
 
-            # Fit model to confl, apop, dna, and overlap measurements 
+            # Fit model to confl, apop, dna, and overlap measurements
             if ('confl') in self.expTable.keys():
                 # Observed error values for confl
                 confl_obs, confl_B_hat = lRegRes(T.reshape(confl_exp, (-1, )), self.expTable['confl'])

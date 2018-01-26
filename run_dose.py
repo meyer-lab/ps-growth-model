@@ -19,7 +19,7 @@ save(M, "sampling.pkl")
 
 M = readSamples()
 M.traceplot()
-
+'''
 df = readSamples(asdf=True)
 
 df.drop(list(df.filter(regex='lnum')), axis=1, inplace=True)
@@ -27,5 +27,5 @@ df.drop(list(df.filter(regex='lExp')), axis=1, inplace=True)
 df.drop(list(df.filter(regex='apop')), axis=1, inplace=True)
 
 sns.pairplot(df)
-
+'''
 plt.show()
