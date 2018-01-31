@@ -231,7 +231,7 @@ def reformatData(dfd, doseidx, params, dTypes=False):
     return dfplot
 
 
-def violinplot(drugs=None):
+def violinplot(filename, drugs=None):
     '''
     Takes in a list of drugs
     Makes 1*len(parameters) violinplots for each drug
@@ -239,7 +239,7 @@ def violinplot(drugs=None):
     import seaborn as sns
     sns.set_context("paper", font_scale=1.2)
     # Read in dataframe
-    classM, df = readModel()
+    classM, df = readModel(filename)
     alldrugs = classM.drugs
     alldoses = classM.doses
     # Get a list of drugs
@@ -248,9 +248,8 @@ def violinplot(drugs=None):
         drugs.remove('Control')
 
     params = ['div', 'deathRate', 'apopfrac']
-
-    # Set up a len(drugs)*len(params) grid of subplots
-    _, axis = plt.subplots(len(drugs), len(params), figsize=(12, 3*len(drugs)), sharex=False, sharey='col')
+    
+    dfdict = {}
 
     # Interate over each drug
     for drug in drugs:
@@ -272,23 +271,9 @@ def violinplot(drugs=None):
         # Reshape table for violinplot
         # Columns: div, deathRate, apopfrac, dose
         dfplot = reformatData(df, doseidx, params)
-
-        # Plot params vs. drug dose
-        # Get drug
-        j = drugs.index(drug)
-        # Iterate over each parameter in params
-        for i in range(len(params)):
-            # For apopfrac, set y-axis limit to [0,1]
-            if params[i] == 'apopfrac':
-                axis[j, i].set_ylim([0, 1])
-            # Make violin plots
-            sns.violinplot(x='dose', y=params[i], data = dfplot, ax=axis[j,i], cut=0)
-            axis[j, i].set_xlabel(drug+' dose')
-
-    plt.tight_layout()
-    # Set plot title
-    plt.title('Violinplot (Drugs: '+str(drugs)[1:-1]+')', x=-2, y=1.3*len(drugs))
-    return axis
+        
+        dfdict[drug] = dfplot
+    return (dfdict, drugs, params)
 
 
 def violinplot_split(filename, drugs=None):
@@ -352,7 +337,7 @@ def violinplot_split(filename, drugs=None):
                 axis[j, i].set_ylim([0, 1])
             # Make violin plots
             sns.violinplot(x="dose", y=params[i], hue="Data Type",
-                                data=dfplot, palette="muted", split=True,ax=axis[j,i], cut=0)
+                                data=dfplot, palette="muted", split=True, ax=axis[j, i], cut=0)
             axis[j, i].set_xlabel(drug+' dose')
             axis[j, i].legend_.remove()
 

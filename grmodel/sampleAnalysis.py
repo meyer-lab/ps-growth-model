@@ -22,7 +22,7 @@ def read_dataset(ff=None, traceplot = False):
     ''' Read the specified column from the shared test file. '''
 
     if ff is None:
-        ff = "101117_H1299_ends"
+        ff = "101117_H1299"
 
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
@@ -201,10 +201,10 @@ def calcset(pdset, idx, time, idic):
         varr += 1
     return (calcset, calcseta, calcsetd)
 
-def simulation(drug, unit='nM'):
+def simulation(filename, drug, ax=None, unit='nM'):
     """Make simulation plots of experimental data overlayed with model predictions"""
     # Load model and dataset
-    classM, pdset = readModel()
+    classM, pdset = readModel(ff=filename)
     # A list of all conditions
     alldrugs = classM.drugs
     # A list of all doses, one for each condition
@@ -227,7 +227,8 @@ def simulation(drug, unit='nM'):
             flag = False
 
     # Initialize an axis variable of dimension (1,3)
-    _, ax = plt.subplots(1, 3, figsize=(10.5, 3.5), sharex=True, sharey=False)
+    if not ax:
+        _, ax = plt.subplots(1, 3, figsize=(10.5, 3.5), sharex=True, sharey=False)
 
     # Set up idic, a dictionary of parameter:column index (eg: div_1:3)
     idic = {}
@@ -267,7 +268,7 @@ def simulation(drug, unit='nM'):
             idx1 = doseidx[cidx] * len(classM.timeV)
             idx2 = (doseidx[cidx]+1) * len(classM.timeV)
             ax[i].scatter(classM.timeV, classM.expTable[pltparams[i]][idx1:idx2],
-                          c=colors[cidx], marker='.', s=20)
+                          c=colors[cidx], marker='.', s=5)
 
             # Label Plot
             ax[i].set_title(pltparams[i])
@@ -278,23 +279,21 @@ def simulation(drug, unit='nM'):
         # For each dose, add a patch to legend
         patches.append(mpatches.Patch(color=colors[cidx], label=str(doses[cidx])+' '+unit))
     ax[0].set_ylabel(drug+' Confluence')
-    # Show legend 
-    plt.legend(handles=patches, fontsize=10, bbox_to_anchor=(1.5, 1))
-    plt.tight_layout()
-    return ax
 
-def sim_plots(drugs=None, unit='nM'):
+    return (ax, patches)
+
+def sim_plots(filename, drugs=None, unit='nM'):
     ''' Plot sampling predictions overlaying experimental data for multiple drugs '''
     import seaborn as sns
     sns.set_context("paper", font_scale=2)
     # If drugs given, make simulation plots for selected drugs
     if drugs != None:
         for drug in drugs:
-            simulation(drug, unit=unit)
+            simulation(filename, drug, unit=unit)
     # If drugs not given, plot all drugs
     else:
         classM, _ = readModel()
         drugs = list(set(classM.drugs))
         drugs.remove('Control')
         for drug in drugs:
-            simulation(drug, unit=unit)
+            simulation(filename, drug, unit=unit)
