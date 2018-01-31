@@ -5,3 +5,4 @@
 **/__pycache__
 mcmc_chain.h5
 *.sublime-workspace
+**/*.pyc
