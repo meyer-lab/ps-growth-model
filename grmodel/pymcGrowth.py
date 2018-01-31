@@ -45,7 +45,7 @@ def simulate(params, ttime):
     lnum = np.exp(GR * ttime)
 
     # cGDd is used later
-    cGRd = params[2] * params[3] / (GR + params[1]) 
+    cGRd = params[2] * params[3] / (GR + params[1])
 
     # Number of early apoptosis cells at start is 0.0
     eap = cGRd * (lnum - np.exp(-params[1] * ttime))
@@ -176,7 +176,7 @@ class GrowthModel:
             dna_exp = (deadapop + deadnec) * dna_conv + dna_offset
 
 
-            # Fit model to confl, apop, dna, and overlap measurements 
+            # Fit model to confl, apop, dna, and overlap measurements
             if ('confl') in self.expTable.keys():
                 # Observed error values for confl
                 confl_obs = T.reshape(confl_exp, (-1, )) - self.expTable['confl']
