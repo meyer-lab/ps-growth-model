@@ -11,12 +11,15 @@ def makeFigure():
 
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (5, 6))
-    
+
     # Blank out for cartoon
     for axis in ax[0:12]:
         axis.axis('off')
 
+    # Show simulation plots (predicted vs experimental)
     simulationPlots(axes=[ax[12], ax[13], ax[14], ax[18], ax[19], ax[20]])
+
+    # Show violin plots for model parameters
     violinPlots(axes=[ax[15], ax[16], ax[17], ax[21], ax[22], ax[23]])
 
     for ii, item in enumerate([ax[0],ax[12],ax[15],ax[24]]):
@@ -31,12 +34,17 @@ def makeFigure():
     
 def simulationPlots(axes):
     from ..sampleAnalysis import readModel, simulation
-    classM, _ = readModel()
+    # Get the list of drugs for 101117_H1299 experiment
+    classM, _ = readModel(ff="101117_H1299")
     drugs = list(set(classM.drugs))
     drugs.remove('Control')
+
+    # Iterate over each drug
     for i in range(len(drugs)):
         drug = drugs[i]
+        # Make simulation plots and legend
         axis, patches = simulation('101117_H1299', drug, ax=axes[3*i: 3*i+3], unit='nM')
+        #Show legend
         axis[2].legend(handles=patches, labelspacing=0.15, prop={'size': 4})
 
 
@@ -61,6 +69,7 @@ def violinPlots(axes):
             # Make violin plots
             sns.violinplot(x='dose', y=params[i], data = dfplot, ax=axes[idx], cut=0)
             axes[idx].set_xlabel(drug+' dose')
+            # Rotate dosage labels
             axes[idx].set_xticklabels(axes[idx].get_xticklabels(), rotation=40, 
                                       rotation_mode="anchor", ha="right",
                                       position=(0, 0.05), fontsize=5)
