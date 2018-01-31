@@ -70,6 +70,6 @@ def violinPlots(axes):
             sns.violinplot(x='dose', y=params[i], data = dfplot, ax=axes[idx], cut=0)
             axes[idx].set_xlabel(drug+' dose')
             # Rotate dosage labels
-            axes[idx].set_xticklabels(axes[idx].get_xticklabels(), rotation=40, 
+            axes[idx].set_xticklabels(axes[idx].get_xticklabels(), rotation=45, 
                                       rotation_mode="anchor", ha="right",
-                                      position=(0, 0.05), fontsize=5)
+                                      position=(0, 0.05), fontsize=4.5)
