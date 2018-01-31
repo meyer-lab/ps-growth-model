@@ -9,8 +9,8 @@ import numpy_indexed as npi
 import matplotlib
 
 
-def CIPlot(_x, _y, confidence, ax):
-    """ Plot the average value and confidence interval """
+def plot_mean_and_CI(_x, _y, confidence, ax):
+    """ Plot the mean value and confidence interval """
     # Group _y by _x and find the mean, standard deviation of _y at each _x
     x_unique, y_mean = npi.group_by(_x).mean(_y)
     y_std = npi.group_by(_x).std(_y)[1]
@@ -21,32 +21,37 @@ def CIPlot(_x, _y, confidence, ax):
     ax.errorbar(x=x_unique, y=y_mean, yerr=yerr, fmt='o', color='black', alpha=0.5)
 
 
-def RangePlot(_df, var, low, high, ax):
+def plot_median_and_quantile(_df, var, range1, range2, ax):
     """ Plot the median, low and high quantile """
     _x = _df['concentration'].tolist()
     _y = _df[var].tolist()
     x_unique, y_median = npi.group_by(_x).median(_y)
     x_unq = _df.groupby('concentration')
-    y_low = np.array(x_unq.quantile(low)[var].tolist())
-    y_high = np.array(x_unq.quantile(high)[var].tolist())
-    ax.scatter(x_unique, y_median)
-    ax.fill_between(x_unique, y_high, y_low, facecolor='b', alpha=0.3)
+    ax.scatter(x_unique, y_median, s=2)
+    if var != 'lExp':
+        y_low1 = np.array(x_unq.quantile(range1[0])[var].tolist())
+        y_high1 = np.array(x_unq.quantile(range1[1])[var].tolist())
+        y_low2 = np.array(x_unq.quantile(range2[0])[var].tolist())
+        y_high2 = np.array(x_unq.quantile(range2[1])[var].tolist())
+        ax.fill_between(x_unique, y_high1, y_low1, color='b', alpha=0.2, label='90% quantile')
+        ax.fill_between(x_unique, y_high2, y_low2, color='g', alpha=0.5, label='50% quantile')
+        ax.legend()
 
 
-def RealDataPlot(M, ax2, ax3):
+def plot_exact_data(M, ax2, ax3):
     """ Plot the data provided """
     X = np.array(M.drugCs)
     lObs = np.array(M.lObs)
-    # Figure C: plot the mean and CI of lObs at each concentration X
-    CIPlot(X, lObs, 0.95, ax2)
-    ax2.set_title('concentration vs. Obs')
-    ax2.set_xlabel('concentration')
-    ax2.set_ylabel('the number of live cells')
-    # Part of Figure D: Compare the sampling lExp with the real data lObs
-    CIPlot(X, lObs, 0, ax3)
+    # Figure C: plot the mean and 95% CI of lObs at each concentration X
+    plot_mean_and_CI(X, lObs, 0.95, ax2)
+    ax2.set_title('Mean and 95% CI of # of live cells')
+    ax2.set_xlabel(r'$log_{10}$[DOX(nM)]')
+    ax2.set_ylabel('# of live cells')
+    # Part of Figure D: Compare the sampling lExp with the exact data lObs
+    plot_mean_and_CI(X, lObs, 0, ax3)
 
 
-def SamplingDataPlot(df, ax3, ax4, ax5, ax6):
+def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     """ Check that MCMC actually fit the data provided """
     # Define drug concentrations x to test MCMC sampling data fit
     x = np.arange(-1.0, 3.0, 0.01)
@@ -82,39 +87,40 @@ def SamplingDataPlot(df, ax3, ax4, ax5, ax6):
         else:
             df1 = df1.append(temp_df, ignore_index=True)
 
-    # Figure D: Plot the median, 0.1 and 0.9 quantile of the expected number
+    # Figure D: Plot the median, 90% and 50% quantile of the expected number
     # of live cells at each x
-    RangePlot(df1, 'lExp', 0.1, 0.9, ax3)
-    ax3.set_title('concentration vs. lExp')
-    ax3.set_xlabel('concentration')
-    ax3.set_ylabel('the number of live cells')
+    plot_median_and_quantile(df1, 'lExp', [0.05, 0.95], [0.25, 0.75], ax3)
+    ax3.set_title('Median of predicted # of live cells ')
+    ax3.set_xlabel(r'$log_{10}$[DOX(nM)]')
+    ax3.set_ylabel('Predicted # of live cells')
 
-    # Figure E: Plot the median,  0.1 and 0.9 quantile of growth rate at each x
-    RangePlot(df1, 'growthV', 0.1, 0.9, ax4)
-    ax4.set_title('concentration vs. growth rate')
-    ax4.set_xlabel('concentration')
-    ax4.set_ylabel('growth rate')
+    # Figure E: Plot the median, 90% and 50% quantile of growth rate at each x
+    plot_median_and_quantile(df1, 'growthV', [0.05, 0.95], [0.25, 0.75], ax4)
+    ax4.set_title('Median of predicted growth rate')
+    ax4.set_xlabel(r'$log_{10}$[DOX(nM)]')
+    ax4.set_ylabel('Predicted growth rate')
 
-    # Figure F: Plot the median,  0.1 and 0.9 quantile of death rate at each x
-    RangePlot(df1, 'deathV', 0.1, 0.9, ax5)
-    ax5.set_title('concentration vs. death rate')
-    ax5.set_xlabel('concentration')
-    ax5.set_ylabel('death rate')
+
+# Figure F: Plot the median, 90% and 50% quantile of growth rate at each x
+    plot_median_and_quantile(df1, 'deathV', [0.05, 0.95], [0.25, 0.75], ax5)
+    ax5.set_title('Median of predicted death rate')
+    ax5.set_xlabel(r'$log_{10}$[DOX(nM)]')
+    ax5.set_ylabel('Predicted death rate')
 
     # Figure G: Plot growth rate vs. death rate
     import random
     # Randomly choose 2000 points (len(df1.index) is too large and would take too much time)
     my_randoms = random.sample(xrange(len(df1.index)), 2000)
     for n in my_randoms:
-        ax6.scatter(x=df1['growthV'].iloc[n], y=df1['deathV'].iloc[n], color='b')
-        ax6.set_xlim([-0.1, 0.8])
-        ax6.set_ylim([-0.1, 0.8])
-        ax6.set_xlabel('growth rate')
-        ax6.set_ylabel('death rate')
-        ax6.set_title('growth rate vs. death rate')
+        ax6.scatter(x=df1['growthV'].iloc[n], y=df1['deathV'].iloc[n], color='b', s=30)
+        ax6.set_xlim([0, 0.6])
+        ax6.set_ylim([0, 0.6])
+        ax6.set_xlabel('Growth Rate')
+        ax6.set_ylabel('Death Rate')
+        ax6.set_title('Growth Rate vs. Death Rate')
 
 
-def PCA(df, ax):
+def plot_PCA(df, ax):
     """ Check the dimensionality of the sampling uncertainty using PCA """
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import StandardScaler
@@ -167,9 +173,9 @@ def makeFigure():
     # Get list of axis objects
     ax, f, gs1 = getSetup((7, 6), (3, 3))
 
-    RealDataPlot(M, ax[2], ax[3])
-    SamplingDataPlot(df, ax[3], ax[4], ax[5], ax[6])
-    PCA(df, ax[7])
+    plot_exact_data(M, ax[2], ax[3])
+    plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])
+    plot_PCA(df, ax[7])
 
     # Make first cartoon
     for ii, item in enumerate(ax):
