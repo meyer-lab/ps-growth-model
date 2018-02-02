@@ -18,8 +18,11 @@ except ImportError:
     import pickle
 
 
-def read_dataset(ff=None, traceplot = False):
-    ''' Read the specified column from the shared test file. '''
+def read_dataset(ff=None, traceplot=False):
+    ''' 
+    Read the pymc model from a sampling file
+    Makes traceplots if traceplot=True
+    '''
 
     if ff is None:
         ff = "101117_H1299"
@@ -47,6 +50,10 @@ def read_dataset(ff=None, traceplot = False):
     return classList
 
 def readModel(ff=None, trim=False):
+    """
+    Calls read_dataset to load pymc model
+    Outputs: (model, table for the sampling results)
+    """
     model = read_dataset(ff)
     df = pm.backends.tracetab.trace_to_dataframe(model.samples)
     if trim:
@@ -57,10 +64,13 @@ def readModel(ff=None, trim=False):
     return (model, df)
 
 def diagnostics(item, plott=False):
-    """ Check the convergence and general posterior properties of a chain. """
+    """
+    Check the convergence and general posterior properties of a chain,
+    using the Geweke criteria, effective-n, and Gelman-Rubin statistics.
+    Inputs: item: pymc class, plott: output posterior plot
+    """
     flag = True
-    # Iterate over sampling classes
-        # Calc Geweke stats
+    # Calc Geweke stats
     geweke = pm.geweke(item.samples)
 
     # Calculate effective n
@@ -76,44 +86,52 @@ def diagnostics(item, plott=False):
     gewekeDiv = []
     gewekeDivparam = []
 
-    #Keep track of diverging chains for each column
+    # Keep track of diverging chains for each column
     divparamnum = 0
     divparam = []
 
+    # Run Geweke diagnostics
     for _, value in geweke.items():
+        # Iterate over each parameter
         for kk, vv in value.items():
+            # Get the array of Geweke stats
             try: # Single chain
                 Vec = np.absolute(vv[:, 1])
-            except TypeError: # Multiple chains, flatten the np array
+            except TypeError: # Multiple chains, flatten the np array 
+                #TODO: Make sure combining Geweke stats from multiple chains is appropriate to do
                 Vec = np.concatenate([x for x in vv])
                 Vec = np.absolute(Vec[:, 1])
-            
+            # Get Geweke z-scores exceeding 1 and 1.96
             intervals = len(Vec)
             VecDiv = [val for val in Vec if val >= 1]
             divnum = len([val for val in Vec if val >= 1.96])
-
+            
+            # Update variables
             lenVecDiv = len(VecDiv)
             gewekeDivnum += lenVecDiv
             if lenVecDiv > 0:
                 gewekeDiv.extend(VecDiv)
                 gewekeDivparam.append(kk)
+            # Parameters not currently used
             gewekeOut += np.sum(Vec)
             gewekeNum += Vec.size
 
             # Hypothesis testing for each parameter
+            # Caculate z-score for the number of Geweke stats exceeding 1.96 in one parameter
             z = (divnum - intervals*0.05) / np.sqrt(intervals*0.05*0.95)
             p_value = 1 - sp.stats.norm.cdf(z)
-            if p_value <= 0.05:
+            if p_value <= 0.05: # Parameter didn't converge
                 divparamnum += 1
                 divparam.append(kk)
 
     # Let the z-score surpass 1 up to three times, or fewer with higher deviation
     # TODO: Need to come up with a null model for Geweke to test for convergence
+    # gewekeDivnum: total number of z-scores surpassing 1
     if gewekeDivnum > 3:
         print('Column ' + str(item.selCols) + ' sampling not converged according to Geweke.')
         print('z-score surpassed 1 for ' + str(gewekeDivnum)
               + ' times for parameters ' + str(gewekeDivparam) + ': \n' + str(gewekeDiv))
-
+        # divparamnum: number of parameters that failed to converge
         if divparamnum > 0:
             print('divparamnum = ' + str(divparamnum) + ' for param(s) ' + str(divparam))
         print('\n')
@@ -144,8 +162,10 @@ def diagnostics(item, plott=False):
     return flag
 
 def getvalues(dic):
-    """Take dic, a dictionary with lists or item as values
-    Return vals, a flattened list of values in the dictionary"""
+    """
+    Take dic, a dictionary with lists or item as values
+    Return vals, a flattened list of values in the dictionary
+    """
     values = list(dic.values())
     vals = []
     for sublist in values:
@@ -156,8 +176,10 @@ def getvalues(dic):
     return vals
     
 def saveplot(cols, func):
-    """ Take in cols, pymc models, and func, a plotting funciton
-    Make and save the plots"""
+    """
+    Take in cols, pymc models, and func, a plotting funciton
+    Make and save the plots
+    """
     filename = './grmodel/data/' + cols[0].loadFile + '_' + func.__name__ + '.pdf'
 
     # Delete the existing file if it exists
@@ -174,7 +196,7 @@ def saveplot(cols, func):
             matplotlib.pyplot.close()
 
 def calcset(pdset, idx, time, idic):
-    """Calculate model predictions based on parameter fits from """
+    """Calculate model predictions based on parameter fits from sampling data"""
     # Initialize counter
     varr = 0
     # Initialize 3 numpy 2D arrays 

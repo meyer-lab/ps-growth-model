@@ -99,7 +99,7 @@ class MultiSample:
 class GrowthModel:
 
     def sample(self):
-        ''' A '''
+        ''' Run NUTS sampling'''
         num = 1500
         print(len(self.doses))
         with self.model:
@@ -199,7 +199,7 @@ class GrowthModel:
 
     # Directly import one column of data
     def importData(self, firstCols, drop24=False, comb=None, interval=True):
-        
+        """Import experimental data"""
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
