@@ -1,0 +1,15 @@
+Experiment,Description,Was it sampled?,Is sampling up-to-date?,Time Interval (hr),Cells seeded/well
+021817_H1299,"Early Incucyte experiment, data not sampled",No,,,
+030317_H1299,"Data not sampled, different processing definition from 030317-2_H1299",No,,,
+030317-2_H1299,First H1299 data sampled,Yes ,No,72,
+030317-2-R1_H1299,"Same experiment as 030317-2_H1299, but includes combination data R428=1uM",Yes,No,,
+062117_PC9,PC9 targeted inhibitor data from Simin,Yes,No,168,100
+091916_H1299,"Initial Incucyte experiment, data not sampled",No,,,
+101117_H1299,"Repeated H1299 experiment, currently plotted in Figure2",Yes,Yes,72,1500
+111717_PC9,"Repeated PC9 experiment, same conditions as H1299 besides seeding number",Yes,Yes,72,1000
+,,,,,
+Note: 101117_H1299_ends? and 111717_PC9_ends? refer to sampling with endpoint data.,,,,,
+,,,,,
+Miscellaneous documents,,,,,
+Conv_linear_regressions,Contains data for estimating conversion constants prior,,,,
+Incucyte div Calculations,Calculations with div parameter fitting for comparision with CFSC data,,,,

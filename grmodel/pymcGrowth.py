@@ -69,7 +69,7 @@ class MultiSample:
     def __init__(self):
         self.models = list()
 
-    def loadModels(self, firstCols, fileName = None, seldrugs = None, comb = None, interval = True):
+    def loadModels(self, firstCols, fileName=None, seldrugs=None, comb=None, interval=True):
         """  Initialize GrowthModel for each drug. Load data for each drug in."""
         # Get LoadFile from GrowthModel()
         gr = GrowthModel(fileName)
@@ -79,7 +79,7 @@ class MultiSample:
                 self.filePrefix = './grmodel/data/' + gr.loadFile
             else:
                 self.filePrefix = './grmodel/data/' + gr.loadFile + '_ends'
-        gr.importData(firstCols, comb = comb, interval = interval)
+        gr.importData(firstCols, comb = comb, interval=interval)
         self.models = gr
         return gr.drugs
 
@@ -99,7 +99,7 @@ class MultiSample:
 class GrowthModel:
 
     def sample(self):
-        ''' A '''
+        ''' Run NUTS sampling'''
         num = 1500
         print(len(self.doses))
         with self.model:
@@ -198,8 +198,8 @@ class GrowthModel:
         return growth_model
 
     # Directly import one column of data
-    def importData(self, firstCols, drop24=False, comb = None, interval = True):
-        
+    def importData(self, firstCols, drop24=False, comb=None, interval=True):
+        """Import experimental data"""
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
@@ -332,6 +332,6 @@ class GrowthModel:
     def __init__(self, loadFile = None):
         # If no filename is given use a default
         if loadFile is None:
-            self.loadFile = "111717_PC9"
+            self.loadFile = "101117_H1299"
         else:
             self.loadFile = loadFile

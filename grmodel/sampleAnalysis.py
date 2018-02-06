@@ -18,11 +18,14 @@ except ImportError:
     import pickle
 
 
-def read_dataset(ff=None, traceplot = False):
-    ''' Read the specified column from the shared test file. '''
+def read_dataset(ff=None, traceplot=False):
+    ''' 
+    Read the pymc model from a sampling file
+    Makes traceplots if traceplot=True
+    '''
 
     if ff is None:
-        ff = "111717_PC9"
+        ff = "101117_H1299"
 
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
@@ -47,6 +50,10 @@ def read_dataset(ff=None, traceplot = False):
     return classList
 
 def readModel(ff=None, trim=False):
+    """
+    Calls read_dataset to load pymc model
+    Outputs: (model, table for the sampling results)
+    """
     model = read_dataset(ff)
     df = pm.backends.tracetab.trace_to_dataframe(model.samples)
     if trim:
@@ -57,10 +64,13 @@ def readModel(ff=None, trim=False):
     return (model, df)
 
 def diagnostics(item, plott=False):
-    """ Check the convergence and general posterior properties of a chain. """
+    """
+    Check the convergence and general posterior properties of a chain,
+    using the Geweke criteria, effective-n, and Gelman-Rubin statistics.
+    Inputs: item: pymc class, plott: output posterior plot
+    """
     flag = True
-    # Iterate over sampling classes
-        # Calc Geweke stats
+    # Calc Geweke stats
     geweke = pm.geweke(item.samples)
 
     # Calculate effective n
@@ -76,44 +86,57 @@ def diagnostics(item, plott=False):
     gewekeDiv = []
     gewekeDivparam = []
 
-    #Keep track of diverging chains for each column
+    # Keep track of diverging chains for each column
     divparamnum = 0
     divparam = []
 
+    # Run Geweke diagnostics
     for _, value in geweke.items():
+        # Iterate over each parameter
         for kk, vv in value.items():
-            try: # Single chain
-                Vec = np.absolute(vv[:, 1])
-            except TypeError: # Multiple chains, flatten the np array
-                Vec = np.concatenate([x for x in vv])
-                Vec = np.absolute(Vec[:, 1])
-            
-            intervals = len(Vec)
-            VecDiv = [val for val in Vec if val >= 1]
-            divnum = len([val for val in Vec if val >= 1.96])
+            # Get the array of Geweke stats
+            try: # Scalar parameter
+                Vecs = [np.absolute(vv[:, 1])]
+            except TypeError: 
+                # Vectorized parameter, make Vecs, a list of Geweke stats Vec, 
+                # one Vec for each component of the vectorized paramter, len(Vec)=intervals
+                for i in range(len(vv)):
+                    Vectemp = vv[i]
+                    Vectemp = np.absolute(Vectemp[:, 1])
+                    Vecs.append(Vectemp)
 
-            lenVecDiv = len(VecDiv)
-            gewekeDivnum += lenVecDiv
-            if lenVecDiv > 0:
-                gewekeDiv.extend(VecDiv)
-                gewekeDivparam.append(kk)
-            gewekeOut += np.sum(Vec)
-            gewekeNum += Vec.size
-
-            # Hypothesis testing for each parameter
-            z = (divnum - intervals*0.05) / np.sqrt(intervals*0.05*0.95)
-            p_value = 1 - sp.stats.norm.cdf(z)
-            if p_value <= 0.05:
-                divparamnum += 1
-                divparam.append(kk)
+            # Get Geweke z-scores exceeding 1 and 1.96
+            for Vec in Vecs:
+                intervals = len(Vec)
+                VecDiv = [val for val in Vec if val >= 1]
+                divnum = len([val for val in Vec if val >= 1.96])
+                
+                # Update variables
+                lenVecDiv = len(VecDiv)
+                gewekeDivnum += lenVecDiv
+                if lenVecDiv > 0:
+                    gewekeDiv.extend(VecDiv)
+                    gewekeDivparam.append(kk)
+                # Parameters not currently used
+                gewekeOut += np.sum(Vec)
+                gewekeNum += Vec.size
+    
+                # Hypothesis testing for each parameter
+                # Caculate z-score for the number of Geweke stats exceeding 1.96 in one parameter
+                z = (divnum - intervals*0.05) / np.sqrt(intervals*0.05*0.95)
+                p_value = 1 - sp.stats.norm.cdf(z)
+                if p_value <= 0.05: # Parameter didn't converge
+                    divparamnum += 1
+                    divparam.append(kk)
 
     # Let the z-score surpass 1 up to three times, or fewer with higher deviation
     # TODO: Need to come up with a null model for Geweke to test for convergence
+    # gewekeDivnum: total number of z-scores surpassing 1
     if gewekeDivnum > 3:
         print('Column ' + str(item.selCols) + ' sampling not converged according to Geweke.')
         print('z-score surpassed 1 for ' + str(gewekeDivnum)
               + ' times for parameters ' + str(gewekeDivparam) + ': \n' + str(gewekeDiv))
-
+        # divparamnum: number of parameters that failed to converge
         if divparamnum > 0:
             print('divparamnum = ' + str(divparamnum) + ' for param(s) ' + str(divparam))
         print('\n')
@@ -144,8 +167,10 @@ def diagnostics(item, plott=False):
     return flag
 
 def getvalues(dic):
-    """Take dic, a dictionary with lists or item as values
-    Return vals, a flattened list of values in the dictionary"""
+    """
+    Take dic, a dictionary with lists or item as values
+    Return vals, a flattened list of values in the dictionary
+    """
     values = list(dic.values())
     vals = []
     for sublist in values:
@@ -156,8 +181,10 @@ def getvalues(dic):
     return vals
     
 def saveplot(cols, func):
-    """ Take in cols, pymc models, and func, a plotting funciton
-    Make and save the plots"""
+    """
+    Take in cols, pymc models, and func, a plotting funciton
+    Make and save the plots
+    """
     filename = './grmodel/data/' + cols[0].loadFile + '_' + func.__name__ + '.pdf'
 
     # Delete the existing file if it exists
@@ -174,7 +201,7 @@ def saveplot(cols, func):
             matplotlib.pyplot.close()
 
 def calcset(pdset, idx, time, idic):
-    """Calculate model predictions based on parameter fits from """
+    """Calculate model predictions based on parameter fits from sampling data"""
     # Initialize counter
     varr = 0
     # Initialize 3 numpy 2D arrays 
@@ -201,10 +228,10 @@ def calcset(pdset, idx, time, idic):
         varr += 1
     return (calcset, calcseta, calcsetd)
 
-def simulation(drug, unit='nM'):
+def simulation(filename, drug, ax=None, unit='nM'):
     """Make simulation plots of experimental data overlayed with model predictions"""
     # Load model and dataset
-    classM, pdset = readModel()
+    classM, pdset = readModel(ff=filename)
     # A list of all conditions
     alldrugs = classM.drugs
     # A list of all doses, one for each condition
@@ -227,7 +254,8 @@ def simulation(drug, unit='nM'):
             flag = False
 
     # Initialize an axis variable of dimension (1,3)
-    _, ax = plt.subplots(1, 3, figsize=(10.5, 3.5), sharex=True, sharey=False)
+    if not ax:
+        _, ax = plt.subplots(1, 3, figsize=(10.5, 3.5), sharex=True, sharey=False)
 
     # Set up idic, a dictionary of parameter:column index (eg: div_1:3)
     idic = {}
@@ -267,7 +295,7 @@ def simulation(drug, unit='nM'):
             idx1 = doseidx[cidx] * len(classM.timeV)
             idx2 = (doseidx[cidx]+1) * len(classM.timeV)
             ax[i].scatter(classM.timeV, classM.expTable[pltparams[i]][idx1:idx2],
-                          c=colors[cidx], marker='.', s=20)
+                          c=colors[cidx], marker='.', s=5)
 
             # Label Plot
             ax[i].set_title(pltparams[i])
@@ -278,23 +306,21 @@ def simulation(drug, unit='nM'):
         # For each dose, add a patch to legend
         patches.append(mpatches.Patch(color=colors[cidx], label=str(doses[cidx])+' '+unit))
     ax[0].set_ylabel(drug+' Confluence')
-    # Show legend 
-    plt.legend(handles=patches, fontsize=10, bbox_to_anchor=(1.5, 1))
-    plt.tight_layout()
-    return ax
 
-def sim_plots(drugs=None, unit='nM'):
+    return (ax, patches)
+
+def sim_plots(filename, drugs=None, unit='nM'):
     ''' Plot sampling predictions overlaying experimental data for multiple drugs '''
     import seaborn as sns
     sns.set_context("paper", font_scale=2)
     # If drugs given, make simulation plots for selected drugs
     if drugs != None:
         for drug in drugs:
-            simulation(drug, unit=unit)
+            simulation(filename, drug, unit=unit)
     # If drugs not given, plot all drugs
     else:
         classM, _ = readModel()
         drugs = list(set(classM.drugs))
         drugs.remove('Control')
         for drug in drugs:
-            simulation(drug, unit=unit)
+            simulation(filename, drug, unit=unit)
