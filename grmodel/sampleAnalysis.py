@@ -95,34 +95,39 @@ def diagnostics(item, plott=False):
         # Iterate over each parameter
         for kk, vv in value.items():
             # Get the array of Geweke stats
-            try: # Single chain
-                Vec = np.absolute(vv[:, 1])
-            except TypeError: # Multiple chains, flatten the np array 
-                #TODO: Make sure combining Geweke stats from multiple chains is appropriate to do
-                Vec = np.concatenate([x for x in vv])
-                Vec = np.absolute(Vec[:, 1])
-            # Get Geweke z-scores exceeding 1 and 1.96
-            intervals = len(Vec)
-            VecDiv = [val for val in Vec if val >= 1]
-            divnum = len([val for val in Vec if val >= 1.96])
-            
-            # Update variables
-            lenVecDiv = len(VecDiv)
-            gewekeDivnum += lenVecDiv
-            if lenVecDiv > 0:
-                gewekeDiv.extend(VecDiv)
-                gewekeDivparam.append(kk)
-            # Parameters not currently used
-            gewekeOut += np.sum(Vec)
-            gewekeNum += Vec.size
+            try: # Scalar parameter
+                Vecs = [np.absolute(vv[:, 1])]
+            except TypeError: 
+                # Vectorized parameter, make Vecs, a list of Geweke stats Vec, 
+                # one Vec for each component of the vectorized paramter, len(Vec)=intervals
+                for i in range(len(vv)):
+                    Vectemp = vv[i]
+                    Vectemp = np.absolute(Vectemp[:, 1])
+                    Vecs.append(Vectemp)
 
-            # Hypothesis testing for each parameter
-            # Caculate z-score for the number of Geweke stats exceeding 1.96 in one parameter
-            z = (divnum - intervals*0.05) / np.sqrt(intervals*0.05*0.95)
-            p_value = 1 - sp.stats.norm.cdf(z)
-            if p_value <= 0.05: # Parameter didn't converge
-                divparamnum += 1
-                divparam.append(kk)
+            # Get Geweke z-scores exceeding 1 and 1.96
+            for Vec in Vecs:
+                intervals = len(Vec)
+                VecDiv = [val for val in Vec if val >= 1]
+                divnum = len([val for val in Vec if val >= 1.96])
+                
+                # Update variables
+                lenVecDiv = len(VecDiv)
+                gewekeDivnum += lenVecDiv
+                if lenVecDiv > 0:
+                    gewekeDiv.extend(VecDiv)
+                    gewekeDivparam.append(kk)
+                # Parameters not currently used
+                gewekeOut += np.sum(Vec)
+                gewekeNum += Vec.size
+    
+                # Hypothesis testing for each parameter
+                # Caculate z-score for the number of Geweke stats exceeding 1.96 in one parameter
+                z = (divnum - intervals*0.05) / np.sqrt(intervals*0.05*0.95)
+                p_value = 1 - sp.stats.norm.cdf(z)
+                if p_value <= 0.05: # Parameter didn't converge
+                    divparamnum += 1
+                    divparam.append(kk)
 
     # Let the z-score surpass 1 up to three times, or fewer with higher deviation
     # TODO: Need to come up with a null model for Geweke to test for convergence

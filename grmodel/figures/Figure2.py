@@ -36,7 +36,7 @@ def simulationPlots(axes):
     from ..sampleAnalysis import readModel, simulation
     # Get the list of drugs for 101117_H1299 experiment
     classM, _ = readModel(ff="101117_H1299")
-    drugs = list(set(classM.drugs))
+    drugs = list(sorted(set(classM.drugs)))
     drugs.remove('Control')
 
     # Iterate over each drug
