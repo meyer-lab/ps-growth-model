@@ -110,7 +110,7 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     # Figure G: Plot growth rate vs. death rate
     import random
     # Randomly choose 2000 points (len(df1.index) is too large and would take too much time)
-    my_randoms = random.sample(xrange(len(df1.index)), 2000)
+    my_randoms = random.sample(range(len(df1.index)), 2000)
     for n in my_randoms:
         ax6.scatter(x=df1['growthV'].iloc[n], y=df1['deathV'].iloc[n], color='b', s=30)
         ax6.set_xlim([0, 0.6])
@@ -153,7 +153,6 @@ def makeFigure():
     This should be by showing that it's not captured in existing
     measurements.
     '''
-    from grmodel.pymcDoseResponse import doseResponseModel
     from grmodel.pymcDoseResponse import save, readSamples
     from .FigureCommon import getSetup, subplotLabel
     from string import ascii_uppercase

@@ -18,8 +18,6 @@ if __name__ == '__main__':
 
     print(fdir + nameOut + '.svg')
 
-    ff.savefig(nameOut + '.svg', dpi=ff.dpi, bbox_inches='tight', pad_inches=0)
-
-    #ff.savefig(fdir + nameOut + '.svg', dpi=ff.dpi, bbox_inches='tight', pad_inches=0)
+    ff.savefig(fdir + nameOut + '.svg', dpi=ff.dpi, bbox_inches='tight', pad_inches=0)
 
     print(nameOut + ' is done.')

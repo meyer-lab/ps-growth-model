@@ -109,7 +109,7 @@ def readSamples(filename='sampling.pkl', asdf=False):
 
     with open(fname, 'rb') as file:
         # M = pickle.load(file, encoding='latin1')
-        M = pickle.load(file)
+        M = pickle.load(file, encoding='latin1')
 
     if asdf:
         return trace_to_dataframe(M.samples)
