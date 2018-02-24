@@ -48,8 +48,8 @@ clean:
 	rm -f grmodel/data/030317-2_H1299_samples.pkl grmodel/data/111717_PC9_samples.pkl grmodel/data/101117_H1299_samples.pkl grmodel/data/101117_H1299_ends_samples.pkl
 	rm -f grmodel/data/initial-data/sampling.pkl grmodel/data/030317-2-R1_H1299_samples.pkl grmodel/data/062117_PC9_samples.pkl grmodel/data/111717_PC9_ends_samples.pkl
 
-test:
-	nosetests3 -s --with-timer --timer-top-n 5
+test: grmodel/data/101117_H1299_samples.pkl grmodel/data/101117_H1299_samples.pkl
+	nosetests3 --with-timer --timer-top-n 5
 
 testcover:
 	nosetests3 --with-xunit --with-xcoverage --cover-package=grmodel -s --with-timer --timer-top-n 5
