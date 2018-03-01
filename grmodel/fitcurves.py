@@ -2,7 +2,6 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 import matplotlib.pyplot as plt
-from .sampleAnalysis import readModels
 
 
 def sigmoid(p, x):
@@ -22,6 +21,8 @@ def prepdata(drugs, params, log=False):
     with shapes (len(samples), len(dose))
     """
     # Read in dataframe
+    from .sampleAnalysis import readModels
+
     conditions = drugs[:]
     classdict, df = readModels(conditions)
     # Initiate dictionary

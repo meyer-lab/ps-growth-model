@@ -12,6 +12,7 @@ pipeline {
         stage('Build') { steps { sh 'make -j 8' } }
         stage('Test')  { steps { sh 'make testcover' } }
         stage('Lint')  { steps { sh '(pylint3 --rcfile=./grmodel/tests/.pylintrc grmodel > pylint.log || echo "pylint exited with $?")' } }
+        stage('Doc')   { steps { sh 'make doc' } }
       }
     }
     stage('Report') {
@@ -56,6 +57,15 @@ pipeline {
           reportDir: 'Manuscript',
           reportFiles: 'index.html',
           reportName: 'Manuscript',
+          reportTitles: ''])
+
+        publishHTML([
+          allowMissing: false,
+          alwaysLinkToLastBuild: false,
+          keepAll: true,
+          reportDir: 'doc/build',
+          reportFiles: 'index.html',
+          reportName: 'Sphinx Documentation',
           reportTitles: ''])
       }
     }

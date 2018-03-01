@@ -1,25 +1,22 @@
+"""
+This module handles experimental data, by fitting a growth and death rate for each condition separately.
+"""
 import bz2
 from os.path import join, dirname, abspath, exists
 import pandas
+import pickle
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
 import theano
 from theano.sandbox.linalg import ops as linOps
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
 
 def lRegRes(inputs, outputs):
     """
     Computers the least squares estimator (LSE) B_hat that minimises the sum of the
     squared errors. Returns the residuals.
-    Returns:
-        residuals: output_hat - output
-        B_hat: [conv_factor, offset]
+    Returns: residuals: output_hat - output; B_hat: [conv_factor, offset]
     """
     X = T.transpose(T.stack([inputs, T.ones([inputs.shape[0]])], axis=0))
 
@@ -79,7 +76,7 @@ class MultiSample:
                 self.filePrefix = './grmodel/data/' + gr.loadFile
             else:
                 self.filePrefix = './grmodel/data/' + gr.loadFile + '_ends'
-        gr.importData(firstCols, comb = comb, interval=interval)
+        gr.importData(firstCols, comb=comb, interval=interval)
         self.models = gr
         return gr.drugs
 

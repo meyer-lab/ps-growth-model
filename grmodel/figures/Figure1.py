@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 import numpy_indexed as npi
-import matplotlib
 
 
 def plot_mean_and_CI(_x, _y, confidence, ax):
@@ -153,7 +152,7 @@ def makeFigure():
     This should be by showing that it's not captured in existing
     measurements.
     '''
-    from grmodel.pymcDoseResponse import save, readSamples
+    from grmodel.pymcDoseResponse import readSamples
     from .FigureCommon import getSetup, subplotLabel
     from string import ascii_uppercase
 

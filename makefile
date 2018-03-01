@@ -2,7 +2,7 @@ fdir = ./Manuscript/Figures
 tdir = ./Manuscript/Templates
 pan_common = -s -F pandoc-crossref -F pandoc-citeproc -f markdown
 
-.PHONY: clean test profile testcover all
+.PHONY: clean test profile testcover all doc
 
 all: Manuscript/index.html Manuscript/Manuscript.pdf
 
@@ -44,9 +44,8 @@ Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.
 	pandoc $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -Vcsl=./Manuscript/Templates/nature.csl -Vbibliography=./Manuscript/References.bib ./Manuscript/Text/*.md -o $@
 
 clean:
-	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure*
-	rm -f grmodel/data/030317-2_H1299_samples.pkl grmodel/data/111717_PC9_samples.pkl grmodel/data/101117_H1299_samples.pkl grmodel/data/101117_H1299_ends_samples.pkl
-	rm -f grmodel/data/initial-data/sampling.pkl grmodel/data/030317-2-R1_H1299_samples.pkl grmodel/data/062117_PC9_samples.pkl grmodel/data/111717_PC9_ends_samples.pkl
+	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure* grmodel/data/*.pkl
+	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst
 
 test: grmodel/data/101117_H1299_samples.pkl grmodel/data/101117_H1299_samples.pkl
 	nosetests3 --with-timer --timer-top-n 5
@@ -56,3 +55,7 @@ testcover:
 
 profile:
 	python3 -c "from grmodel.pymcGrowth import GrowthModel; grM = GrowthModel(); grM.importData(3); grM.model.profile(grM.model.logpt).summary()"
+
+doc:
+	sphinx-apidoc -o doc/source grmodel
+	sphinx-build doc/source doc/build
