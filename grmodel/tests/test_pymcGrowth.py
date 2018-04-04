@@ -11,7 +11,7 @@ class TestgrMethods(unittest.TestCase):
     def test_model(self):
         GR = GrowthModel(loadFile="030317-2-R1_H1299")
 
-        GR.importData(2, comb = 'R')
+        GR.importData(2, comb='R')
 
         model = GR.build_model()
 
