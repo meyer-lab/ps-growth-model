@@ -1,6 +1,6 @@
 fdir = ./Manuscript/Figures
 tdir = ./Manuscript/Templates
-pan_common = -s -F pandoc-crossref -F pandoc-citeproc -f markdown
+pan_common = -s -F pandoc-crossref -F pandoc-citeproc --filter=$(tdir)/figure-filter.py -f markdown ./Manuscript/Text/*.md
 
 .PHONY: clean test profile testcover all doc
 
@@ -37,11 +37,15 @@ grmodel/data/062117_PC9_samples.pkl:
 grmodel/data/111717_PC9_ends_samples.pkl: 
 	curl -LSso $@ https://www.dropbox.com/s/8c1xj33chlhn7tw/111717_PC9_ends_samples.pkl?dl=0
 
-Manuscript/Manuscript.pdf: Manuscript/Text/*.md Manuscript/index.html $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf
-	(cd ./Manuscript && pandoc $(pan_common) --filter=./Templates/figure-filter.py --template=./Templates/default.latex -Vcsl=./Templates/nature.csl -Vbibliography=./References.bib ./Text/*.md -o Manuscript.pdf)
+Manuscript/Manuscript.tex: Manuscript/Text/*.md
+	pandoc -s $(pan_common) --template=$(tdir)/default.latex --pdf-engine=xelatex -o $@
+
+Manuscript/Manuscript.pdf: Manuscript/Manuscript.tex $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf
+	(cd ./Manuscript && latexmk -xelatex -f -quiet)
+	rm -f ./Manuscript/Manuscript.b* ./Manuscript/Manuscript.aux ./Manuscript/Manuscript.fls
 
 Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.svg $(fdir)/Figure3.svg $(fdir)/Figure4.svg $(fdir)/Figure5.svg
-	pandoc $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -Vcsl=./Manuscript/Templates/nature.csl -Vbibliography=./Manuscript/References.bib ./Manuscript/Text/*.md -o $@
+	pandoc -s $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -o $@
 
 clean:
 	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure* grmodel/data/*.pkl

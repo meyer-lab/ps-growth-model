@@ -7,7 +7,8 @@ from .FigureCommon import getSetup, subplotLabel
 
 
 def makeFigure():
-    ''' XXX '''
+    ''' Make figure 5. Bring home all the analysis by showing the value it adds
+    in being able to predict the outcome of in vivo response. '''
 
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))

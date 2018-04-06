@@ -7,7 +7,8 @@ from .FigureCommon import getSetup, subplotLabel
 
 
 def makeFigure():
-    ''' XXX '''
+    ''' Make figure 3. This probably should focus on validation of what's found
+    in figure 2. '''
 
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))

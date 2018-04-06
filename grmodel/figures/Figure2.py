@@ -3,7 +3,8 @@ This creates Figure 2.
 """
 
 def makeFigure():
-    ''' Make Figure 2. '''
+    ''' Make Figure 2. This should generally be initial analysis
+    of the data we've been collecting. '''
     from string import ascii_uppercase
     from .FigureCommon import getSetup, subplotLabel
 
@@ -46,6 +47,7 @@ def simulationPlots(axes):
 
 
 def violinPlots(axes):
+    """ Create violin plots of model posterior. """
     import seaborn as sns
     from ..utils import violinplot
     dfdict, drugs, params = violinplot('101117_H1299')

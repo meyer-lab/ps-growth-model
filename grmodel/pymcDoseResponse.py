@@ -1,14 +1,15 @@
+"""
+Dose response analysis to assess the uncertainty that exists when one only uses the live cell number.
+"""
+import pickle
+from os.path import join, dirname, abspath
 import numpy as np
 import pymc3 as pm
-import seaborn as sns
 import theano.tensor as T
 import pandas as pd
 import matplotlib.pyplot as plt
-import theano
-import pickle
-from os.path import join, dirname, abspath
-from .pymcGrowth import simulate
 from pymc3.backends.tracetab import trace_to_dataframe
+from .pymcGrowth import simulate
 
 
 def IC(IC50, X):
@@ -35,7 +36,7 @@ def plotCurves(IC_Div, IC_DR, d, apopfrac, ttime):
     eap = result[:, 0, 1]
     dead = result[:, 0, 2] + result[:, 0, 3]
 
-    fig, ax = plt.subplots(1, 3, figsize=(10, 3))
+    _, ax = plt.subplots(1, 3, figsize=(10, 3))
 
     ax[0].set_title('lnum vs. X')
     ax[0].set_xlabel('X')
@@ -128,9 +129,7 @@ class doseResponseModel:
                                      nuts_kwargs={'target_accept': 0.99})
 
     def build_model(self):
-        '''
-        Builds then returns the pyMC model.
-        '''
+        ''' Builds then returns the pyMC model. '''
 
         if not hasattr(self, 'drugCs'):
             raise ValueError('Need to import data first.')
@@ -177,12 +176,12 @@ class doseResponseModel:
 
         return doseResponseModel
 
-    # Traceplot
     def traceplot(self):
+        """ Create a plot of the resulting trace. """
         return pm.traceplot(self.samples)
 
-    # Directly import one column of data
     def importData(self):
+        """ Directly import one column of data. """
         dataLoad = loadCellTiter(self.drug)
 
         # Handle data import here

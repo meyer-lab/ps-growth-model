@@ -7,7 +7,9 @@ from .FigureCommon import getSetup, subplotLabel
 
 
 def makeFigure():
-    ''' XXX '''
+    ''' Make figure 4. This should generally be focused on analyzing drug interactions.
+    Might start this figure by showing live cell measurements can make additive effects
+    look synergistic. '''
 
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))
