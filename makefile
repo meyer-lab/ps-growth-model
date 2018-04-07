@@ -6,7 +6,7 @@ pan_common = -s -F pandoc-crossref -F pandoc-citeproc --filter=$(tdir)/figure-fi
 
 all: Manuscript/index.html Manuscript/Manuscript.pdf
 
-$(fdir)/Figure%.svg: genFigures.py grmodel/data/101117_H1299_samples.pkl grmodel/data/initial-data/sampling.pkl
+$(fdir)/Figure%.svg: genFigures.py grmodel/data/101117_H1299_samples.pkl
 	mkdir -p ./Manuscript/Figures
 	python3 genFigures.py $*
 
@@ -24,9 +24,6 @@ grmodel/data/101117_H1299_samples.pkl:
 
 grmodel/data/101117_H1299_ends_samples.pkl: 
 	curl -LSso $@ https://www.dropbox.com/s/eiwyq8pi67qut09/101117_H1299_ends_samples.pkl?dl=0
-
-grmodel/data/initial-data/sampling.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/mw0wbt7hekud5b6/sampling.pkl?dl=0
 
 grmodel/data/030317-2-R1_H1299_samples.pkl: 
 	curl -LSso $@ https://www.dropbox.com/s/a0al7xal2g6hpcd/030317-2-R1_H1299_samples.pkl?dl=0
@@ -48,8 +45,14 @@ Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.
 	pandoc -s $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -o $@
 
 clean:
-	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure* grmodel/data/*.pkl
+	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure*
 	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst
+
+dataclean:
+	rm -f grmodel/data/*.pkl
+
+sampleDose:
+	python3 -c "from grmodel.pymcDoseResponse import doseResponseModel; M = doseResponseModel(); M.sample()"
 
 test: grmodel/data/101117_H1299_samples.pkl grmodel/data/101117_H1299_samples.pkl
 	nosetests3 --with-timer --timer-top-n 5

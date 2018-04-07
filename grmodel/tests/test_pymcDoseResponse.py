@@ -9,8 +9,6 @@ class TestDoseResponseMethods(unittest.TestCase):
 
         data = loadCellTiter(drug='DOX')
 
-        print(data)
-
         self.assertIsInstance(data, pd.DataFrame)
 
     def test_loadIncucyte(self):
@@ -22,8 +20,6 @@ class TestDoseResponseMethods(unittest.TestCase):
     def test_doseResponseModel(self):
 
         M = doseResponseModel()
-
-        M.importData()
 
         self.assertIsInstance(M.drugCs, np.ndarray)
 

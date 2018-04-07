@@ -1,7 +1,6 @@
 """
 Dose response analysis to assess the uncertainty that exists when one only uses the live cell number.
 """
-import pickle
 from os.path import join, dirname, abspath
 import numpy as np
 import pymc3 as pm
@@ -96,37 +95,15 @@ def loadIncucyte(drug=None):
         return df[df['Drug'] == drug]
 
 
-def save(classname, filename='sampling.pkl'):
-    """ Save to sampling file. """
-    fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
-
-    with open(fname, 'wb') as file:
-        pickle.dump(classname, file, pickle.HIGHEST_PROTOCOL)
-
-
-def readSamples(filename='sampling.pkl', asdf=False):
-    """ Read in sampling file and return it. """
-    fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)
-
-    with open(fname, 'rb') as file:
-        # M = pickle.load(file, encoding='latin1')
-        M = pickle.load(file, encoding='latin1')
-
-    if asdf:
-        return trace_to_dataframe(M.samples)
-    else:
-        return M
-
-
 class doseResponseModel:
+    def readSamples(self):
+        """ Read in sampling file and return it. """
+        self.trace = pm.backends.text.load(self.fname, model=self.model)
 
     def sample(self):
-        ''' A '''
-        num = 1000
-
+        ''' Run sampling. '''
         with self.model:
-            self.samples = pm.sample(draws=num, tune=num, njobs=2,  # Run three parallel chains
-                                     nuts_kwargs={'target_accept': 0.99})
+            self.trace = pm.sample(trace=pm.backends.text.Text(self.fname))
 
     def build_model(self):
         ''' Builds then returns the pyMC model. '''
@@ -139,11 +116,14 @@ class doseResponseModel:
         with doseResponseModel:
             # The three values here are div and deathrate
             # Assume just one IC50 for simplicity
-            lIC50 = pm.Normal('IC50s', 2.0, 1.0)
+            lIC50 = pm.Normal('IC50s', 2.0)
             hill = pm.Lognormal('hill', 0.0)
-            Emin_growth = pm.Lognormal('Emin_growth', -2.0, 2.0, testval=1.0)
-            Emax_growth = pm.Lognormal('Emax_growth', -3.0, 2.0, testval=0.1)
-            Emax_death = pm.Lognormal('Emax_death', -2.0, 2.0, testval=1.0)
+
+            Emin_growth = pm.Uniform('Emin_growth', lower=0.0, upper=self.Emax_growth)
+            # TODO: Explain large number of external assumptions
+            # TODO: Didn't really want this uniform...
+
+            Emax_death = pm.Lognormal('Emax_death', -2.0, 2.0)
 
             # Import drug concentrations into theano vector
             drugCs = T._shared(self.drugCs)
@@ -152,11 +132,9 @@ class doseResponseModel:
             drugTerm = 1.0 / (1.0 + T.pow(10.0, (lIC50 - drugCs) * hill))
 
             # Do actual conversion to parameters for each drug condition
-            # growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
-            growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
+            growthV = self.Emax_growth + (Emin_growth - self.Emax_growth) * drugTerm
 
             # _Assuming deathrate in the absence of drug is zero
-            # deathV = Emax_death * drugTerm
             deathV = Emax_death * drugTerm
 
             # Calculate the growth rate
@@ -167,7 +145,7 @@ class doseResponseModel:
 
             # Normalize live cell data to control, as is similar to measurements
             # _Should be index 0
-            lExp = pm.Deterministic('lExp', lnum / lnum[0])
+            lExp = lnum / lnum[0]
 
             # Residual between model prediction and measurement
             residual = self.lObs - lExp
@@ -178,24 +156,27 @@ class doseResponseModel:
 
     def traceplot(self):
         """ Create a plot of the resulting trace. """
-        return pm.traceplot(self.samples)
+        return pm.traceplot(self.trace)
 
-    def importData(self):
-        """ Directly import one column of data. """
+    def __init__(self, Drug=None, filename='sampling'):
+        # If no filename is given use a default
+        if Drug is None:
+            self.drug = 'DOX'
+        else:
+            self.drug = Drug
+
         dataLoad = loadCellTiter(self.drug)
 
         # Handle data import here
         self.drugCs = dataLoad['logDose'].as_matrix()
         self.time = 72.0
 
+        # Based on control kinetic data
+        self.Emax_growth = 0.0315
+
         self.lObs = dataLoad['response'].as_matrix()
 
         # Build the model
         self.model = self.build_model()
 
-    def __init__(self, Drug=None):
-        # If no filename is given use a default
-        if Drug is None:
-            self.drug = 'DOX'
-        else:
-            self.drug = Drug
+        self.fname = join(dirname(abspath(__file__)), 'data/initial-data/', filename)

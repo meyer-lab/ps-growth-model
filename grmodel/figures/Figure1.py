@@ -36,7 +36,6 @@ def plot_median_and_quantile(_df, var, ax, range1=0.90, range2=0.75, range3=0.50
     ax.fill_between(x_unique, y_high1, y_low1, color='b', alpha=0.2, label=str(range1) + '% quantile')
     ax.fill_between(x_unique, y_high2, y_low2, color='b', alpha=0.3, label=str(range2) + '% quantile')
     ax.fill_between(x_unique, y_high3, y_low3, color='b', alpha=0.5, label=str(range3) + '% quantile')
-    ax.legend()
 
 
 def plot_exact_data(M, ax2, ax3):
@@ -45,7 +44,6 @@ def plot_exact_data(M, ax2, ax3):
     lObs = np.array(M.lObs)
     # Figure C: plot the mean and 95% CI of lObs at each concentration X
     plot_mean_and_CI(X, lObs, 0.95, ax2)
-    ax2.set_title('Mean and 95% CI of # of live cells')
     ax2.set_xlabel(r'$log_{10}$[DOX(nM)]')
     ax2.set_ylabel('# of live cells')
     ax2.set_ylim(0, 1.1)
@@ -87,10 +85,10 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     df1['controlDrugTerm'] = 1.0 / (1.0 + np.power(10.0, (df1['IC50s'] - np.min(df1['concentration'])) * df1['hill']))
 
     # growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
-    df1['growthV'] = df1['Emin_growth'] + ((df1['Emax_growth'] - df1['Emin_growth']) * df1['drugTerm'])
+    df1['growthV'] = df1['Emax_growth'] + ((df1['Emin_growth'] - df1['Emax_growth']) * df1['drugTerm'])
 
     # Control growth rate
-    df1['growthControl'] = df1['Emin_growth'] + ((df1['Emax_growth'] - df1['Emin_growth']) * df1['controlDrugTerm'])
+    df1['growthControl'] = df1['Emax_growth'] + ((df1['Emin_growth'] - df1['Emax_growth']) * df1['controlDrugTerm'])
 
     # Range of growth effect
     df1['growthRange'] = df1['Emax_growth'] - df1['Emin_growth']
@@ -111,11 +109,13 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     ax3.set_xlabel(r'$log_{10}$[DOX(nM)]')
     ax3.set_ylabel('Fit CellTiter quantitation')
     ax3.set_ylim(0, 1.05)
+    ax3.legend()
 
     # Figure E: Plot the median, 90% and 50% quantile of growth rate at each x
     plot_median_and_quantile(df1, 'growthV', ax4)
     ax4.set_xlabel(r'$log_{10}$[DOX(nM)]')
     ax4.set_ylabel('Predicted growth rate [1/min]')
+    ax4.set_ylim(0., ax4.get_ylim()[1])
 
     # Figure F: Plot the median, 90% and 50% quantile of growth rate at each x
     plot_median_and_quantile(df1, 'deathV', ax5)
@@ -123,38 +123,51 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     ax5.set_ylabel('Predicted death rate [1/min]')
 
     # Figure G: Plot growth rate vs. death rate
-    ax6.scatter(x=df['Emax_growth']/df['Emin_growth'], y=df['Emax_death'], color='b', s=10)
-    # TODO: Resample forcing emin to be less than emax
-    ax6.set_yscale('log')
-    ax6.set_xscale('log')
-    #ax6.set_xlim(0.00001, 1.0)
-    ax6.set_ylim(0.0001, 1.0)
-    ax6.set_xlabel('Drug Growth Effect')
-    ax6.set_ylabel('Drug Death Effect')
+    ax6.scatter(x=df['Emax_growth'] - df['Emin_growth'], y=df['Emax_death'], color='b', s=1)
+    ax6.set_xlim(0., df['Emax_growth'][0])
+    ax6.set_ylim(0., 0.03)
+    ax6.set_xlabel('Drug Growth Effect [1/min]')
+    ax6.set_ylabel('Drug Death Effect [1/min]')
 
 
 def plot_PCA(df, ax):
     """ Check the dimensionality of the sampling uncertainty using PCA """
     from sklearn.decomposition import PCA
 
-    features = ['IC50s', 'hill', 'Emin_growth', 'Emin_growth', 'Emax_death']
     # Separating out the features
-    m = df.loc[:, features].values
+    m = df.values
 
-    pca = PCA(n_components=2)
-    principalComponents = pca.fit_transform(m)
-    principalDf = pd.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
+    pca = PCA(n_components=5)
+    pcs = pca.fit_transform(m)
     # print out explained_variance
-    # print(pca.explained_variance_ratio_)
+    print(pca.explained_variance_ratio_)
 
     # Scatter plot of PC1 vs. PC2
-    ax.scatter(principalDf['principal component 1'], principalDf['principal component 2'], alpha=0.5)
+    ax.scatter(pcs[:, 0], pcs[:, 1], s=2)
     ax.set_xlabel('Principal Component 1')
     ax.set_ylabel('Principal Component 2')
-    ax.set_title('2 component PCA')
     ax.grid(True)
 
     # TODO: Plot PCA's loadings
+
+def alphaFig(M, ax1):
+    drug_lnum_effect = 0.25
+
+    # alpha = (R_g0 - R_gd) / R_dD ---- R_d0 is 0
+    # -ln(drug_lnum_effect) / t = (1 + alpha) R_dD
+
+    alpha = np.logspace(-2, 2)
+    R_dD = -np.log(drug_lnum_effect) / M.time / (1 + alpha)
+    R_gD = M.Emax_growth - R_dD * alpha
+
+    cellDiv = R_gD*72.
+    deadCells = R_dD * (np.exp((R_gD - R_dD)*72.) - 1) / (R_gD - R_dD)
+
+    ax1.semilogx(alpha, deadCells, label="cum. # dead");
+    ax1.set_xlabel(r'$\alpha$ (ratio growth to death effect)');
+    ax1.set_ylabel('Quantity per starting cell');
+    ax1.semilogx(alpha, cellDiv, 'r', label="avg. divisions");
+    ax1.legend()
 
 
 def makeFigure():
@@ -164,21 +177,19 @@ def makeFigure():
     This should be by showing that it's not captured in existing
     measurements.
     '''
-    from grmodel.pymcDoseResponse import readSamples
+    from ..pymcDoseResponse import doseResponseModel
     from .FigureCommon import getSetup, subplotLabel
     from string import ascii_uppercase
 
-    M = readSamples()
+    M = doseResponseModel()
+    M.readSamples()
 
     # Store the sampling data for priors to calculate the lExp, growthV and deathV at each concentration
-    IC50s = M.samples['IC50s']
-    hill = M.samples['hill']
-    Emin_growth = M.samples['Emin_growth']
-    Emax_growth = M.samples['Emax_growth']
-    Emax_death = M.samples['Emax_death']
-
-    df = pd.DataFrame({'IC50s': IC50s, 'hill': hill, 'Emin_growth': Emin_growth,
-                       'Emax_growth': Emax_growth, 'Emax_death': Emax_death})
+    df = pd.DataFrame({'IC50s': M.trace['IC50s'],
+                       'hill': M.trace['hill'],
+                       'Emin_growth': M.trace['Emin_growth'],
+                       'Emax_death': M.trace['Emax_death']})
+    df['Emax_growth'] = M.Emax_growth
 
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))
@@ -189,6 +200,8 @@ def makeFigure():
     plot_exact_data(M, ax[2], ax[3])
     plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])
     plot_PCA(df, ax[7])
+
+    alphaFig(M, ax[8])
 
     # Make first cartoon
     for ii, item in enumerate(ax):

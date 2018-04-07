@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-import warnings
 import matplotlib as plt
-import os.path
 
 plt.use('AGG')
-warnings.filterwarnings(action="ignore", module="scipy", message="^internal gelsd")
 
 fdir = './Manuscript/Figures/'
 
