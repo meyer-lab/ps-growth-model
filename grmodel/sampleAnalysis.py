@@ -1,24 +1,17 @@
 import bz2
 import os
+import pickle
 import pymc3 as pm
 import numpy as np
-import scipy as sp
 import seaborn as sns
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.backends import backend_pdf
 from collections import deque
 
 from .pymcGrowth import simulate
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
-
-def read_dataset(ff=None, traceplot=False):
+def read_dataset(ff=None):
     ''' 
     Read the pymc model from a sampling file
     Makes traceplots if traceplot=True
@@ -29,25 +22,8 @@ def read_dataset(ff=None, traceplot=False):
 
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
-    # Read in list of classes
-    classList = pickle.load(bz2.BZ2File(filename,'rb'))
-    
-    # Save traceplots if traceplot = True
-    if traceplot:
-        tracefile = './grmodel/data/' + ff + '_' + 'traceplot.pdf'
-
-        # Delete the existing file if it exists
-        if os.path.exists(tracefile):
-            os.remove(tracefile)
-
-        with backend_pdf.PdfPages(tracefile, keep_empty=False) as pdf:
-            # Output sampling for each column
-            pm.plots.traceplot(classList.samples)
-            fig = plt.gcf()
-            pdf.savefig(fig)
-            matplotlib.pyplot.close()
-
-    return classList
+    # Read in class
+    return pickle.load(bz2.BZ2File(filename,'rb'))
 
 def readModel(ff=None, trim=False):
     """
@@ -55,116 +31,13 @@ def readModel(ff=None, trim=False):
     Outputs: (model, table for the sampling results)
     """
     model = read_dataset(ff)
+
+    model.samples = model.fit.sample(1000)
+
     df = pm.backends.tracetab.trace_to_dataframe(model.samples)
-    if trim:
-        for name in df.columns.values:
-            if 'logp' in str(name):
-                cutoff = np.amin(df[name])+50
-                df = df.loc[df[name] < cutoff, :]
+    # TODO: Get rid of needing samples
     return (model, df)
 
-def diagnostics(item, plott=False):
-    """
-    Check the convergence and general posterior properties of a chain,
-    using the Geweke criteria, effective-n, and Gelman-Rubin statistics.
-    Inputs: item: pymc class, plott: output posterior plot
-    """
-    flag = True
-    # Calc Geweke stats
-    geweke = pm.geweke(item.samples)
-
-    # Calculate effective n
-    neff = pm.effective_n(item.samples)
-
-    # Calculate Gelman-Rubin statistics
-    gr = pm.gelman_rubin(item.samples)
-
-    # Initialize variables 
-    gewekeOut = 0.0
-    gewekeNum = 0
-    gewekeDivnum = 0
-    gewekeDiv = []
-    gewekeDivparam = []
-
-    # Keep track of diverging chains for each column
-    divparamnum = 0
-    divparam = []
-
-    # Run Geweke diagnostics
-    for _, value in geweke.items():
-        # Iterate over each parameter
-        for kk, vv in value.items():
-            # Get the array of Geweke stats
-            try: # Scalar parameter
-                Vecs = [np.absolute(vv[:, 1])]
-            except TypeError: 
-                # Vectorized parameter, make Vecs, a list of Geweke stats Vec, 
-                # one Vec for each component of the vectorized paramter, len(Vec)=intervals
-                for i in range(len(vv)):
-                    Vectemp = vv[i]
-                    Vectemp = np.absolute(Vectemp[:, 1])
-                    Vecs.append(Vectemp)
-
-            # Get Geweke z-scores exceeding 1 and 1.96
-            for Vec in Vecs:
-                intervals = len(Vec)
-                VecDiv = [val for val in Vec if val >= 1]
-                divnum = len([val for val in Vec if val >= 1.96])
-                
-                # Update variables
-                lenVecDiv = len(VecDiv)
-                gewekeDivnum += lenVecDiv
-                if lenVecDiv > 0:
-                    gewekeDiv.extend(VecDiv)
-                    gewekeDivparam.append(kk)
-                # Parameters not currently used
-                gewekeOut += np.sum(Vec)
-                gewekeNum += Vec.size
-    
-                # Hypothesis testing for each parameter
-                # Caculate z-score for the number of Geweke stats exceeding 1.96 in one parameter
-                z = (divnum - intervals*0.05) / np.sqrt(intervals*0.05*0.95)
-                p_value = 1 - sp.stats.norm.cdf(z)
-                if p_value <= 0.05: # Parameter didn't converge
-                    divparamnum += 1
-                    divparam.append(kk)
-
-    # Let the z-score surpass 1 up to three times, or fewer with higher deviation
-    # TODO: Need to come up with a null model for Geweke to test for convergence
-    # gewekeDivnum: total number of z-scores surpassing 1
-    if gewekeDivnum > 3:
-        print('Column ' + str(item.selCols) + ' sampling not converged according to Geweke.')
-        print('z-score surpassed 1 for ' + str(gewekeDivnum)
-              + ' times for parameters ' + str(gewekeDivparam) + ': \n' + str(gewekeDiv))
-        # divparamnum: number of parameters that failed to converge
-        if divparamnum > 0:
-            print('divparamnum = ' + str(divparamnum) + ' for param(s) ' + str(divparam))
-        print('\n')
-        flag = False
-
-    # Get a flattened list of effective n
-    neffvals = getvalues(neff)
-    # 
-    if min(neffvals) < 100:
-        print('Column ' + str(item.selCols) + ' effective N of sampling is less than 100.')
-        print(neff)
-        print('\n')
-        flag = False
-
-    # Get a flattened list of Gelman-Rubin statistics
-    grvals = getvalues(gr)
-    if max(grvals) > 1.1:
-        print('Gelman-Rubin statistic failed for column ' + str(item.selCols))
-        print(gr)
-        print('\n')
-        flag = False
-
-    # Only output the posterior plot if we've converged
-    if plott and flag:
-        saveplot(item, pm.plot_posterior)
-
-    # Made it to the end so consistent with converged
-    return flag
 
 def getvalues(dic):
     """
@@ -179,26 +52,7 @@ def getvalues(dic):
         except TypeError:
             vals.extend(sublist.tolist())
     return vals
-    
-def saveplot(cols, func):
-    """
-    Take in cols, pymc models, and func, a plotting funciton
-    Make and save the plots
-    """
-    filename = './grmodel/data/' + cols[0].loadFile + '_' + func.__name__ + '.pdf'
 
-    # Delete the existing file if it exists
-    if os.path.exists(filename):
-        os.remove(filename)
-
-    with backend_pdf.PdfPages(filename, keep_empty=False) as pdf:
-        # Output sampling for each column
-        for col in cols:
-            fig, axis = matplotlib.pyplot.subplots(9, 1)
-            axis = func(col.samples, ax=axis)
-            matplotlib.pyplot.tight_layout()
-            pdf.savefig(fig)
-            matplotlib.pyplot.close()
 
 def calcset(pdset, idx, time, idic):
     """Calculate model predictions based on parameter fits from sampling data"""

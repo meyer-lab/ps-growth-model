@@ -2,6 +2,7 @@
 This module handles experimental data, by fitting a growth and death rate for each condition separately.
 """
 import bz2
+import os
 from os.path import join, dirname, abspath, exists
 import pandas
 import pickle
@@ -9,20 +10,6 @@ import numpy as np
 import pymc3 as pm
 import theano.tensor as T
 import theano
-from theano.sandbox.linalg import ops as linOps
-
-
-def lRegRes(inputs, outputs):
-    """
-    Computers the least squares estimator (LSE) B_hat that minimises the sum of the
-    squared errors. Returns the residuals.
-    Returns: residuals: output_hat - output; B_hat: [conv_factor, offset]
-    """
-    X = T.transpose(T.stack([inputs, T.ones([inputs.shape[0]])], axis=0))
-
-    B_hat = T.dot(T.dot(linOps.matrix_inverse(T.dot(X.T, X)),X.T), outputs)
-
-    return (T.dot(X, B_hat) - outputs, B_hat)
 
 
 def simulate(params, ttime):
@@ -61,142 +48,119 @@ def simulate(params, ttime):
     return out
 
 
-class MultiSample:
+def build_model(conv0, doses, timeV, expTable):
+    ''' Builds then returns the pyMC model. '''
+    growth_model = pm.Model()
 
-    def __init__(self):
-        self.models = list()
+    with growth_model:
+        # Set up conversion rates
+        confl_conv = pm.Lognormal('confl_conv', np.log(conv0),      0.1)
+        apop_conv  = pm.Lognormal('apop_conv',  np.log(conv0)-2.06, 0.2)
+        dna_conv   = pm.Lognormal('dna_conv',   np.log(conv0)-1.85, 0.2)
 
-    def loadModels(self, firstCols, fileName=None, seldrugs=None, comb=None, interval=True):
-        """  Initialize GrowthModel for each drug. Load data for each drug in."""
-        # Get LoadFile from GrowthModel()
-        gr = GrowthModel(fileName)
+        # Priors on conv factors
+        pm.Lognormal('confl_apop', -2.06, 0.0647, observed=apop_conv / confl_conv)
+        pm.Lognormal('confl_dna', -1.85, 0.125, observed=dna_conv / confl_conv)
+        pm.Lognormal('apop_dna', 0.222, 0.141, observed=dna_conv / apop_conv)
+        
+        # Offset values for apop and dna
+        apop_offset = pm.Lognormal('apop_offset', -1., 0.1)
+        dna_offset  = pm.Lognormal('dna_offset',  -1., 0.1)
+        
+        # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
+        d = pm.Lognormal('d', np.log(0.01), 1)
 
-        if not hasattr(self, 'filePrefix'):
-            if interval:
-                self.filePrefix = './grmodel/data/' + gr.loadFile
-            else:
-                self.filePrefix = './grmodel/data/' + gr.loadFile + '_ends'
-        gr.importData(firstCols, comb=comb, interval=interval)
-        self.models = gr
-        return gr.drugs
+        # Specify vectors of prior distributions
+        # Growth rate
+        div = pm.Lognormal('div', np.log(0.02), 1, shape=len(doses))
 
-    def sample(self):
-        ''' Map over sampling runs. '''
-        self.models.sample()
+        # Rate of entering apoptosis or skipping straight to death
+        deathRate = pm.Lognormal('deathRate', np.log(0.01), 1, shape=len(doses))
 
-    def save(self):
-        ''' Open file and dump pyMC3 objects through pickle. '''
-        import os
-        if exists(self.filePrefix + '_samples.pkl'):
-            os.remove(self.filePrefix + '_samples.pkl')
+        # Fraction of dying cells that go through apoptosis
+        apopfrac = pm.Beta('apopfrac', 2., 2., shape=len(doses))
 
-        pickle.dump(self.models, bz2.BZ2File(self.filePrefix + '_samples.pkl', 'wb'))
+
+        # Make a vector of time and one for time-constant values
+        timeV = T._shared(timeV)
+        constV = T.ones_like(timeV, dtype=theano.config.floatX)
+
+
+        # Calculate the growth rate
+        GR = T.outer(div - deathRate, constV)
+
+        # cGDd is used later
+        cGRd = T.outer(deathRate * apopfrac, constV) / (GR + d)
+
+        # b is the rate straight to death
+        b = T.outer(deathRate * (1 - apopfrac), constV)
+
+
+        # Calculate the number of live cells
+        lnum = T.exp(GR * timeV)
+
+        # Number of early apoptosis cells at start is 0.0
+        eap = cGRd * (lnum - pm.math.exp(-d * timeV))
+
+        # Calculate dead cells via apoptosis and via necrosis
+        deadnec = b * (lnum - 1) / GR
+        deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * timeV) - 1)
+
+        # Convert model calculations to experimental measurement units
+        confl_exp = (lnum + eap + deadapop + deadnec) * confl_conv
+        apop_exp = (eap + deadapop) * apop_conv + apop_offset
+        dna_exp = (deadapop + deadnec) * dna_conv + dna_offset
+
+
+        # Fit model to confl, apop, dna, and overlap measurements
+        if ('confl') in expTable.keys():
+            # Observed error values for confl
+            confl_obs = T.reshape(confl_exp, (-1, )) - expTable['confl']
+
+            pm.Normal('dataFit', sd=T.std(confl_obs), observed=confl_obs)
+        if ('apop') in expTable.keys():
+            # Observed error values for apop
+            apop_obs = T.reshape(apop_exp, (-1, )) - expTable['apop']
+
+            pm.Normal('dataFita', sd=T.std(apop_obs), observed=apop_obs)
+        if ('dna') in expTable.keys():
+            # Observed error values for dna
+            dna_obs = T.reshape(dna_exp, (-1, )) - expTable['dna']
+
+            pm.Normal('dataFitd', sd=T.std(dna_obs), observed=dna_obs)
+
+        pm.Deterministic('logp', growth_model.logpt)
+
+    return growth_model
 
 
 class GrowthModel:
-
-    def sample(self):
+    def fit(self):
         ''' Run NUTS sampling'''
-        num = 1500
-        print(len(self.doses))
-        with self.model:
-            self.samples = pm.sample(draws=num, tune = num, njobs=2,  # Run two parallel chains
-                                     nuts_kwargs={'target_accept': 0.99})
+        print('Building the model')
+        model = build_model(self.conv0, self.doses, self.timeV, self.expTable)
 
-    def build_model(self):
-        '''
-        Builds then returns the pyMC model.
-        '''
-
-        if not hasattr(self, 'timeV'):
-            raise ValueError("Need to import data first.")
-
-        growth_model = pm.Model()
-
-        with growth_model:
-            # Set up conversion rates
-            confl_conv = pm.Lognormal('confl_conv', np.log(self.conv0), 0.1)
-            apop_conv = pm.Lognormal('apop_conv', np.log(self.conv0)-2.06, 0.2)
-            dna_conv = pm.Lognormal('dna_conv', np.log(self.conv0)-1.85, 0.2)
-
-            # Priors on conv factors
-            pm.Lognormal('confl_apop', -2.06, 0.0647, observed=apop_conv / confl_conv)
-            pm.Lognormal('confl_dna', -1.85, 0.125, observed=dna_conv / confl_conv)
-            pm.Lognormal('apop_dna', 0.222, 0.141, observed=dna_conv / apop_conv)
-            
-            # Offset values for apop and dna
-            apop_offset = pm.Uniform('apop_offset', lower=0, upper=0.2)
-            dna_offset = pm.Uniform('dna_offset', lower=0, upper=0.2)
-            
-            # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
-            d = pm.Lognormal('d', np.log(0.01), 1)
-
-            # Specify vectors of prior distributions
-            # Growth rate
-            div = pm.Lognormal('div', np.log(0.02), 1, shape=len(self.doses))
-
-            # Rate of entering apoptosis or skipping straight to death
-            deathRate = pm.Lognormal('deathRate', np.log(0.01), 1, shape=len(self.doses))
-
-            # Fraction of dying cells that go through apoptosis
-            apopfrac = pm.Uniform('apopfrac', shape=len(self.doses))
+        print('Performing inference')
+        self.fit = pm.variational.inference.fit(n=80000, model=model)
 
 
-            # Make a vector of time and one for time-constant values
-            timeV = T._shared(self.timeV)
-            constV = T.ones_like(timeV, dtype=theano.config.floatX)
+    def save(self):
+        ''' Open file and dump pyMC3 objects through pickle. '''
+        if self.interval:
+            filePrefix = './grmodel/data/' + self.loadFile
+        else:
+            filePrefix = './grmodel/data/' + self.loadFile + '_ends'
 
+        if exists(filePrefix + '_samples.pkl'):
+            os.remove(filePrefix + '_samples.pkl')
 
-            # Calculate the growth rate
-            GR = T.outer(div - deathRate, constV)
+        pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
 
-            # cGDd is used later
-            cGRd = T.outer(deathRate * apopfrac, constV) / (GR + d)
-
-            # b is the rate straight to death
-            b = T.outer(deathRate * (1 - apopfrac), constV)
-
-
-            # Calculate the number of live cells
-            lnum = T.exp(GR * timeV)
-
-            # Number of early apoptosis cells at start is 0.0
-            eap = cGRd * (lnum - pm.math.exp(-d * self.timeV))
-
-            # Calculate dead cells via apoptosis and via necrosis
-            deadnec = b * (lnum - 1) / GR
-            deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * self.timeV) - 1)
-
-            # Convert model calculations to experimental measurement units
-            confl_exp = (lnum + eap + deadapop + deadnec) * confl_conv
-            apop_exp = (eap + deadapop) * apop_conv + apop_offset
-            dna_exp = (deadapop + deadnec) * dna_conv + dna_offset
-
-
-            # Fit model to confl, apop, dna, and overlap measurements
-            if ('confl') in self.expTable.keys():
-                # Observed error values for confl
-                confl_obs = T.reshape(confl_exp, (-1, )) - self.expTable['confl']
-
-                pm.Normal('dataFit', sd=T.std(confl_obs), observed=confl_obs)
-            if ('apop') in self.expTable.keys():
-                # Observed error values for apop
-                apop_obs = T.reshape(apop_exp, (-1, )) - self.expTable['apop']
-
-                pm.Normal('dataFita', sd=T.std(apop_obs), observed=apop_obs)
-            if ('dna') in self.expTable.keys():
-                # Observed error values for dna
-                dna_obs = T.reshape(dna_exp, (-1, )) - self.expTable['dna']
-
-                pm.Normal('dataFitd', sd=T.std(dna_obs), observed=dna_obs)
-
-            pm.Deterministic('logp', growth_model.logpt)
-
-        return growth_model
 
     # Directly import one column of data
-    def importData(self, firstCols, drop24=False, comb=None, interval=True):
+    def importData(self, firstCols, comb=None, interval=True):
         """Import experimental data"""
+        self.interval = interval
 
         # Property list
         properties = {'confl': '_confluence_phase.csv',
@@ -222,11 +186,8 @@ class GrowthModel:
             # Read input file
             try:
                 dataset = pandas.read_csv(pathcsv + value)
-                # If drop24=True, remove data from first 24 hours
-                if drop24:
-                    data = dataset.loc[dataset['Elapsed'] >= 24]
                 # If interval=False, get endpoint data
-                elif not interval:
+                if not interval:
                     endtime = max(dataset['Elapsed'])
                     data1 = dataset.loc[dataset['Elapsed'] == 0]
                     data2 = dataset.loc[dataset['Elapsed'] == endtime]
@@ -322,9 +283,6 @@ class GrowthModel:
 
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
-
-        # Build the model
-        self.model = self.build_model()
 
     def __init__(self, loadFile = None):
         # If no filename is given use a default

@@ -6,7 +6,7 @@ pan_common = -s -F pandoc-crossref -F pandoc-citeproc --filter=$(tdir)/figure-fi
 
 all: Manuscript/index.html Manuscript/Manuscript.pdf
 
-$(fdir)/Figure%.svg: genFigures.py grmodel/data/101117_H1299_samples.pkl
+$(fdir)/Figure%.svg: genFigures.py
 	mkdir -p ./Manuscript/Figures
 	python3 genFigures.py $*
 
@@ -24,9 +24,6 @@ grmodel/data/FCSE/CFSE-SYB-20171106.tar.xz:
 
 grmodel/data/FCSE/24817.fcs: grmodel/data/FCSE/CFSE-SYB-20171106.tar.xz
 	tar -Jxf $< -C grmodel/data/FCSE/
-
-grmodel/data/101117_H1299_samples.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/zy5tf8lb08j3ojx/101117_H1299_samples.pkl?dl=0
 
 grmodel/data/101117_H1299_ends_samples.pkl: 
 	curl -LSso $@ https://www.dropbox.com/s/eiwyq8pi67qut09/101117_H1299_ends_samples.pkl?dl=0
@@ -60,7 +57,7 @@ dataclean:
 sampleDose:
 	python3 -c "from grmodel.pymcDoseResponse import doseResponseModel; M = doseResponseModel(); M.sample()"
 
-test: grmodel/data/101117_H1299_samples.pkl grmodel/data/101117_H1299_samples.pkl
+test:
 	nosetests3 --with-timer --timer-top-n 5
 
 testcover:
