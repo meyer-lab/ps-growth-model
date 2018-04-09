@@ -1,0 +1,15 @@
+﻿Sample,Type,.fcs file name
+unlabeled,Sample,24817.fcs
+CONTROL (for Dox treated samples),Sample,24818.fcs
+Dox 25 nM,Sample,24819.fcs
+Dox 50 nM,Sample,24820.fcs
+Dox 100 nM,Sample,24821.fcs
+CONTROL (for NVB treated samples),Sample,24822.fcs
+NVB 10 nM,Sample,24823.fcs
+NVB 20 nM,Sample,24824.fcs
+NVB 40 nM,Sample,24825.fcs
+Day0 STD,Standard,24890.fcs
+Day1 STD,Standard,24892.fcs
+Day2 STD,Standard,24894.fcs
+Day3 STD,Standard,24896.fcs
+Day4 STD,Standard,24898.fcs

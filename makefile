@@ -19,6 +19,12 @@ grmodel/data/030317-2_H1299_samples.pkl:
 grmodel/data/111717_PC9_samples.pkl: 
 	curl -LSso $@ https://www.dropbox.com/s/z1xce0kwafa612a/111717_PC9_samples.pkl?dl=0
 
+grmodel/data/FCSE/CFSE-SYB-20171106.tar.xz:
+	curl -LSso $@ https://www.dropbox.com/s/kchj8yd679xtl0s/CFSE-SYB-20171106.tar.xz?dl=0
+
+grmodel/data/FCSE/24817.fcs: grmodel/data/FCSE/CFSE-SYB-20171106.tar.xz
+	tar -Jxf $< -C grmodel/data/FCSE/
+
 grmodel/data/101117_H1299_samples.pkl: 
 	curl -LSso $@ https://www.dropbox.com/s/zy5tf8lb08j3ojx/101117_H1299_samples.pkl?dl=0
 
@@ -45,11 +51,11 @@ Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.
 	pandoc -s $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -o $@
 
 clean:
-	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure*
+	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure* grmodel/data/FCSE/CFSE-SYB-20171106.tar.xz
 	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst
 
 dataclean:
-	rm -f grmodel/data/*.pkl
+	rm -f grmodel/data/*.pkl grmodel/data/FCSE/*.fcs grmodel/data/FCSE/CFSE-SYB-20171106.tar.xz
 
 sampleDose:
 	python3 -c "from grmodel.pymcDoseResponse import doseResponseModel; M = doseResponseModel(); M.sample()"
