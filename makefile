@@ -6,7 +6,7 @@ pan_common = -s -F pandoc-crossref -F pandoc-citeproc --filter=$(tdir)/figure-fi
 
 all: Manuscript/index.html Manuscript/Manuscript.pdf
 
-$(fdir)/Figure%.svg: genFigures.py
+$(fdir)/Figure%.svg: genFigures.py grmodel/data/FCSE/24817.fcs
 	mkdir -p ./Manuscript/Figures
 	python3 genFigures.py $*
 

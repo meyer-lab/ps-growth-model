@@ -8,3 +8,5 @@ mcmc_chain.h5
 **/*.pyc
 doc/build
 .hypothesis
+grmodel/data/FCSE/*.fcs
+.ipynb_checkpoints

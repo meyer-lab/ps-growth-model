@@ -1,6 +1,10 @@
 """
 This creates Figure 2.
 """
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from ..fcseAnalysis import importFCS
 
 def makeFigure():
     ''' Make Figure 2. This should generally be initial analysis
@@ -9,7 +13,7 @@ def makeFigure():
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
-    ax, f, _ = getSetup((7, 6), (5, 6))
+    ax, f, _ = getSetup((9, 8), (5, 6))
 
     # Blank out for cartoon
     for axis in ax[0:12]:
@@ -21,12 +25,20 @@ def makeFigure():
     # Show violin plots for model parameters
     violinPlots(axes=[ax[15], ax[16], ax[17], ax[21], ax[22], ax[23]])
 
-    for ii, item in enumerate([ax[0], ax[12], ax[15], ax[24]]):
+    for ii, item in enumerate([ax[0], ax[12], ax[15], ax[18], ax[21], ax[24], ax[27]]):
         subplotLabel(item, ascii_uppercase[ii])
+
+    CFSEcurve(ax[24])
+
+    CFSEsamples(ax[25])
+
+    CFSEcorr(ax[26])
+
+    for axis in ax[27:30]:
+        axis.axis('off')
 
     # Try and fix overlapping elements
     f.tight_layout(pad=0.1)
-    f.show()
 
     return f
 
@@ -48,7 +60,6 @@ def simulationPlots(axes):
 
 def violinPlots(axes):
     """ Create violin plots of model posterior. """
-    import seaborn as sns
     from ..utils import violinplot
     dfdict, drugs, params = violinplot('101117_H1299')
     # Plot params vs. drug dose
@@ -72,3 +83,64 @@ def violinPlots(axes):
             axes[idx].set_xticklabels(axes[idx].get_xticklabels(), rotation=45,
                                       rotation_mode="anchor", ha="right",
                                       position=(0, 0.05), fontsize=4.5)
+
+
+def CFSEcurve(ax):
+    """ Plot the CFSE standard curve. """
+    data = importFCS()
+
+    data_mean = data.groupby(['Sample'])['sFITC'].mean()
+
+    y = [data_mean['Day0 STD'], data_mean['Day1 STD'], data_mean['Day2 STD'],
+         data_mean['Day3 STD'], data_mean['Day4 STD'], data_mean['Dox  CTRL'],
+         data_mean['NVB  CTRL']]
+
+    df = pd.DataFrame({'Days': [0, 1, 2, 3, 4, 4, 4], 'CFSE': y})
+
+
+    sns.regplot(x="CFSE", y="Days", data=df, ax=ax)
+    ax.set_ylim(-0.4, 5)
+
+
+def CFSEsamples(ax):
+    """ Plot the distribution of CFSE values for each experimental sample. """
+    data = importFCS()
+
+    dataFilt = data.loc[data['Sample'].str.contains('Dox'), :]
+    dataFilt = dataFilt.append(data.loc[data['Sample'].str.contains('NVB'), :])
+
+    dataFilt.sort_values(inplace=True, by='Sample')
+
+    sns.lvplot(data=dataFilt, x='Sample', y='sFITC', ax=ax)
+
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(90)
+
+    ax.set_ylim(-1.5, 1.5)
+
+
+def CFSEcorr(ax):
+    """ Correlate CFSE signal with the inferred growth rate. """
+    data = importFCS()
+
+    data_mean = data.groupby(['Sample'])['sFITC'].mean().to_frame()
+
+    data_mean['Params'] = np.nan # TODO: Replace with extracing from fit
+    data_mean.loc['Dox a100 nM', 'Params'] = -1.8
+    data_mean.loc['NVB 40 nM', 'Params'] = -1.6
+    data_mean.loc['Dox 50 nM', 'Params'] = -1.6
+    data_mean.loc['NVB  CTRL', 'Params'] = -1.5
+    data_mean.loc['Dox  CTRL', 'Params'] = -1.5
+    data_mean.loc['Dox 25 nM', 'Params'] = -1.5
+    data_mean.loc['NVB 20 nM', 'Params'] = -1.5
+    data_mean.loc['NVB 10 nM', 'Params'] = -1.5
+
+    data_mean['Params'] = np.exp(data_mean['Params'])
+
+    # Plot of predicted vs. actual
+    data_mean.plot.scatter(x='sFITC', y='Params')
+    ax.plot([-0.5, 2.34], [0.227, 0.0]) # TODO: Check how we should draw the line here
+    ax.set_ylim(0.15, 0.23)
+    ax.set_xlim(-0.5, 0.3)
+    ax.set_xlabel('Log(CFSE / SSC-W)')
+    ax.set_ylabel('Fit Growth Rate (1/min)')

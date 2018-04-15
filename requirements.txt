@@ -5,3 +5,4 @@ pandas
 pymc3
 pyyaml
 numpy_indexed
+fcsparser
