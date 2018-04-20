@@ -21,3 +21,17 @@ def getSetup(figsize, gridd):
 def subplotLabel(ax, letter, hstretch=1):
     ax.text(-0.2 / hstretch, 1.2, letter, transform=ax.transAxes,
             fontsize=16, fontweight='bold', va='top')
+
+
+def overlayCartoon(figFile, cartoonFile, x, y, scalee=1):
+    """ Add cartoon to a figure file. """
+    import svgutils.transform as st
+
+    # Overlay Figure 4 cartoon
+    template = st.fromfile(figFile)
+    cartoon = st.fromfile(cartoonFile).getroot()
+
+    cartoon.moveto(x, y, scale=scalee)
+
+    template.append(cartoon)
+    template.save(figFile)
