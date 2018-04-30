@@ -38,13 +38,13 @@ def simulate(params, ttime):
     b = params[2] * (1 - params[3])
 
     # Calculate dead cells
-    deadapop = params[1] * cGRd * (lnum - 1) / GR + cGRd * (np.exp(-params[1] * ttime) -1)
-    deadnec = b * (lnum -1) / GR
+    deadapop = params[1] * cGRd * (lnum - 1) / GR + cGRd * (np.exp(-params[1] * ttime) - 1)
+    deadnec = b * (lnum - 1) / GR
 
     out = np.concatenate((np.expand_dims(lnum, axis=1),
-                         np.expand_dims(eap, axis=1),
-                         np.expand_dims(deadapop, axis=1),
-                         np.expand_dims(deadnec, axis=1)), axis=1)
+                          np.expand_dims(eap, axis=1),
+                          np.expand_dims(deadapop, axis=1),
+                          np.expand_dims(deadnec, axis=1)), axis=1)
     return out
 
 
@@ -85,7 +85,6 @@ def build_model(conv0, doses, timeV, expTable):
         timeV = T._shared(timeV)
         constV = T.ones_like(timeV, dtype=theano.config.floatX)
 
-
         # Calculate the growth rate
         GR = T.outer(div - deathRate, constV)
 
@@ -94,7 +93,6 @@ def build_model(conv0, doses, timeV, expTable):
 
         # b is the rate straight to death
         b = T.outer(deathRate * (1 - apopfrac), constV)
-
 
         # Calculate the number of live cells
         lnum = T.exp(GR * timeV)
@@ -110,7 +108,6 @@ def build_model(conv0, doses, timeV, expTable):
         confl_exp = (lnum + eap + deadapop + deadnec) * confl_conv
         apop_exp = (eap + deadapop) * apop_conv + apop_offset
         dna_exp = (deadapop + deadnec) * dna_conv + dna_offset
-
 
         # Fit model to confl, apop, dna, and overlap measurements
         if ('confl') in expTable.keys():
@@ -175,7 +172,7 @@ class GrowthModel:
         self.condNames = []
         self.doses = []
         self.drugs = []
-        selconv0 =[]
+        selconv0 = []
 
         # Get dict started
         self.expTable = dict()
@@ -191,7 +188,7 @@ class GrowthModel:
                     endtime = max(dataset['Elapsed'])
                     data1 = dataset.loc[dataset['Elapsed'] == 0]
                     data2 = dataset.loc[dataset['Elapsed'] == endtime]
-                    data = pandas.concat([data1,data2])
+                    data = pandas.concat([data1, data2])
                 # Otherwise get entire data set
                 else:
                     data = dataset
@@ -221,7 +218,7 @@ class GrowthModel:
                 condName = data.columns.values[col]
 
                 # For data with combination therapies
-                if comb != None: 
+                if comb != None:
                     # Represent dose with a tuple of len(2) in each case
                     # If control
                     if 'Control' in condName:
@@ -235,13 +232,13 @@ class GrowthModel:
                         dose2 = float(condName.split(' ')[1])
                     # If contains drug besides the combination drug
                     elif 'blank' not in condName:
-                        try: #Both combination drug and another drug
+                        try:  # Both combination drug and another drug
                             drug1str = condName.split(', ')[0]
                             dose1 = float(drug1str.split(' ')[1])
                             combstr = condName.split(', ')[1]
                             dose2 = float(combstr.split(' ')[1])
                             drug = drug1str.split(' ')[0] + '+' + combstr.split(' ')[0]
-                        except IndexError: #Only the other drug
+                        except IndexError:  # Only the other drug
                             drug = condName.split(' ')[0]
                             dose1 = condName.split(' ')[1]
                             dose2 = 0
@@ -256,9 +253,9 @@ class GrowthModel:
                         self.doses.append(dose)
                         self.condNames.append(condName)
                         self.selCols.append(col)
-                        selconv0.append(conv0[col-firstCols])
+                        selconv0.append(conv0[col - firstCols])
 
-                else: # For data without combinations
+                else:  # For data without combinations
                     if 'Blank' not in condName:
                         # Add the name of the condition we're considering
                         try:
@@ -277,7 +274,7 @@ class GrowthModel:
                             self.doses.append(dose)
                             self.condNames.append(condName)
                             self.selCols.append(col)
-                            selconv0.append(conv0[col-firstCols])
+                            selconv0.append(conv0[col - firstCols])
             # Reshape experimental data into 1D array
             self.expTable[key] = np.array(self.expTable[key]).reshape((-1, ))
 

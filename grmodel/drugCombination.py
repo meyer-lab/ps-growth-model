@@ -1,33 +1,39 @@
-from scipy.optimize import brentq
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from math import expm1
+from scipy.optimize import brentq
 
 
-def drug(IC, X, E, E_con):
+def drug(IC, X, EE):
     """ Define a component of concentration-effect function for drug_n """
-    return X / (IC[0] * (E / (E_con - E))**(1.0 / IC[1]))
+    return np.multiply(X, np.divide(np.power(EE, np.reciprocal(IC[1])), IC[0]))
 
 
-def drugs(IC1, IC2, a, E_con, X1, X2, E):
-    """ Define a component of concentration-effect function for combined_drugs """
-    return (a * X1 * X2) / (IC1[0] * IC2[0] * ((E / (E_con - E))**((1.0 / (2.0 * IC1[1])) + (1.0 / (2.0 * IC2[1])))))
+def drugs(E, IC1, IC2, a, E_con, X1, X2):
+    """ Define a component of concentration-effect function for multiple drugs """
+    EE = (E_con - E) / E
+    singleEffect = drug(IC1, X1, EE) + drug(IC2, X2, EE) - 1.0
+    innerTerm = np.divide(np.reciprocal(IC1[1]) + np.reciprocal(IC2[1]), 2.0)
+
+    return singleEffect + ((a * X1 * X2) / (IC1[0] * IC2[0])) * np.power(EE, innerTerm)
 
 
 def concentration_effect(IC1, IC2, a, E_con, X1, X2):
-    """ Define the concentration-effect function """
+    """ Define the concentration-effect function. """
+    args = (IC1, IC2, a, E_con, X1, X2)
+    low, high = np.array(1.E-8), np.array(E_con*0.999)
 
-    def f(E):
-        return drug(IC1, X1, E, E_con) + drug(IC2, X2, E, E_con) + drugs(IC1, IC2, a, E_con, X1, X2, E) - 1.0
+    flow, fhigh = drugs(low, *args), drugs(high, *args)
 
-    try:
-        _E = brentq(f, expm1(1e-10), 1.0 - expm1(1e-10))
-    except ValueError:
-        print(X1)
-        print(X2)
-        raise
-    return _E
+    if flow * fhigh > 0.0:
+        if np.abs(flow) < np.abs(fhigh) and np.abs(flow) < 1.0E-5:
+            return low
+        elif np.abs(flow) > np.abs(fhigh) and np.abs(fhigh) < 1.0E-5:
+            return high
+
+        return np.nan
+
+    # Solve for E using the Newton's method
+    return brentq(drugs, low, high, args, xtol=1.0E-34)
 
 
 def load_data(IC1, IC2, a, E_con, X1range, X2range, df, appendVar):
@@ -54,6 +60,8 @@ def load_data(IC1, IC2, a, E_con, X1range, X2range, df, appendVar):
 
 def plot_2D(df, x, y):
     """ Plot 2D graph, i.e., X1 vs E, by keeping X2 as constant """
+    import matplotlib.pyplot as plt
+
     plt.plot(df[x], df[y])
     plt.xlabel(x)
     plt.ylabel(y)
