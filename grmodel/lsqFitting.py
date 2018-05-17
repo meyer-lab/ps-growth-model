@@ -24,15 +24,12 @@ def model(X, coeffs, hold):
 
 def residuals(coeffs, Y, X, hold):
     """ Define the residuals function that we want to minimize using the least squares method """
-    residuals = Y - model(X, coeffs, hold)
-
-    residuals = residuals.flatten()
-    return residuals
+    return Y - model(X, coeffs, hold)
 
 
 def lsqFitting(df=makeAdditiveData(t=72.0, a=0.0, E_con=1.0), hold=False):
     """ Least Squares Curve Fitting """
-    lnum = df.pivot(index='X1', columns='X2', values='lnum').as_matrix()
+    lnum = df['lnum'].values
 
     X = np.array((df['X1'].values, df['X2'].values), dtype=np.float64)
 

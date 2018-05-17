@@ -38,11 +38,10 @@ def concentration_effect(IC1, IC2, a, E_con, X1, X2):
 
 def concentration_effects(IC1, IC2, a, E_con, X1, X2):
     """ Define the concentration-effect function with X vectors. """
-    E = np.empty((X1.size, X2.size), dtype=np.float64)
+    E = np.empty(X1.size, dtype=np.float64)
 
     for ii in range(X1.size):
-        for jj in range(X2.size):
-            E[ii, jj] = concentration_effect(IC1, IC2, a, E_con, X1[ii], X2[jj])
+        E[ii] = concentration_effect(IC1, IC2, a, E_con, X1[ii], X2[ii])
 
     return E
 
@@ -80,8 +79,8 @@ def plot_2D(df, x, y):
 
 def makeAdditiveData(t=72.0, a=0.0, E_con=1.0):
     """ Generate data from a situation we know is additive, for later fitting. """
-    X1range = np.arange(1.00, 4.00, 0.02)
-    X2range = np.arange(1.00, 2.00, 0.01)
+    X1range = np.linspace(1.00, 4.00, num=8)
+    X2range = np.linspace(1.00, 2.00, num=8)
     df = pd.DataFrame()
 
     # load X1 and X2 into dataframe df
