@@ -36,6 +36,17 @@ def concentration_effect(IC1, IC2, a, E_con, X1, X2):
     return brentq(drugs, low, high, args, xtol=1.0E-34)
 
 
+def concentration_effects(IC1, IC2, a, E_con, X1, X2):
+    """ Define the concentration-effect function with X vectors. """
+    E = np.empty((X1.size, X2.size), dtype=np.float64)
+
+    for ii in range(X1.size):
+        for jj in range(X2.size):
+            E[ii, jj] = concentration_effect(IC1, IC2, a, E_con, X1[ii], X2[jj])
+
+    return E
+
+
 def load_data(IC1, IC2, a, E_con, X1range, X2range, df, appendVar):
     """
         Load Data in dataframe
