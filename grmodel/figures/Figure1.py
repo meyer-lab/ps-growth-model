@@ -194,8 +194,9 @@ def makeFigure():
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))
 
-    # Going to put a cartoon in A
+    # Going to put a cartoons in A and B
     ax[0].axis('off')
+    ax[1].axis('off')
 
     plot_exact_data(M, ax[2], ax[3])
     plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])

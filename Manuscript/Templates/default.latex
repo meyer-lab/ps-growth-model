@@ -1,4 +1,4 @@
-\documentclass[11pt]{article}
+\documentclass[10pt]{article}
 
 \usepackage{amssymb, amsmath, mathtools}
 \usepackage{fontspec, microtype}
