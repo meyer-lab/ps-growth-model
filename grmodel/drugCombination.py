@@ -1,13 +1,16 @@
 import numpy as np
 import pandas as pd
 from scipy.optimize import brentq
+from numba import jit
 
 
+@jit(nopython=True, cache=True)
 def drug(IC, X, EE):
     """ Define a component of concentration-effect function for drug_n """
     return np.multiply(X, np.divide(np.power(EE, np.reciprocal(IC[1])), IC[0]))
 
 
+@jit(nopython=True, cache=True)
 def drugs(E, IC1, IC2, a, E_con, X1, X2):
     """ Define a component of concentration-effect function for multiple drugs """
     EE = (E_con - E) / E
@@ -20,7 +23,7 @@ def drugs(E, IC1, IC2, a, E_con, X1, X2):
 def concentration_effect(IC1, IC2, a, E_con, X1, X2):
     """ Define the concentration-effect function. """
     args = (IC1, IC2, a, E_con, X1, X2)
-    low, high = np.array(1.E-8), np.array(E_con*0.999)
+    low, high = np.array(1.E-8), np.array(E_con * 0.999)
 
     flow, fhigh = drugs(low, *args), drugs(high, *args)
 

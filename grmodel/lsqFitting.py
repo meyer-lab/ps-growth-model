@@ -1,9 +1,9 @@
 import numpy as np
-from scipy.optimize import leastsq
-from drugCombination import concentration_effects, makeAdditiveData
+from scipy.optimize import least_squares
+from .drugCombination import concentration_effects, makeAdditiveData
 
-# This Python script implements lsq to fit the parameters IC50_X1,
-# IC50_X2, hill_X1, hill_X2, Econ and a in the model defined
+""" This Python script implements lsq to fit the parameters IC50_X1,
+    IC50_X2, hill_X1, hill_X2, Econ and a in the model defined """
 
 
 def model(X, coeffs, hold):
@@ -28,29 +28,39 @@ def residuals(coeffs, Y, X, hold):
 
 
 def lsqFitting(df=makeAdditiveData(t=72.0, a=0.0, E_con=1.0), hold=False):
-    """ Least Squares Curve Fitting """
+    """ Least Squares Curve Fitting
+    This function returns the best fitted coefficients, the sthe fitted number of live cells """
     lnum = df['lnum'].values
 
     X = np.array((df['X1'].values, df['X2'].values), dtype=np.float64)
 
-    if hold:
-        c0 = np.array([1.0, 2.0, -1.0, -1.0, 0.6], dtype=np.float64)
-    else:
-        c0 = np.array([1.0, 2.0, -1.0, -1.0, 0.6, 0.0], dtype=np.float64)
+    ssr_min = 1.0E10
+    for i in range(6):
+        # Randomly choose initial value each time
+        if hold:
+            # c0 = np.array([IC1, IC2, hill1, hill2, E_con]
+            c0 = np.random.uniform(low=np.array([0.0, 0.0, -5.0, -5.0, 0.1]),
+                                   high=np.array([5.0, 10.0, 0.0, 0.0, 1.0]))
+            B = [(0, 0, -np.inf, -np.inf, 0), (np.inf, np.inf, 0, 0, np.inf)]
+        else:
+            # c0 = np.array([IC1, IC2, hill1, hill2, E_con, a]
+            c0 = np.random.uniform(low=np.array([0.0, 0.0, -5.0, -5.0, 0.1, -10.0]),
+                                   high=np.array([5.0, 10.0, 0.0, 0.0, 1.0, 10.0]))
+            B = [(0, 0, -np.inf, -np.inf, 0, -np.inf), (np.inf, np.inf, 0, 0, np.inf, np.inf)]
 
-    c, flag = leastsq(residuals, c0, args=(lnum, X, hold))
+        # Least squares method to find the parameters that minimize the residuals
+        try:
+            c = least_squares(residuals, c0, bounds=B, args=(lnum, X, hold))
+            c = c.x
+        except ValueError:
+            # ValueError when the residuals are infinitely large
+            continue
 
-    if hold:
-        print('IC50_X1=', c[0], 'IC50_X2=', c[1], 'hill_X1=', c[2], 'hill_X2=', c[3], 'E_con=', c[4])
-    else:
-        print('IC50_X1=', c[0], 'IC50_X2=', c[1], 'hill_X1=', c[2], 'hill_X2=', c[3], 'E_con=', c[4], 'a=', c[5])
+        lnum_fit = model(X, c, hold)
+        ssr = np.sum(np.square(lnum - lnum_fit))
 
-    lnum_fit = model(X, c, hold)
-    # df['error'] = abs(df['lnum'] - df['lnum_fit'])
-    # this should be added to a unit test code
-
-    return lnum_fit
-
-# TODO: Need to not be running the code as a script
-M = lsqFitting()
-print(M)
+        if ssr_min > ssr:
+            lnum_f = lnum_fit
+            coeffs = c
+            ssr_min = ssr
+    return coeffs, ssr_min, lnum_f

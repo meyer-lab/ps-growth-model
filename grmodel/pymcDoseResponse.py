@@ -7,7 +7,6 @@ import pymc3 as pm
 import theano.tensor as T
 import pandas as pd
 import matplotlib.pyplot as plt
-from pymc3.backends.tracetab import trace_to_dataframe
 from .pymcGrowth import simulate
 
 
