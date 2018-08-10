@@ -1,9 +1,8 @@
+""" This Python script implements lsq to fit the parameters IC50_X1,
+    IC50_X2, hill_X1, hill_X2, Econ and a in the model defined """
 import numpy as np
 from scipy.optimize import least_squares
 from .drugCombination import concentration_effects, makeAdditiveData
-
-""" This Python script implements lsq to fit the parameters IC50_X1,
-    IC50_X2, hill_X1, hill_X2, Econ and a in the model defined """
 
 
 def model(X, coeffs, hold):
@@ -35,7 +34,7 @@ def lsqFitting(df=makeAdditiveData(t=72.0, a=0.0, E_con=1.0), hold=False):
     X = np.array((df['X1'].values, df['X2'].values), dtype=np.float64)
 
     ssr_min = 1.0E10
-    for i in range(6):
+    for _ in range(6):
         # Randomly choose initial value each time
         if hold:
             # c0 = np.array([IC1, IC2, hill1, hill2, E_con]

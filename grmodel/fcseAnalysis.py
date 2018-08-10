@@ -1,15 +1,16 @@
+import glob
 from os.path import dirname, abspath
 import numpy as np
 import pandas as pd
 import fcsparser
-import glob
+
 
 def importFCS():
     """ Import FCS files for CFSE dilution. """
     fullpath = dirname(abspath(__file__))
     files = glob.glob(fullpath + "/data/FCSE/*.fcs")
-    
-    assert(len(files) > 0)
+
+    assert len(files) > 0
 
     data = pd.DataFrame()
 

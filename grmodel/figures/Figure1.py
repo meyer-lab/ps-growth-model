@@ -163,10 +163,10 @@ def alphaFig(M, ax1):
     cellDiv = R_gD*72.
     deadCells = R_dD * (np.exp((R_gD - R_dD)*72.) - 1) / (R_gD - R_dD)
 
-    ax1.semilogx(alpha, deadCells, label="cum. # dead");
-    ax1.set_xlabel(r'$\alpha$ (ratio growth to death effect)');
-    ax1.set_ylabel('Quantity per starting cell');
-    ax1.semilogx(alpha, cellDiv, 'r', label="avg. divisions");
+    ax1.semilogx(alpha, deadCells, label="cum. # dead")
+    ax1.set_xlabel(r'$\alpha$ (ratio growth to death effect)')
+    ax1.set_ylabel('Quantity per starting cell')
+    ax1.semilogx(alpha, cellDiv, 'r', label="avg. divisions")
     ax1.legend()
 
 

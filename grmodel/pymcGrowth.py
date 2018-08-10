@@ -132,7 +132,7 @@ def build_model(conv0, doses, timeV, expTable):
 
 
 class GrowthModel:
-    def fit(self):
+    def performFit(self):
         ''' Run NUTS sampling'''
         print('Building the model')
         model = build_model(self.conv0, self.doses, self.timeV, self.expTable)

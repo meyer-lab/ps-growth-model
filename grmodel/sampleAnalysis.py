@@ -1,5 +1,4 @@
 import bz2
-import os
 import pickle
 import pymc3 as pm
 import numpy as np
@@ -165,7 +164,6 @@ def simulation(filename, drug, ax=None, unit='nM'):
 
 def sim_plots(filename, drugs=None, unit='nM'):
     ''' Plot sampling predictions overlaying experimental data for multiple drugs '''
-    import seaborn as sns
     sns.set_context("paper", font_scale=2)
     # If drugs given, make simulation plots for selected drugs
     if drugs != None:

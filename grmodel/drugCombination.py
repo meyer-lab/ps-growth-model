@@ -1,3 +1,6 @@
+"""
+This module deals with calculating the effect of drug combinations.
+"""
 import numpy as np
 import pandas as pd
 from scipy.optimize import brentq
@@ -87,7 +90,7 @@ def makeAdditiveData(t=72.0, a=0.0, E_con=1.0):
     df = pd.DataFrame()
 
     # load X1 and X2 into dataframe df
-    for i, X1 in zip(range(len(X1range)), X1range):
+    for i in range(X1range.size):
         temp_df = pd.DataFrame({'X1': [X1range[i]] * len(X2range),
                                 'X2': X2range})
         df = df.append(temp_df, ignore_index=True)
