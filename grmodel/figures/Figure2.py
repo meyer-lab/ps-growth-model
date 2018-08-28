@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from ..fcseAnalysis import importFCS
 
+
 def makeFigure():
     ''' Make Figure 2. This should generally be initial analysis
     of the data we've been collecting. '''
@@ -44,18 +45,40 @@ def makeFigure():
 
 
 def simulationPlots(axes):
-    from ..sampleAnalysis import readModel, simulation
-    # Get the list of drugs for 101117_H1299 experiment
-    classM, _ = readModel(ff="101117_H1299")
-    drugs = list(sorted(set(classM.drugs)))
-    drugs.remove('Control')
+    """ Make plots of experimental data. """
+    from matplotlib.colors import ListedColormap
+    from ..sampleAnalysis import readModel
 
-    # Iterate over each drug
-    for i, drug in enumerate(drugs):
-        # Make simulation plots and legend
-        axis, patches = simulation('101117_H1299', drug, ax=axes[3*i: 3*i+3], unit='nM')
-        #Show legend
-        axis[2].legend(handles=patches, labelspacing=0.15, prop={'size': 4})
+    # Load model and dataset
+    classM, _ = readModel(ff='101117_H1299')
+
+    df = pd.DataFrame(classM.expTable)
+    df['time'] = np.tile(classM.timeV, int(df.shape[0] / classM.timeV.size))
+    df['dose'] = np.repeat(classM.doses, classM.timeV.size).astype(np.float64)
+    df['drug'] = np.repeat(classM.drugs, int(df.shape[0] / len(classM.drugs)))
+
+    cmap = ListedColormap(sns.color_palette("Spectral", 256))
+
+    for ii, ax in enumerate(axes):
+        quant = ['confl', 'apop', 'dna'][ii % 3]
+
+        if ii < 3:
+            dfcur = df.loc[df['drug'] != 'NVB', :]
+        else:
+            dfcur = df.loc[df['drug'] != 'Dox', :]
+
+        ax.scatter(dfcur['time'], dfcur[quant], edgecolors='none',
+                   s=2, c=np.log(dfcur['dose']), cmap=cmap)
+        ax.set_xlabel('Time (hrs)')
+
+        if quant == 'confl':
+            ax.set_ylim(0., 100.)
+        else:
+            ax.set_ylim(0., 0.6)
+
+    axes[0].set_ylabel('Percent Image Positive')
+    axes[3].set_ylabel('Percent Image Positive')
+    # TODO: Make colors common across the axes, and add colorbar
 
 
 def violinPlots(axes):

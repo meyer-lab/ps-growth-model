@@ -1,11 +1,12 @@
 import bz2
 import pickle
+from collections import deque
 import pymc3 as pm
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from collections import deque
+
 
 from .pymcGrowth import simulate
 
@@ -80,6 +81,7 @@ def calcset(pdset, idx, time, idic):
                              + row[1].as_matrix()[idic['dna_offset']])
         varr += 1
     return (calcset, calcseta, calcsetd)
+
 
 def simulation(filename, drug, ax=None, unit='nM'):
     """Make simulation plots of experimental data overlayed with model predictions"""
