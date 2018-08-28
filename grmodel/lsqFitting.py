@@ -33,33 +33,25 @@ def lsqFitting(df=makeAdditiveData(t=72.0, a=0.0, E_con=1.0), hold=False):
 
     X = np.array((df['X1'].values, df['X2'].values), dtype=np.float64)
 
-    ssr_min = 1.0E10
-    for _ in range(6):
-        # Randomly choose initial value each time
-        if hold:
-            # c0 = np.array([IC1, IC2, hill1, hill2, E_con]
-            c0 = np.random.uniform(low=np.array([0.0, 0.0, -5.0, -5.0, 0.1]),
-                                   high=np.array([5.0, 10.0, 0.0, 0.0, 1.0]))
-            B = [(0, 0, -np.inf, -np.inf, 0), (np.inf, np.inf, 0, 0, np.inf)]
-        else:
-            # c0 = np.array([IC1, IC2, hill1, hill2, E_con, a]
-            c0 = np.random.uniform(low=np.array([0.0, 0.0, -5.0, -5.0, 0.1, -10.0]),
-                                   high=np.array([5.0, 10.0, 0.0, 0.0, 1.0, 10.0]))
-            B = [(0, 0, -np.inf, -np.inf, 0, -np.inf), (np.inf, np.inf, 0, 0, np.inf, np.inf)]
+    # Starting point information
+    if hold: # IC1, IC2, hill1, hill2, E_con
+        c0 = {'low': np.array([0.0, 0.0, -5.0, -5.0, 0.1]), 'high': np.array([5.0, 10.0, 0.0, 0.0, 1.0])}
+        B = [(0, 0, -np.inf, -np.inf, 0), (np.inf, np.inf, 0, 0, np.inf)]
+    else: # IC1, IC2, hill1, hill2, E_con, a
+        c0 = {'low': np.array([0.0, 0.0, -5.0, -5.0, 0.1, -10.0]), 'high': np.array([5.0, 10.0, 0.0, 0.0, 1.0, 10.0])}
+        B = [(0, 0, -np.inf, -np.inf, 0, -np.inf), (np.inf, np.inf, 0, 0, np.inf, np.inf)]
 
+    for ii in range(2):
         # Least squares method to find the parameters that minimize the residuals
         try:
-            c = least_squares(residuals, c0, bounds=B, args=(lnum, X, hold))
-            c = c.x
+            c = least_squares(residuals, np.random.uniform(**c0), bounds=B, args=(lnum, X, hold), verbose=2)
         except ValueError:
             # ValueError when the residuals are infinitely large
             continue
 
-        lnum_fit = model(X, c, hold)
-        ssr = np.sum(np.square(lnum - lnum_fit))
+        if ii == 0:
+            cSave = c
+        elif cSave.cost > c.cost:
+            cSave = c
 
-        if ssr_min > ssr:
-            lnum_f = lnum_fit
-            coeffs = c
-            ssr_min = ssr
-    return coeffs, ssr_min, lnum_f
+    return cSave.x, cSave.cost

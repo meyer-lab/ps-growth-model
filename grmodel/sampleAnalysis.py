@@ -63,7 +63,7 @@ def calcset(pdset, idx, time, idic):
     # Interate over each row of sampling data
     for row in pdset.iterrows():
         # Get parameter values
-        mparm = np.copy(np.array(row[1].as_matrix()[[idic['div__'+idx],
+        mparm = np.copy(np.array(row[1].values[[idic['div__'+idx],
                                                      idic['d'],
                                                      idic['deathRate__'+idx],
                                                      idic['apopfrac__'+idx]]]))
@@ -72,13 +72,13 @@ def calcset(pdset, idx, time, idic):
         # Apply conversion factors to model predictions
         # Fill-in one row of the numpy arrays
         calcset[varr, :] = (np.sum(simret, axis=1)
-                            * row[1].as_matrix()[idic['confl_conv']])
+                            * row[1].values[idic['confl_conv']])
         calcseta[varr, :] = (np.sum(simret[:, 1:3], axis=1)
-                             * row[1].as_matrix()[idic['apop_conv']]
-                             + row[1].as_matrix()[idic['apop_offset']])
+                             * row[1].values[idic['apop_conv']]
+                             + row[1].values[idic['apop_offset']])
         calcsetd[varr, :] = (np.sum(simret[:, 2:4], axis=1)
-                             * row[1].as_matrix()[idic['dna_conv']]
-                             + row[1].as_matrix()[idic['dna_offset']])
+                             * row[1].values[idic['dna_conv']]
+                             + row[1].values[idic['dna_offset']])
         varr += 1
     return (calcset, calcseta, calcsetd)
 

@@ -7,13 +7,13 @@ from scipy.optimize import brentq
 from numba import jit
 
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=True, nogil=True)
 def drug(IC, X, EE):
     """ Define a component of concentration-effect function for drug_n """
     return np.multiply(X, np.divide(np.power(EE, np.reciprocal(IC[1])), IC[0]))
 
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=True, nogil=True)
 def drugs(E, IC1, IC2, a, E_con, X1, X2):
     """ Define a component of concentration-effect function for multiple drugs """
     EE = (E_con - E) / E
@@ -38,7 +38,7 @@ def concentration_effect(IC1, IC2, a, E_con, X1, X2):
 
         return np.nan
 
-    # Solve for E using the Newton's method
+    # Solve for E
     return brentq(drugs, low, high, args, xtol=1.0E-34)
 
 
@@ -47,7 +47,10 @@ def concentration_effects(IC1, IC2, a, E_con, X1, X2):
     E = np.empty(X1.size, dtype=np.float64)
 
     for ii in range(X1.size):
-        E[ii] = concentration_effect(IC1, IC2, a, E_con, X1[ii], X2[ii])
+        if X1[ii] == 0.0 and X2[ii] == 0.0:
+            E[ii] = E_con
+        else:
+            E[ii] = concentration_effect(IC1, IC2, a, E_con, X1[ii], X2[ii])
 
     return E
 

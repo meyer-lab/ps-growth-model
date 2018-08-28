@@ -1,13 +1,14 @@
+''' Test the least squares drug interaction fitting. '''
 import unittest
 from ..lsqFitting import lsqFitting
 
 
 class TestLsqFitting(unittest.TestCase):
     def test_lsq_fitting(self):
-        """ Test that we can successfully find the fitted parameters with small ssr(sum of squares residuals) """
+        """ Test that we can successfully find the fitted parameters with small cost """
         ssr = lsqFitting(hold=True)[1]
 
-        self.assertGreater(ssr, 2.0, "Find fitted parameters with a hold as 0.0")
+        self.assertLess(ssr, 10., "Find fitted parameters with a hold as 0.0")
 
         ssr = lsqFitting(hold=False)[1]
 

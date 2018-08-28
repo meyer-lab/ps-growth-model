@@ -134,7 +134,7 @@ def CFSEsamples(ax):
 
     dataFilt.sort_values(inplace=True, by='Sample')
 
-    sns.lvplot(data=dataFilt, x='Sample', y='sFITC', ax=ax)
+    sns.boxenplot(data=dataFilt, x='Sample', y='sFITC', ax=ax)
 
     for tick in ax.get_xticklabels():
         tick.set_rotation(90)

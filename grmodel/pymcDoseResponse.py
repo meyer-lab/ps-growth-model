@@ -167,13 +167,13 @@ class doseResponseModel:
         dataLoad = loadCellTiter(self.drug)
 
         # Handle data import here
-        self.drugCs = dataLoad['logDose'].as_matrix()
+        self.drugCs = dataLoad['logDose'].values
         self.time = 72.0
 
         # Based on control kinetic data
         self.Emax_growth = 0.0315
 
-        self.lObs = dataLoad['response'].as_matrix()
+        self.lObs = dataLoad['response'].values
 
         # Build the model
         self.model = self.build_model()

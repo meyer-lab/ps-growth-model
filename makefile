@@ -58,10 +58,13 @@ sampleDose:
 	python3 -c "from grmodel.pymcDoseResponse import doseResponseModel; M = doseResponseModel(); M.sample()"
 
 test:
-	nosetests3 --with-timer --timer-top-n 5
+	nosetests3 --with-timer
+
+testprofile:
+	nosetests3 --with-timer --with-cprofile --cprofile-stats-erase
 
 testcover:
-	nosetests3 --with-xunit --with-xcoverage --cover-package=grmodel -s --with-timer --timer-top-n 5
+	nosetests3 --with-xunit --with-xcoverage --cover-package=grmodel -s --with-timer
 
 profile:
 	python3 -c "from grmodel.pymcGrowth import GrowthModel; grM = GrowthModel(); grM.importData(3); grM.model.profile(grM.model.logpt).summary()"

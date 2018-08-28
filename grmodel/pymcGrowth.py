@@ -202,11 +202,11 @@ class GrowthModel:
 
             if hasattr(self, 'timeV'):
                 # Compare to existing vector
-                if np.max(self.timeV - data.iloc[:, 1].as_matrix()) > 0.1:
+                if np.max(self.timeV - data.iloc[:, 1].values) > 0.1:
                     raise ValueError("File time vectors don't match up.")
             else:
                 # Set the time vector
-                self.timeV = data.iloc[:, 1].as_matrix()
+                self.timeV = data.iloc[:, 1].values
 
             if not hasattr(self, 'totalCols'):
                 self.totalCols = len(data.columns)
@@ -245,7 +245,7 @@ class GrowthModel:
                     dose = (dose1, dose2)
 
                     # Add data to expTable
-                    self.expTable.setdefault(key, []).append(data.iloc[:, col].as_matrix())
+                    self.expTable.setdefault(key, []).append(data.iloc[:, col].values)
 
                     # Append to class variables once per column of data
                     if key == 'confl':
@@ -266,7 +266,7 @@ class GrowthModel:
                             dose = 0
 
                         # Add data to expTable
-                        self.expTable.setdefault(key, []).append(data.iloc[:, col].as_matrix())
+                        self.expTable.setdefault(key, []).append(data.iloc[:, col].values)
 
                         # Append to class variables once per column of data
                         if key == 'confl':
