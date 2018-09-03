@@ -38,13 +38,13 @@ def lsqFitting(df=makeAdditiveData(t=72.0, a=0.0, E_con=1.0), hold=False):
         c0 = {'low': np.array([0.0, 0.0, -5.0, -5.0, 0.1]), 'high': np.array([5.0, 10.0, 0.0, 0.0, 1.0])}
         B = [(0, 0, -np.inf, -np.inf, 0), (np.inf, np.inf, 0, 0, np.inf)]
     else: # IC1, IC2, hill1, hill2, E_con, a
-        c0 = {'low': np.array([0.0, 0.0, -5.0, -5.0, 0.1, -10.0]), 'high': np.array([5.0, 10.0, 0.0, 0.0, 1.0, 10.0])}
+        c0 = {'low': np.array([0.0, 0.0, -5.0, -5.0, 0.1, -5.0]), 'high': np.array([5.0, 10.0, 0.0, 0.0, 1.0, 5.0])}
         B = [(0, 0, -np.inf, -np.inf, 0, -np.inf), (np.inf, np.inf, 0, 0, np.inf, np.inf)]
 
     for ii in range(2):
         # Least squares method to find the parameters that minimize the residuals
         try:
-            c = least_squares(residuals, np.random.uniform(**c0), bounds=B, args=(lnum, X, hold), verbose=2)
+            c = least_squares(residuals, np.random.uniform(**c0), bounds=B, args=(lnum, X, hold), verbose=1)
         except ValueError:
             # ValueError when the residuals are infinitely large
             continue
