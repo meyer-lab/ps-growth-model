@@ -1,7 +1,10 @@
+'''
+Various utility functions, probably mostly for plotting.
+'''
+from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from collections import OrderedDict
 from .sampleAnalysis import readModel
 
 
@@ -46,12 +49,12 @@ def violinplot(filename, drugs=None):
     alldrugs = classM.drugs
     alldoses = classM.doses
     # Get a list of drugs
-    if drugs == None:
+    if drugs is None:
         drugs = list(sorted(set(classM.drugs)))
         drugs.remove('Control')
 
     params = ['div', 'deathRate', 'apopfrac']
-    
+
     dfdict = {}
 
     # Interate over each drug
@@ -74,7 +77,7 @@ def violinplot(filename, drugs=None):
         # Reshape table for violinplot
         # Columns: div, deathRate, apopfrac, dose
         dfplot = reformatData(df, doseidx, params)
-        
+
         dfdict[drug] = dfplot
     return (dfdict, drugs, params)
 
