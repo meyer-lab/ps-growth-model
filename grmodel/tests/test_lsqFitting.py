@@ -4,6 +4,7 @@ from ..lsqFitting import lsqFitting
 
 
 class TestLsqFitting(unittest.TestCase):
+    @unittest.skip('Least squares fitting should be depracated as soon as it works through MCMC.')
     def test_lsq_fitting(self):
         """ Test that we can successfully find the fitted parameters with small cost """
         ssr = lsqFitting(hold=True)[1]

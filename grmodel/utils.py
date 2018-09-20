@@ -103,7 +103,7 @@ def violinplot_split(filename, drugs=None):
     alldrugs = classM.drugs
     alldoses = classM.doses
     # Get a list of drugs
-    if drugs == None:
+    if drugs is None:
         drugs = list(sorted(set(classM.drugs)))
         drugs.remove('Control')
 

@@ -1,12 +1,6 @@
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
 **/__pycache__
-mcmc_chain.h5
 *.sublime-workspace
-**/*.pyc
 doc/build
-.hypothesis
 grmodel/data/FCSE/*.fcs
 .ipynb_checkpoints
+.hypothesis

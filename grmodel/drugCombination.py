@@ -26,7 +26,7 @@ def drugs(E, IC1, IC2, a, E_con, X1, X2):
 def concentration_effect(IC1, IC2, a, E_con, X1, X2):
     """ Define the concentration-effect function. """
     args = (IC1, IC2, a, E_con, X1, X2)
-    low, high = np.array(1.E-8), np.array(E_con * 0.999)
+    low, high = np.array(1.E-14), np.array(E_con * 0.99999)
 
     flow, fhigh = drugs(low, *args), drugs(high, *args)
 

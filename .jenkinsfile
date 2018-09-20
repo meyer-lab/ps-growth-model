@@ -45,7 +45,7 @@ pipeline {
         step([
           $class: 'WarningsPublisher',
           parserConfigurations: [[parserName: 'PYLint', pattern: 'pylint.log']],
-          unstableTotalAll: '1000',
+          unstableTotalAll: '180',
           usePreviousBuildAsReference: true])
 
         archiveArtifacts artifacts: 'Manuscript/Manuscript.pdf', onlyIfSuccessful: true
