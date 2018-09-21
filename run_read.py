@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
-import numpy as np
 import pymc3 as pm
+import matplotlib.pyplot as plt
 from grmodel.interactionData import readCombo, filterDrugC, dataSplit
 from grmodel.pymcInteraction import build_model
 
@@ -12,6 +12,7 @@ X1, X2, timeV, phase, red, green = dataSplit(df)
 
 M = build_model(X1, X2, timeV, 1.0, confl=phase, apop=green, dna=red)
 
-outt = pm.find_MAP(model=M, method='L-BFGS-B')
+fit = pm.sampling.sample(model=M)
 
-print(outt)
+pm.plots.traceplot(fit)
+plt.show()
