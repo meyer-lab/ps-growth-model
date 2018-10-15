@@ -38,7 +38,6 @@ def filterDrugC(df, drugAname, drugBname):
         if m is not None:
             df.loc[index, 'drugA'] = float(m.group(1))
 
-
     df['drugB'] = 0
 
     for index, row in df.iterrows():
@@ -47,13 +46,13 @@ def filterDrugC(df, drugAname, drugBname):
         if m is not None:
             df.loc[index, 'drugB'] = float(m.group(1))
 
-
     df.loc[df['Condition'] == 'blank', 'drugA'] = np.nan
     df.loc[df['Condition'] == 'blank', 'drugB'] = np.nan
 
     df.drop('Condition', axis=1, inplace=True)
 
     return df
+
 
 def dataSplit(df):
     keepCols = ['drugA', 'drugB', 'Elapsed', 'Measure']

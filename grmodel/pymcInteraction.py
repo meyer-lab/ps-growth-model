@@ -1,10 +1,15 @@
 """
 This module handles experimental data for drug interaction.
 """
+import os
+import bz2
+import pickle
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
+from os.path import exists
 from .pymcGrowth import theanoCore, convSignal, conversionPriors
+from .interactionData import readCombo, filterDrugC, dataSplit
 
 
 def theanoCorr(a, b):
@@ -16,10 +21,15 @@ def theanoCorr(a, b):
     return r_num / r_den
 
 
-def blissInteract(X1, X2, hill, IC50):
-    drug_one = T.pow(X1, hill[0]) / (T.pow(IC50[0], hill[0]) + T.pow(X1, hill[0]))
-    drug_two = T.pow(X2, hill[1]) / (T.pow(IC50[1], hill[1]) + T.pow(X2, hill[1]))
-    return drug_one + drug_two - drug_one*drug_two
+def blissInteract(X1, X2, hill, IC50, numpyy=False):
+    if numpyy:
+        funcc = np.power
+    else:
+        funcc = T.pow
+
+    drug_one = funcc(X1, hill[0]) / (funcc(IC50[0], hill[0]) + funcc(X1, hill[0]))
+    drug_two = funcc(X2, hill[1]) / (funcc(IC50[1], hill[1]) + funcc(X2, hill[1]))
+    return drug_one + drug_two - drug_one * drug_two
 
 
 def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
@@ -27,9 +37,9 @@ def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
 
     assert(X1.shape == X2.shape)
 
-    growth_model = pm.Model()
+    drugInteractionModel = pm.Model()
 
-    with growth_model:
+    with drugInteractionModel:
         conversions = conversionPriors(conv0)
 
         # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
@@ -61,7 +71,7 @@ def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
         lnum, eap, deadapop, deadnec = theanoCore(timeV, growth_rates, death_rates, apopfrac, d)
 
         # Test the size of lnum
-        lnum = T.opt.Assert('lnum did not match X1*timeV size')(lnum, T.eq(lnum.size, X1.size*timeV.size))
+        lnum = T.opt.Assert('lnum did not match X1*timeV size')(lnum, T.eq(lnum.size, X1.size * timeV.size))
 
         confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec, conversions)
 
@@ -81,6 +91,46 @@ def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
             pm.Deterministic('dna_corr', theanoCorr(dna_exp, T._shared(dna)))
             pm.Normal('dna_fit', sd=T.std(dna_obs), observed=dna_obs)
 
-        pm.Deterministic('logp', growth_model.logpt)
+        pm.Deterministic('logp', drugInteractionModel.logpt)
 
-    return growth_model
+    return drugInteractionModel
+
+
+class drugInteractionModel:
+
+    def save(self):
+        ''' Open file and dump pyMC3 objects through pickle. '''
+        filePrefix = './grmodel/data/' + self.loadFile
+
+        if exists(filePrefix + '_samples.pkl'):
+            os.remove(filePrefix + '_samples.pkl')
+
+        pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
+
+    def __init__(self, loadFile=None, drug1=None, drug2=None):
+        # If no filename is given use a default
+        if loadFile is None:
+            self.loadFile = 'BYLvPIM'
+        else:
+            self.loadFile = loadFile
+
+        if drug1 is None:
+            self.drug1 = 'PIM447'
+        else:
+            self.drug1 = drug1
+
+        if drug2 is None:
+            self.drug2 = 'BYL749'
+        else:
+            self.drug2 = drug2
+
+        self.df = readCombo(loadFile)
+
+        self.df = filterDrugC(self.df, self.drug1, self.drug2)
+
+        self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df)
+
+        self.model = build_model(self.X1, self.X2, self.timeV, 1.0,
+                                 confl=self.phase, apop=self.green, dna=self.red)
+
+        self.fit = pm.sampling.sample(model=self.model)

@@ -48,29 +48,34 @@ def simulate(params, ttime):
     return out
 
 
-def theanoCore(timeV, div, deathRate, apopfrac, d):
-    # Make a vector of time and one for time-constant values
-    timeV = T._shared(timeV)
-    constV = T.ones_like(timeV, dtype=theano.config.floatX)
+def theanoCore(timeV, div, deathRate, apopfrac, d, numpyy=False):
+    if numpyy:
+        outer = np.outer
+        exp1 = np.exp
+        constV = np.ones_like(timeV, dtype=float)
+    else:
+        outer = T.outer
+        exp1 = T.exp
+        # Make a vector of time and one for time-constant values
+        timeV = T._shared(timeV)
+        constV = T.ones_like(timeV, dtype=theano.config.floatX)
 
     # Calculate the growth rate
-    GR = T.outer(div - deathRate, constV)
-
+    GR = outer(div - deathRate, constV)
     # cGDd is used later
-    cGRd = T.outer(deathRate * apopfrac, constV) / (GR + d)
+    cGRd = outer(deathRate * apopfrac, constV) / (GR + d)
 
     # b is the rate straight to death
-    b = T.outer(deathRate * (1 - apopfrac), constV)
+    b = outer(deathRate * (1 - apopfrac), constV)
 
-    # Calculate the number of live cells
-    lnum = T.exp(GR * timeV)
+    lnum = exp1(GR * timeV)
 
     # Number of early apoptosis cells at start is 0.0
-    eap = cGRd * (lnum - pm.math.exp(-d * timeV))
+    eap = cGRd * (lnum - exp1(-d * timeV))
 
     # Calculate dead cells via apoptosis and via necrosis
     deadnec = b * (lnum - 1) / GR
-    deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (pm.math.exp(-d * timeV) - 1)
+    deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (exp1(-d * timeV) - 1)
 
     return (lnum, eap, deadapop, deadnec)
 
@@ -86,18 +91,18 @@ def convSignal(lnum, eap, deadapop, deadnec, conversions):
 
 def conversionPriors(conv0):
     # Set up conversion rates
-    confl_conv = pm.Lognormal('confl_conv', np.log(conv0),      0.1)
-    apop_conv  = pm.Lognormal('apop_conv',  np.log(conv0)-2.06, 0.2)
-    dna_conv   = pm.Lognormal('dna_conv',   np.log(conv0)-1.85, 0.2)
+    confl_conv = pm.Lognormal('confl_conv', np.log(conv0), 0.1)
+    apop_conv = pm.Lognormal('apop_conv', np.log(conv0) - 2.06, 0.2)
+    dna_conv = pm.Lognormal('dna_conv', np.log(conv0) - 1.85, 0.2)
 
     # Priors on conv factors
     pm.Lognormal('confl_apop', -2.06, 0.0647, observed=apop_conv / confl_conv)
     pm.Lognormal('confl_dna', -1.85, 0.125, observed=dna_conv / confl_conv)
     pm.Lognormal('apop_dna', 0.222, 0.141, observed=dna_conv / apop_conv)
-    
+
     # Offset values for apop and dna
     apop_offset = pm.Lognormal('apop_offset', -1., 0.1)
-    dna_offset  = pm.Lognormal('dna_offset',  -1., 0.1)
+    dna_offset = pm.Lognormal('dna_offset', -1., 0.1)
 
     return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
 
@@ -108,7 +113,7 @@ def build_model(conv0, doses, timeV, expTable):
 
     with growth_model:
         conversions = conversionPriors(conv0)
-        
+
         # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
         d = pm.Lognormal('d', np.log(0.01), 1)
 
@@ -158,7 +163,6 @@ class GrowthModel:
         print('Performing inference')
         self.fit = pm.variational.inference.fit(n=80000, model=model)
 
-
     def save(self):
         ''' Open file and dump pyMC3 objects through pickle. '''
         if self.interval:
@@ -170,7 +174,6 @@ class GrowthModel:
             os.remove(filePrefix + '_samples.pkl')
 
         pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
-
 
     # Directly import one column of data
     def importData(self, firstCols, comb=None, interval=True):
@@ -299,7 +302,7 @@ class GrowthModel:
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
 
-    def __init__(self, loadFile = None):
+    def __init__(self, loadFile=None):
         # If no filename is given use a default
         if loadFile is None:
             self.loadFile = "101117_H1299"

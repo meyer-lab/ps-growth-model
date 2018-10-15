@@ -12,7 +12,7 @@ from .pymcGrowth import simulate
 
 
 def read_dataset(ff=None):
-    ''' 
+    '''
     Read the pymc model from a sampling file
     Makes traceplots if traceplot=True
     '''
@@ -23,7 +23,8 @@ def read_dataset(ff=None):
     filename = './grmodel/data/' + ff + '_samples.pkl'
 
     # Read in class
-    return pickle.load(bz2.BZ2File(filename,'rb'))
+    return pickle.load(bz2.BZ2File(filename, 'rb'))
+
 
 def readModel(ff=None, trim=False):
     """
@@ -35,6 +36,7 @@ def readModel(ff=None, trim=False):
     model.samples = model.fit.sample(1000)
 
     df = pm.backends.tracetab.trace_to_dataframe(model.samples)
+
     # TODO: Get rid of needing samples
     return (model, df)
 
@@ -58,15 +60,15 @@ def calcset(pdset, idx, time, idic):
     """Calculate model predictions based on parameter fits from sampling data"""
     # Initialize counter
     varr = 0
-    # Initialize 3 numpy 2D arrays 
+    # Initialize 3 numpy 2D arrays
     calcset, calcseta, calcsetd = (np.full((pdset.shape[0], len(time)), np.inf) for _ in range(3))
     # Interate over each row of sampling data
     for row in pdset.iterrows():
         # Get parameter values
-        mparm = np.copy(np.array(row[1].values[[idic['div__'+idx],
-                                                     idic['d'],
-                                                     idic['deathRate__'+idx],
-                                                     idic['apopfrac__'+idx]]]))
+        mparm = np.copy(np.array(row[1].values[[idic['div__' + idx],
+                                                idic['d'],
+                                                idic['deathRate__' + idx],
+                                                idic['apopfrac__' + idx]]]))
         # Get raw model predictions
         simret = simulate(mparm, time)
         # Apply conversion factors to model predictions
@@ -92,12 +94,12 @@ def simulation(filename, drug, ax=None, unit='nM'):
     # A list of all doses, one for each condition
     alldoses = classM.doses
     # Initialize variables
-    doses = deque() # Drug doses
-    doseidx = deque() # Indces of conditions that matches drug of interest or is control
+    doses = deque()  # Drug doses
+    doseidx = deque()  # Indces of conditions that matches drug of interest or is control
     flag = True
 
     # Iterate over conditions in reverse order
-    for i in range(len(alldrugs)-1, -1, -1):
+    for i in range(len(alldrugs) - 1, -1, -1):
         # Condition matches drug of interest
         if alldrugs[i] == drug:
             doses.appendleft(alldoses[i])
@@ -122,11 +124,11 @@ def simulation(filename, drug, ax=None, unit='nM'):
     for param in ['div', 'deathRate', 'apopfrac']:
         for i in doseidx:
             idx = '__' + str(i)
-            idic[param+idx] = pdset.columns.get_loc(param+idx)
+            idic[param + idx] = pdset.columns.get_loc(param + idx)
 
     # The time increments for which model prediction is calculated
     time = np.arange(min(classM.timeV), max(classM.timeV))
-    
+
     # Initialize variables
     colors = sns.color_palette('hls', 10)
     pltparams = ['confl', 'apop', 'dna']
@@ -148,21 +150,22 @@ def simulation(filename, drug, ax=None, unit='nM'):
 
             # Plot observation
             idx1 = doseidx[cidx] * len(classM.timeV)
-            idx2 = (doseidx[cidx]+1) * len(classM.timeV)
+            idx2 = (doseidx[cidx] + 1) * len(classM.timeV)
             ax[i].scatter(classM.timeV, classM.expTable[pltparams[i]][idx1:idx2],
                           c=colors[cidx], marker='.', s=5)
 
             # Label Plot
             ax[i].set_title(pltparams[i])
-            ax[i].set_xticks([0,25,50,75])
+            ax[i].set_xticks([0, 25, 50, 75])
             ax[i].set_xlabel('Time (hr)')
             if i != 0:
-                ax[i].set_ylim([0,1.3])
+                ax[i].set_ylim([0, 1.3])
         # For each dose, add a patch to legend
-        patches.append(mpatches.Patch(color=colors[cidx], label=str(doses[cidx])+' '+unit))
-    ax[0].set_ylabel(drug+' Confluence')
+        patches.append(mpatches.Patch(color=colors[cidx], label=str(doses[cidx]) + ' ' + unit))
+    ax[0].set_ylabel(drug + ' Confluence')
 
     return (ax, patches)
+
 
 def sim_plots(filename, drugs=None, unit='nM'):
     ''' Plot sampling predictions overlaying experimental data for multiple drugs '''
