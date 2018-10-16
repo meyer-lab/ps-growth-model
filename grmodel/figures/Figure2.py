@@ -91,7 +91,7 @@ def violinPlots(axes):
         dfplot = dfdict[drug]
         # Iterate over each parameter in params
         for i, param in enumerate(params):
-            idx = 3*j + i
+            idx = 3 * j + i
             # Set y-axis confluence limits for each parameter
             if param == 'div':
                 axes[idx].set_ylim([-2.5, -1.2])
@@ -120,7 +120,6 @@ def CFSEcurve(ax):
 
     df = pd.DataFrame({'Days': [0, 1, 2, 3, 4, 4, 4], 'CFSE': y})
 
-
     sns.regplot(x="CFSE", y="Days", data=df, ax=ax)
     ax.set_ylim(-0.4, 5)
 
@@ -148,7 +147,7 @@ def CFSEcorr(ax):
 
     data_mean = data.groupby(['Sample'])['sFITC'].mean().to_frame()
 
-    data_mean['Params'] = np.nan # TODO: Replace with extracing from fit
+    data_mean['Params'] = np.nan  # TODO: Replace with extracing from fit
     data_mean.loc['Dox a100 nM', 'Params'] = -1.8
     data_mean.loc['NVB 40 nM', 'Params'] = -1.6
     data_mean.loc['Dox 50 nM', 'Params'] = -1.6
@@ -162,7 +161,7 @@ def CFSEcorr(ax):
 
     # Plot of predicted vs. actual
     data_mean.plot.scatter(x='sFITC', y='Params')
-    ax.plot([-0.5, 2.34], [0.227, 0.0]) # TODO: Check how we should draw the line here
+    ax.plot([-0.5, 2.34], [0.227, 0.0])  # TODO: Check how we should draw the line here
     ax.set_ylim(0.15, 0.23)
     ax.set_xlim(-0.5, 0.3)
     ax.set_xlabel('Log(CFSE / SSC-W)')

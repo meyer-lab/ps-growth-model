@@ -108,7 +108,7 @@ class drugInteractionModel:
         pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
 
     def __init__(self, loadFile=None, drug1=None, drug2=None):
-        # If no filename is given use a default
+        # Filename, drug1 and drug2 name are given use defaults
         if loadFile is None:
             self.loadFile = 'BYLvPIM'
         else:
@@ -124,13 +124,16 @@ class drugInteractionModel:
         else:
             self.drug2 = drug2
 
+        # Load experimental data
         self.df = readCombo(loadFile)
 
         self.df = filterDrugC(self.df, self.drug1, self.drug2)
 
         self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df)
 
+        # Build pymc model
         self.model = build_model(self.X1, self.X2, self.timeV, 1.0,
                                  confl=self.phase, apop=self.green, dna=self.red)
 
+        # Perform pymc fitting based on given actual data
         self.fit = pm.sampling.sample(model=self.model)
