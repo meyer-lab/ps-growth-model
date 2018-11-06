@@ -100,40 +100,33 @@ class drugInteractionModel:
 
     def save(self):
         ''' Open file and dump pyMC3 objects through pickle. '''
-        filePrefix = './grmodel/data/' + self.loadFile
+        if self.timepoint_start == 0:
+            filePrefix = './grmodel/data/' + self.loadFile
+        else:
+            # save the pymc modeling data built starting from certain timepoint
+            filePrefix = './grmodel/data/' + self.loadFile + '_' + str(self.timepoint_start)
 
         if exists(filePrefix + '_samples.pkl'):
             os.remove(filePrefix + '_samples.pkl')
 
         pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
 
-    def __init__(self, loadFile=None, drug1=None, drug2=None):
-        # Filename, drug1 and drug2 name are given use defaults
-        if loadFile is None:
-            self.loadFile = 'BYLvPIM'
-        else:
-            self.loadFile = loadFile
+    def __init__(self, loadFile='BYLvPIM', drug1='PIM447', drug2='BYL749', timepoint_start=0):
 
-        if drug1 is None:
-            self.drug1 = 'PIM447'
-        else:
-            self.drug1 = drug1
-
-        if drug2 is None:
-            self.drug2 = 'BYL749'
-        else:
-            self.drug2 = drug2
+        # Save input data
+        self.loadFile = loadFile
+        self.timepoint_start = timepoint_start
 
         # Load experimental data
-        self.df = readCombo(loadFile)
+        self.df = readCombo(self.loadFile)
 
-        self.df = filterDrugC(self.df, self.drug1, self.drug2)
+        self.df = filterDrugC(self.df, drug1, drug2)
 
-        self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df)
+        self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df, timepoint_start=self.timepoint_start)
 
         # Build pymc model
         self.model = build_model(self.X1, self.X2, self.timeV, 1.0,
                                  confl=self.phase, apop=self.green, dna=self.red)
 
-        # Perform pymc fitting based on given actual data
-        self.fit = pm.sampling.sample(model=self.model)
+        # Perform pymc fitting given actual data
+        self.fit = pm.sampling.sample(1000, tune=1000, model=self.model)

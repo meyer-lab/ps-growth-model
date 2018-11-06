@@ -11,16 +11,20 @@ import matplotlib.patches as mpatches
 from .pymcGrowth import simulate
 
 
-def read_dataset(ff=None):
+def read_dataset(ff=None, timepoint_start=0):
     '''
     Read the pymc model from a sampling file
     Makes traceplots if traceplot=True
     '''
-
     if ff is None:
         ff = "101117_H1299"
 
-    filename = './grmodel/data/' + ff + '_samples.pkl'
+    # read the data set from specified pickle files
+    if timepoint_start == 0:
+        filename = './grmodel/data/' + ff + '_samples.pkl'
+    else:
+        # the pymc model sampling data built based on certain timepoints
+        filename = './grmodel/data/' + ff + '_' + str(timepoint_start) + '_samples.pkl'
 
     # Read in class
     return pickle.load(bz2.BZ2File(filename, 'rb'))
@@ -171,7 +175,7 @@ def sim_plots(filename, drugs=None, unit='nM'):
     ''' Plot sampling predictions overlaying experimental data for multiple drugs '''
     sns.set_context("paper", font_scale=2)
     # If drugs given, make simulation plots for selected drugs
-    if drugs != None:
+    if drugs is not None:
         for drug in drugs:
             simulation(filename, drug, unit=unit)
     # If drugs not given, plot all drugs

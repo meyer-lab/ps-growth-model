@@ -54,16 +54,27 @@ def filterDrugC(df, drugAname, drugBname):
     return df
 
 
-def dataSplit(df):
+def dataSplit(df, timepoint_start=0):
+    ''' This will pull out the data at certain timepoints '''
     keepCols = ['drugA', 'drugB', 'Elapsed', 'Measure']
     grpCols = ['Elapsed', 'drugA', 'drugB']
     df.dropna(inplace=True)
 
+    timeV = np.sort(np.array(df.Elapsed.unique(), dtype=np.float64))
+
+    if timepoint_start != 0:
+        # Take the subset of timeV
+        try:
+            idx_start = np.where(timeV == timepoint_start)[0][0]
+            timeV = timeV[idx_start:]
+            # Take the subset of df
+            df = df.loc[df['Elapsed'].isin(timeV), :]
+        except IndexError:
+            print('wrong timepoint to start')
+
     dfPhase = df.loc[df['Type'] == 'phase', :]
     dfRed = df.loc[df['Type'] == 'red', :]
     dfGreen = df.loc[df['Type'] == 'green', :]
-
-    timeV = np.sort(np.array(df.Elapsed.unique(), dtype=np.float64))
 
     dfMAT = dfPhase[keepCols].groupby(grpCols).agg({"Measure": "mean"}).unstack(0)
 
