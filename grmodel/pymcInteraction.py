@@ -32,15 +32,15 @@ def blissInteract(X1, X2, hill, IC50, numpyy=False):
     return drug_one + drug_two - drug_one * drug_two
 
 
-def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
-    ''' Builds then returns the pyMC model. '''
+def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dna=None):
+    ''' Builds then returns the PyMC model. '''
 
     assert(X1.shape == X2.shape)
 
     drugInteractionModel = pm.Model()
 
     with drugInteractionModel:
-        conversions = conversionPriors(conv0)
+        conversions = conversionPriors(conv0, offset)
 
         # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
         d = pm.Lognormal('d', np.log(0.01), 1)
@@ -73,7 +73,8 @@ def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
         # Test the size of lnum
         lnum = T.opt.Assert('lnum did not match X1*timeV size')(lnum, T.eq(lnum.size, X1.size * timeV.size))
 
-        confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec, conversions)
+        confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop,
+                                                  deadnec, conversions, offset)
 
         # Compare to experimental observation
         if confl is not None:
@@ -125,7 +126,7 @@ class drugInteractionModel:
         self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df, timepoint_start=self.timepoint_start)
 
         # Build pymc model
-        self.model = build_model(self.X1, self.X2, self.timeV, 1.0,
+        self.model = build_model(self.X1, self.X2, self.timeV, 1.0, False,
                                  confl=self.phase, apop=self.green, dna=self.red)
 
         # Perform pymc fitting given actual data

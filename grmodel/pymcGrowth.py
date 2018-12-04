@@ -80,16 +80,22 @@ def theanoCore(timeV, div, deathRate, apopfrac, d, numpyy=False):
     return (lnum, eap, deadapop, deadnec)
 
 
-def convSignal(lnum, eap, deadapop, deadnec, conversions):
-    conv, offset = conversions
-    confl_exp = (lnum + eap + deadapop + deadnec) * conv[0]
-    apop_exp = (eap + deadapop) * conv[1] + offset[0]
-    dna_exp = (deadapop + deadnec) * conv[2] + offset[1]
+def convSignal(lnum, eap, deadapop, deadnec, conversions, offset=True):
+    if offset:
+        conv, offset = conversions
+        confl_exp = (lnum + eap + deadapop + deadnec) * conv[0]
+        apop_exp = (eap + deadapop) * conv[1] + offset[0]
+        dna_exp = (deadapop + deadnec) * conv[2] + offset[1]
+    else:
+        conv = conversions
+        confl_exp = (lnum + eap + deadapop + deadnec) * conv[0]
+        apop_exp = (eap + deadapop) * conv[1]
+        dna_exp = (deadapop + deadnec) * conv[2]
 
     return (confl_exp, apop_exp, dna_exp)
 
 
-def conversionPriors(conv0):
+def conversionPriors(conv0, offset=True):
     # Set up conversion rates
     confl_conv = pm.Lognormal('confl_conv', np.log(conv0), 0.1)
     apop_conv = pm.Lognormal('apop_conv', np.log(conv0) - 2.06, 0.2)
@@ -100,11 +106,13 @@ def conversionPriors(conv0):
     pm.Lognormal('confl_dna', -1.85, 0.125, observed=dna_conv / confl_conv)
     pm.Lognormal('apop_dna', 0.222, 0.141, observed=dna_conv / apop_conv)
 
-    # Offset values for apop and dna
-    apop_offset = pm.Lognormal('apop_offset', -1., 0.1)
-    dna_offset = pm.Lognormal('dna_offset', -1., 0.1)
-
-    return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
+    if offset:
+        # Offset values for apop and dna
+        apop_offset = pm.Lognormal('apop_offset', -1., 0.1)
+        dna_offset = pm.Lognormal('dna_offset', -1., 0.1)
+        return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
+    else:
+        return (confl_conv, apop_conv, dna_conv)
 
 
 def build_model(conv0, doses, timeV, expTable):

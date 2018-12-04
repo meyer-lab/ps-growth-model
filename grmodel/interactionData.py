@@ -77,11 +77,15 @@ def dataSplit(df, timepoint_start=0):
     dfGreen = df.loc[df['Type'] == 'green', :]
 
     dfMAT = dfPhase[keepCols].groupby(grpCols).agg({"Measure": "mean"}).unstack(0)
-
     phase = dfMAT.values
 
-    red = dfRed[keepCols].groupby(grpCols).agg({"Measure": "mean"}).unstack(0).values
-    green = dfGreen[keepCols].groupby(grpCols).agg({"Measure": "mean"}).unstack(0).values
+    dfRED = dfRed[keepCols].groupby(grpCols).agg({"Measure": "mean"}).unstack(0)
+    dfRED.Measure = dfRED.Measure - dfRED.Measure.iloc[0]  # substract by control
+    red = dfRED.values
+
+    dfGREEN = dfGreen[keepCols].groupby(grpCols).agg({"Measure": "mean"}).unstack(0)
+    dfGREEN.Measure = dfGREEN.Measure - dfGREEN.Measure.iloc[0]  # substract by control
+    green = dfGREEN.values
 
     dfMAT.reset_index(inplace=True)
 
