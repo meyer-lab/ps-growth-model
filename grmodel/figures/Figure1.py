@@ -27,15 +27,15 @@ def plot_median_and_quantile(_df, var, ax, range1=0.90, range2=0.75, range3=0.50
     x_unique, y_median = npi.group_by(_x).median(_y)
     x_unq = _df.groupby('concentration')
     ax.plot(x_unique, y_median)
-    y_low1 = np.array(x_unq.quantile((1 - range1)/2)[var].tolist())
-    y_high1 = np.array(x_unq.quantile(1 - (1 - range1)/2)[var].tolist())
-    y_low2 = np.array(x_unq.quantile((1 - range2)/2)[var].tolist())
-    y_high2 = np.array(x_unq.quantile(1 - (1 - range2)/2)[var].tolist())
-    y_low3 = np.array(x_unq.quantile((1 - range3)/2)[var].tolist())
-    y_high3 = np.array(x_unq.quantile(1 - (1 - range3)/2)[var].tolist())
-    ax.fill_between(x_unique, y_high1, y_low1, color='b', alpha=0.2, label=str(range1) + '% quantile')
-    ax.fill_between(x_unique, y_high2, y_low2, color='b', alpha=0.3, label=str(range2) + '% quantile')
-    ax.fill_between(x_unique, y_high3, y_low3, color='b', alpha=0.5, label=str(range3) + '% quantile')
+    y_low1 = np.array(x_unq.quantile((1 - range1) / 2)[var].tolist())
+    y_high1 = np.array(x_unq.quantile(1 - (1 - range1) / 2)[var].tolist())
+    y_low2 = np.array(x_unq.quantile((1 - range2) / 2)[var].tolist())
+    y_high2 = np.array(x_unq.quantile(1 - (1 - range2) / 2)[var].tolist())
+    y_low3 = np.array(x_unq.quantile((1 - range3) / 2)[var].tolist())
+    y_high3 = np.array(x_unq.quantile(1 - (1 - range3) / 2)[var].tolist())
+    ax.fill_between(x_unique, y_high1, y_low1, color='b', alpha=0.2, label='90% CI')
+    ax.fill_between(x_unique, y_high2, y_low2, color='b', alpha=0.3, label='75% CI')
+    ax.fill_between(x_unique, y_high3, y_low3, color='b', alpha=0.5, label='50% CI')
 
 
 def plot_exact_data(M, ax2, ax3):
@@ -44,7 +44,7 @@ def plot_exact_data(M, ax2, ax3):
     lObs = np.array(M.lObs)
     # Figure C: plot the mean and 95% CI of lObs at each concentration X
     plot_mean_and_CI(X, lObs, 0.95, ax2)
-    ax2.set_xlabel(r'$log_{10}$[DOX(nM)]')
+    ax2.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
     ax2.set_ylabel('# of live cells')
     ax2.set_ylim(0, 1.1)
     # Part of Figure D: Compare the sampling lExp with the exact data lObs
@@ -106,28 +106,30 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     # Figure D: Plot the median, 90% and 50% quantile of the expected number
     # of live cells at each x
     plot_median_and_quantile(df1, 'lExp', ax3)
-    ax3.set_xlabel(r'$log_{10}$[DOX(nM)]')
+    ax3.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
     ax3.set_ylabel('Fit CellTiter quantitation')
     ax3.set_ylim(0, 1.05)
-    ax3.legend()
+    ax3.legend(loc=6)
 
     # Figure E: Plot the median, 90% and 50% quantile of growth rate at each x
     plot_median_and_quantile(df1, 'growthV', ax4)
-    ax4.set_xlabel(r'$log_{10}$[DOX(nM)]')
-    ax4.set_ylabel('Predicted growth rate [1/min]')
+    ax4.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
+    ax4.set_ylabel('Predicted growth rate (1/min)')
     ax4.set_ylim(0., ax4.get_ylim()[1])
+    ax4.legend(loc=6)
 
     # Figure F: Plot the median, 90% and 50% quantile of growth rate at each x
     plot_median_and_quantile(df1, 'deathV', ax5)
-    ax5.set_xlabel(r'$log_{10}$[DOX(nM)]')
-    ax5.set_ylabel('Predicted death rate [1/min]')
+    ax5.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
+    ax5.set_ylabel('Predicted death rate (1/min)')
+    ax5.legend(loc=6)
 
     # Figure G: Plot growth rate vs. death rate
     ax6.scatter(x=df['Emax_growth'] - df['Emin_growth'], y=df['Emax_death'], color='b', s=1)
     ax6.set_xlim(0., df['Emax_growth'][0])
     ax6.set_ylim(0., 0.03)
-    ax6.set_xlabel('Drug Growth Effect [1/min]')
-    ax6.set_ylabel('Drug Death Effect [1/min]')
+    ax6.set_xlabel('Drug growth effect (1/min)')
+    ax6.set_ylabel('Drug death effect (1/min)')
 
 
 def plot_PCA(df, ax):
@@ -139,6 +141,7 @@ def plot_PCA(df, ax):
 
     pca = PCA(n_components=5)
     pcs = pca.fit_transform(m)
+
     # print out explained_variance
     print(pca.explained_variance_ratio_)
 
@@ -146,9 +149,9 @@ def plot_PCA(df, ax):
     ax.scatter(pcs[:, 0], pcs[:, 1], s=2)
     ax.set_xlabel('Principal Component 1')
     ax.set_ylabel('Principal Component 2')
-    ax.grid(True)
 
     # TODO: Plot PCA's loadings
+
 
 def alphaFig(M, ax1):
     drug_lnum_effect = 0.25
@@ -160,14 +163,14 @@ def alphaFig(M, ax1):
     R_dD = -np.log(drug_lnum_effect) / M.time / (1 + alpha)
     R_gD = M.Emax_growth - R_dD * alpha
 
-    cellDiv = R_gD*72.
-    deadCells = R_dD * (np.exp((R_gD - R_dD)*72.) - 1) / (R_gD - R_dD)
+    cellDiv = R_gD * 72.
+    deadCells = R_dD * (np.exp((R_gD - R_dD) * 72.) - 1) / (R_gD - R_dD)
 
     ax1.semilogx(alpha, deadCells, label="cum. # dead")
     ax1.set_xlabel(r'$\alpha$ (ratio growth to death effect)')
     ax1.set_ylabel('Quantity per starting cell')
     ax1.semilogx(alpha, cellDiv, 'r', label="avg. divisions")
-    ax1.legend()
+    ax1.legend(handlelength=0.5)
 
 
 def makeFigure():
@@ -177,6 +180,7 @@ def makeFigure():
     This should be by showing that it's not captured in existing
     measurements.
     '''
+    from matplotlib.ticker import FormatStrFormatter
     from ..pymcDoseResponse import doseResponseModel
     from .FigureCommon import getSetup, subplotLabel
     from string import ascii_uppercase
@@ -194,6 +198,15 @@ def makeFigure():
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))
 
+    for i in range(0, 9):
+        ax[i].grid(linestyle='dotted', linewidth=1.0)  # set grid style
+        ax[i].tick_params(axis='both', which='major', pad=-2)  # set ticks style
+
+    # set significant figures for xtick
+    ax[3].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax[4].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax[5].yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
+
     # Going to put a cartoons in A and B
     ax[0].axis('off')
     ax[1].axis('off')
@@ -201,7 +214,6 @@ def makeFigure():
     plot_exact_data(M, ax[2], ax[3])
     plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])
     plot_PCA(df, ax[7])
-
     alphaFig(M, ax[8])
 
     # Make first cartoon
