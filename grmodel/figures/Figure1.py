@@ -20,22 +20,26 @@ def plot_mean_and_CI(_x, _y, confidence, ax):
     ax.errorbar(x=x_unique, y=y_mean, yerr=yerr, fmt='.', color='black')
 
 
-def plot_median_and_quantile(_df, var, ax, range1=0.90, range2=0.75, range3=0.50):
+def plot_median_and_quantile(_df, xvar, yvar, ax, c='b', quantiles=[0.90, 0.75, 0.50], lb=None):
     """ Plot the median, low and high quantile """
-    _x = _df['concentration'].tolist()
-    _y = _df[var].tolist()
+    _x = _df[xvar].tolist()
+    _y = _df[yvar].tolist()
     x_unique, y_median = npi.group_by(_x).median(_y)
-    x_unq = _df.groupby('concentration')
-    ax.plot(x_unique, y_median)
-    y_low1 = np.array(x_unq.quantile((1 - range1) / 2)[var].tolist())
-    y_high1 = np.array(x_unq.quantile(1 - (1 - range1) / 2)[var].tolist())
-    y_low2 = np.array(x_unq.quantile((1 - range2) / 2)[var].tolist())
-    y_high2 = np.array(x_unq.quantile(1 - (1 - range2) / 2)[var].tolist())
-    y_low3 = np.array(x_unq.quantile((1 - range3) / 2)[var].tolist())
-    y_high3 = np.array(x_unq.quantile(1 - (1 - range3) / 2)[var].tolist())
-    ax.fill_between(x_unique, y_high1, y_low1, color='b', alpha=0.2, label='90% CI')
-    ax.fill_between(x_unique, y_high2, y_low2, color='b', alpha=0.3, label='75% CI')
-    ax.fill_between(x_unique, y_high3, y_low3, color='b', alpha=0.5, label='50% CI')
+    x_unq = _df.groupby(xvar)
+
+    if(lb is None):
+        ax.plot(x_unique, y_median, color=c, linewidth=1, alpha=0.9)
+    else:
+        ax.plot(x_unique, y_median, color=c, linewidth=1, alpha=0.9, label=lb)
+
+    alphas = [0.2, 0.3, 0.5]
+    for i in range(len(quantiles)):
+        y_low = np.array(x_unq.quantile((1 - quantiles[i]) / 2)[yvar].tolist())
+        y_high = np.array(x_unq.quantile(1 - (1 - quantiles[i]) / 2)[yvar].tolist())
+        if(lb is not None):
+            ax.fill_between(x_unique, y_high, y_low, color=c, alpha=alphas[i])
+        else:
+            ax.fill_between(x_unique, y_high, y_low, color=c, alpha=alphas[i], label=str(int(quantiles[i] * 100)) + '% CI')
 
 
 def plot_exact_data(M, ax2, ax3):
@@ -45,7 +49,7 @@ def plot_exact_data(M, ax2, ax3):
     # Figure C: plot the mean and 95% CI of lObs at each concentration X
     plot_mean_and_CI(X, lObs, 0.95, ax2)
     ax2.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
-    ax2.set_ylabel('# of live cells')
+    ax2.set_ylabel(r'Cell viability' + '\n' + r'normalized to untreated cells')
     ax2.set_ylim(0, 1.1)
     # Part of Figure D: Compare the sampling lExp with the exact data lObs
     plot_mean_and_CI(X, lObs, 0, ax3)
@@ -105,27 +109,28 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
 
     # Figure D: Plot the median, 90% and 50% quantile of the expected number
     # of live cells at each x
-    plot_median_and_quantile(df1, 'lExp', ax3)
-    ax3.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
+    plot_median_and_quantile(df1, 'concentration', 'lExp', ax3)
+    ax3.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax3.set_ylabel('Fit CellTiter quantitation')
     ax3.set_ylim(0, 1.05)
     ax3.legend(loc=6)
 
     # Figure E: Plot the median, 90% and 50% quantile of growth rate at each x
-    plot_median_and_quantile(df1, 'growthV', ax4)
-    ax4.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
+    plot_median_and_quantile(df1, 'concentration', 'growthV', ax4)
+    ax4.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax4.set_ylabel('Predicted growth rate (1/min)')
     ax4.set_ylim(0., ax4.get_ylim()[1])
     ax4.legend(loc=6)
 
     # Figure F: Plot the median, 90% and 50% quantile of growth rate at each x
-    plot_median_and_quantile(df1, 'deathV', ax5)
-    ax5.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
+    plot_median_and_quantile(df1, 'concentration', 'deathV', ax5)
+    ax5.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax5.set_ylabel('Predicted death rate (1/min)')
     ax5.legend(loc=6)
 
     # Figure G: Plot growth rate vs. death rate
-    ax6.scatter(x=df['Emax_growth'] - df['Emin_growth'], y=df['Emax_death'], color='b', s=1)
+    ax6.scatter(x=df['Emax_growth'] - df['Emin_growth'],
+                y=df['Emax_death'], color='b', s=1)
     ax6.set_xlim(0., df['Emax_growth'][0])
     ax6.set_ylim(0., 0.03)
     ax6.set_xlabel('Drug growth effect (1/min)')
@@ -198,9 +203,9 @@ def makeFigure():
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))
 
-    for i in range(0, 9):
-        ax[i].grid(linestyle='dotted', linewidth=1.0)  # set grid style
-        ax[i].tick_params(axis='both', which='major', pad=-2)  # set ticks style
+    for axis in ax[0:9]:
+        axis.grid(linestyle='dotted', linewidth=1.0)  # set grid style
+        axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
 
     # set significant figures for xtick
     ax[3].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
