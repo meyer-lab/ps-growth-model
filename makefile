@@ -40,11 +40,11 @@ grmodel/data/111717_PC9_ends_samples.pkl:
 Manuscript/Manuscript.tex: Manuscript/Text/*.md
 	pandoc -s $(pan_common) --template=$(tdir)/default.latex --pdf-engine=xelatex -o $@
 
-Manuscript/Manuscript.pdf: Manuscript/Manuscript.tex $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf
+Manuscript/Manuscript.pdf: Manuscript/Manuscript.tex $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf $(fdir)/FigureS1.pdf $(fdir)/FigureS2.pdf $(fdir)/FigureS3.pdf $(fdir)/FigureS4.pdf $(fdir)/FigureS5.pdf
 	(cd ./Manuscript && latexmk -xelatex -f -quiet)
 	rm -f ./Manuscript/Manuscript.b* ./Manuscript/Manuscript.aux ./Manuscript/Manuscript.fls
 
-Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.svg $(fdir)/Figure3.svg $(fdir)/Figure4.svg $(fdir)/Figure5.svg
+Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.svg $(fdir)/Figure3.svg $(fdir)/Figure4.svg $(fdir)/Figure5.svg $(fdir)/FigureS1.svg $(fdir)/FigureS2.svg $(fdir)/FigureS3.svg $(fdir)/FigureS4.svg $(fdir)/FigureS5.svg
 	pandoc -s $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -o $@
 
 clean:
