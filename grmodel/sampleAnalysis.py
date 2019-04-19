@@ -1,41 +1,50 @@
 import bz2
 import pickle
+import re
+import os
+import pandas as pd
 from collections import deque
 import pymc3 as pm
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-
-
+from os.path import join, dirname, abspath, exists
 from .pymcGrowth import simulate
 
 
-def read_dataset(ff=None, timepoint_start=0):
+def read_dataset(ff=None, singles=None, timepoint_start=0):
     '''
     Read the pymc model from a sampling file
     Makes traceplots if traceplot=True
     '''
     if ff is None:
         ff = "101117_H1299"
+    if singles is None:
+        singles = False
 
     # read the data set from specified pickle files
+    if singles:
+        filePrefix = './grmodel/data/singles/'
+    else:
+        filePrefix = './grmodel/data/'
+
     if timepoint_start == 0:
-        filename = './grmodel/data/' + ff + '_samples.pkl'
+        filename = filePrefix + ff + '_samples.pkl'
     else:
         # the pymc model sampling data built based on certain timepoints
-        filename = './grmodel/data/' + ff + '_' + str(timepoint_start) + '_samples.pkl'
+        filename = filePrefix + ff + '_' + str(timepoint_start) + '_samples.pkl'
 
     # Read in class
     return pickle.load(bz2.BZ2File(filename, 'rb'))
 
 
-def readModel(ff=None, trim=False):
+def readModel(ff=None, singles=None, trim=False):
     """
     Calls read_dataset to load pymc model
     Outputs: (model, table for the sampling results)
     """
-    model = read_dataset(ff)
+    model = read_dataset(ff, singles)
 
     model.samples = model.fit.sample(1000)
 
@@ -43,6 +52,73 @@ def readModel(ff=None, trim=False):
 
     # TODO: Get rid of needing samples
     return (model, df)
+
+
+def readSingle(ff=None, drugAname=None):
+    """
+    Read in data file and export only the single drug data points to corresponding csv file
+    """
+    if ff is None:
+        ff = "072718_PC9_BYL_PIM"
+    if drugAname is None:
+        drugAname = "PIM447"
+
+    filename = join(dirname(abspath(__file__)), 'data/combinations/' + ff + '_rawdata.xlsx')
+    data = pd.read_excel(filename, sheet_name=None)
+
+    del data['Conditions']
+
+    dfPhase = []
+    dfGreen = []
+    dfRed = []
+
+    for key in data:
+        # plot only the single drug
+        if "blank" in data[key].columns:
+            dropped_cols = ["blank"]
+
+        if "Blank" in data[key].columns:
+            dropped_cols = ["Blank"]
+
+        for col in data[key].columns:
+            # drop drug combinations
+            if re.search(r"\w+ [+] \w+", col) is not None:
+                dropped_cols.append(col)
+            # drop duplilcated drugA measurement for low concentration drugB
+            elif "low" in key and drugAname in col:
+                dropped_cols.append(col)
+
+        if "low" in key:
+            dropped_cols.extend(["Elapsed", "Control"])
+
+        # remove extra space in front of column names
+        data[key].rename(columns=lambda x: x.lstrip(), inplace=True)
+        # drop columns for merging
+        data[key].drop(dropped_cols, axis=1, inplace=True)
+
+        # Add an empty column "Date" to match the dataframe structure in pymcGrowth fitting
+        if "high" in key:
+            data[key].insert(loc=0, column="Date", value=np.nan)
+
+        if "phase" in key:
+            dfPhase.append(data[key])
+        elif "green" in key:
+            dfGreen.append(data[key])
+        elif "red" in key:
+            dfRed.append(data[key])
+
+    dfPhase = pd.concat(dfPhase, axis=1, sort=False)
+    dfGreen = pd.concat(dfGreen, axis=1, sort=False)
+    dfRed = pd.concat(dfRed, axis=1, sort=False)
+
+    path_name = join(dirname(abspath(__file__)), 'data/singles/')
+
+    if exists(path_name):
+        dfPhase.to_csv(path_name + ff + '_confluence_phase.csv', index=False)
+        dfRed.to_csv(path_name + ff + '_confluence_red.csv', index=False)
+        dfGreen.to_csv(path_name + ff + '_confluence_green.csv', index=False)
+    else:
+        os.mkdir(path_name)
 
 
 def getvalues(dic):

@@ -173,10 +173,15 @@ class GrowthModel:
 
     def save(self):
         ''' Open file and dump pyMC3 objects through pickle. '''
-        if self.interval:
-            filePrefix = './grmodel/data/' + self.loadFile
+        if self.singles:
+            filePrefix = './grmodel/data/singles/'
         else:
-            filePrefix = './grmodel/data/' + self.loadFile + '_ends'
+            filePrefix = './grmodel/data/'
+
+        if self.interval:
+            filePrefix = filePrefix + self.loadFile
+        else:
+            filePrefix = filePrefix + self.loadFile + '_ends'
 
         if exists(filePrefix + '_samples.pkl'):
             os.remove(filePrefix + '_samples.pkl')
@@ -194,7 +199,10 @@ class GrowthModel:
                       'dna': '_confluence_red.csv'}
 
         # Find path for csv files in the repository.
-        pathcsv = join(dirname(abspath(__file__)), 'data/' + self.loadFile)
+        if self.singles:
+            pathcsv = join(dirname(abspath(__file__)), 'data/singles/' + self.loadFile)
+        else:
+            pathcsv = join(dirname(abspath(__file__)), 'data/' + self.loadFile)
 
         # Pull out selected column data
         self.selCols = []
@@ -212,6 +220,11 @@ class GrowthModel:
             # Read input file
             try:
                 dataset = pandas.read_csv(pathcsv + value)
+                # Subtract control
+                dataset1 = dataset.iloc[:, 2:len(dataset.columns)]
+                dataset1.sub(dataset1["Control"], axis=0)
+                dataset = pandas.concat([dataset.iloc[:, 0:2], dataset1], axis=1, sort=False)
+
                 # If interval=False, get endpoint data
                 if not interval:
                     endtime = max(dataset['Elapsed'])
@@ -260,7 +273,7 @@ class GrowthModel:
                         dose1 = 0
                         dose2 = float(condName.split(' ')[1])
                     # If contains drug besides the combination drug
-                    elif 'blank' not in condName:
+                    elif 'blank' not in condName.lower():
                         try:  # Both combination drug and another drug
                             drug1str = condName.split(', ')[0]
                             dose1 = float(drug1str.split(' ')[1])
@@ -285,7 +298,7 @@ class GrowthModel:
                         selconv0.append(conv0[col - firstCols])
 
                 else:  # For data without combinations
-                    if 'Blank' not in condName:
+                    if 'blank' not in condName.lower():
                         # Add the name of the condition we're considering
                         try:
                             drug = condName.split(' ')[0]
@@ -310,9 +323,11 @@ class GrowthModel:
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
 
-    def __init__(self, loadFile=None):
+    def __init__(self, loadFile=None, singles=False):
         # If no filename is given use a default
         if loadFile is None:
             self.loadFile = "101117_H1299"
         else:
             self.loadFile = loadFile
+
+        self.singles = singles

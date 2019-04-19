@@ -8,6 +8,55 @@ import scipy as sp
 import numpy_indexed as npi
 
 
+def makeFigure():
+    '''
+    Generate Figure 1
+    Broadly, this figure should motivate looking at cell death.
+    This should be by showing that it's not captured in existing
+    measurements.
+    '''
+    from matplotlib.ticker import FormatStrFormatter
+    from ..pymcDoseResponse import doseResponseModel
+    from .FigureCommon import getSetup, subplotLabel
+    from string import ascii_uppercase
+
+    M = doseResponseModel()
+    M.readSamples()
+
+    # Store the sampling data for priors to calculate the lExp, growthV and deathV at each concentration
+    df = pd.DataFrame({'IC50s': M.trace['IC50s'],
+                       'hill': M.trace['hill'],
+                       'Emin_growth': M.trace['Emin_growth'],
+                       'Emax_death': M.trace['Emax_death']})
+    df['Emax_growth'] = M.Emax_growth
+
+    # Get list of axis objects
+    ax, f, _ = getSetup((7, 4), (2, 4))
+
+    # set significant figures for xtick
+    ax[2].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax[3].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax[4].yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
+
+    # Going to put a cartoons in A and B
+    ax[0].axis('off')
+    ax[1].axis('off')
+
+    plot_exact_data(M, ax[2], ax[3])
+    plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])
+    alphaFig(M, ax[7])
+
+    # Make first cartoon
+    ax.pop(1)
+    for ii, item in enumerate(ax):
+        subplotLabel(item, ascii_uppercase[ii])
+
+    # Try and fix overlapping elements
+    f.tight_layout()
+
+    return f
+
+
 def plot_mean_and_CI(_x, _y, confidence, ax):
     """ Plot the mean value and confidence interval """
     # Group _y by _x and find the mean, standard deviation of _y at each _x
@@ -20,26 +69,25 @@ def plot_mean_and_CI(_x, _y, confidence, ax):
     ax.errorbar(x=x_unique, y=y_mean, yerr=yerr, fmt='.', color='black')
 
 
-def plot_median_and_quantile(_df, xvar, yvar, ax, c='b', quantiles=[0.90, 0.75, 0.50], lb=None):
+def plot_data_and_quantile(df2, xvar, yvar, ax, c='b', quantiles=[0.90, 0.75, 0.50], lb=None):
     """ Plot the median, low and high quantile """
-    _x = _df[xvar].tolist()
-    _y = _df[yvar].tolist()
-    x_unique, y_median = npi.group_by(_x).median(_y)
-    x_unq = _df.groupby(xvar)
+    _x = xvar.groups.keys()
+    _y = df2[yvar]
 
     if(lb is None):
-        ax.plot(x_unique, y_median, color=c, linewidth=1, alpha=0.9)
+        ax.plot(_x, _y, color=c, linewidth=1, alpha=0.9)
     else:
-        ax.plot(x_unique, y_median, color=c, linewidth=1, alpha=0.9, label=lb)
+        ax.plot(_x, _y, color=c, linewidth=1, alpha=0.9, label=lb)
 
-    alphas = [0.2, 0.3, 0.5]
+    alphas = np.arange(0.2, 1.0, 0.2)
     for i in range(len(quantiles)):
-        y_low = np.array(x_unq.quantile((1 - quantiles[i]) / 2)[yvar].tolist())
-        y_high = np.array(x_unq.quantile(1 - (1 - quantiles[i]) / 2)[yvar].tolist())
+        y_low = np.array(xvar.quantile((1 - quantiles[i]) / 2)[yvar])
+        y_high = np.array(xvar.quantile(1 - (1 - quantiles[i]) / 2)[yvar])
         if(lb is not None):
-            ax.fill_between(x_unique, y_high, y_low, color=c, alpha=alphas[i])
+            ax.fill_between(_x, y_high, y_low, color=c, alpha=alphas[i])
         else:
-            ax.fill_between(x_unique, y_high, y_low, color=c, alpha=alphas[i], label=str(int(quantiles[i] * 100)) + '% CI')
+            ax.fill_between(_x, y_high, y_low, color=c, alpha=alphas[i],
+                            label=str(int(quantiles[i] * 100)) + '% CI')
 
 
 def plot_exact_data(M, ax2, ax3):
@@ -48,7 +96,7 @@ def plot_exact_data(M, ax2, ax3):
     lObs = np.array(M.lObs)
     # Figure C: plot the mean and 95% CI of lObs at each concentration X
     plot_mean_and_CI(X, lObs, 0.95, ax2)
-    ax2.set_xlabel(r'$\mathregular{log_{10}}$[DOX(nM)]')
+    ax2.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax2.set_ylabel(r'Cell viability' + '\n' + r'normalized to untreated cells')
     ax2.set_ylim(0, 1.1)
     # Part of Figure D: Compare the sampling lExp with the exact data lObs
@@ -107,23 +155,26 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     # Calculate the number of live cells, normalized to T=0
     df1['lExp'] = np.exp(df1['GR'] * 72.0 - df1['growthControl'] * 72.0)
 
+    df2 = df1.groupby(['concentration']).agg({'lExp': 'median', 'growthV': 'median', 'deathV': 'median'})
+    conc = df1.groupby(['concentration'])
+
     # Figure D: Plot the median, 90% and 50% quantile of the expected number
     # of live cells at each x
-    plot_median_and_quantile(df1, 'concentration', 'lExp', ax3)
+    plot_data_and_quantile(df2, conc, 'lExp', ax3)
     ax3.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax3.set_ylabel('Fit CellTiter quantitation')
     ax3.set_ylim(0, 1.05)
     ax3.legend(loc=6)
 
     # Figure E: Plot the median, 90% and 50% quantile of growth rate at each x
-    plot_median_and_quantile(df1, 'concentration', 'growthV', ax4)
+    plot_data_and_quantile(df2, conc, 'growthV', ax4)
     ax4.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax4.set_ylabel('Predicted growth rate (1/min)')
     ax4.set_ylim(0., ax4.get_ylim()[1])
     ax4.legend(loc=6)
 
     # Figure F: Plot the median, 90% and 50% quantile of growth rate at each x
-    plot_median_and_quantile(df1, 'concentration', 'deathV', ax5)
+    plot_data_and_quantile(df2, conc, 'deathV', ax5)
     ax5.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax5.set_ylabel('Predicted death rate (1/min)')
     ax5.legend(loc=6)
@@ -155,55 +206,3 @@ def alphaFig(M, ax1):
     ax1.set_ylabel('Quantity per starting cell')
     ax1.semilogx(alpha, cellDiv, 'r', label="avg. divisions")
     ax1.legend(handlelength=0.5)
-
-
-def makeFigure():
-    '''
-    Generate Figure 1
-    Broadly, this figure should motivate looking at cell death.
-    This should be by showing that it's not captured in existing
-    measurements.
-    '''
-    from matplotlib.ticker import FormatStrFormatter
-    from ..pymcDoseResponse import doseResponseModel
-    from .FigureCommon import getSetup, subplotLabel
-    from string import ascii_uppercase
-
-    M = doseResponseModel()
-    M.readSamples()
-
-    # Store the sampling data for priors to calculate the lExp, growthV and deathV at each concentration
-    df = pd.DataFrame({'IC50s': M.trace['IC50s'],
-                       'hill': M.trace['hill'],
-                       'Emin_growth': M.trace['Emin_growth'],
-                       'Emax_death': M.trace['Emax_death']})
-    df['Emax_growth'] = M.Emax_growth
-
-    # Get list of axis objects
-    ax, f, _ = getSetup((7, 4), (2, 4))
-
-    for axis in ax[0:9]:
-        axis.grid(linestyle='dotted', linewidth=1.0)  # set grid style
-        axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
-
-    # set significant figures for xtick
-    ax[3].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    ax[4].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    ax[5].yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
-
-    # Going to put a cartoons in A and B
-    ax[0].axis('off')
-    ax[1].axis('off')
-
-    plot_exact_data(M, ax[2], ax[3])
-    plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])
-    alphaFig(M, ax[7])
-
-    # Make first cartoon
-    for ii, item in enumerate(ax):
-        subplotLabel(item, ascii_uppercase[ii])
-
-    # Try and fix overlapping elements
-    f.tight_layout()
-
-    return f

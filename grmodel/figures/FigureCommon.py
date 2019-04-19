@@ -4,7 +4,7 @@ import seaborn as sns
 def getSetup(figsize, gridd):
     from matplotlib import gridspec, pyplot as plt
 
-    sns.set(style="whitegrid", font_scale=0.7, color_codes=True, palette="colorblind")
+    sns.set(style="white", font_scale=0.7, color_codes=True, palette="colorblind")
 
     # Setup plotting space
     f = plt.figure(figsize=figsize)

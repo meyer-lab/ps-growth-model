@@ -7,15 +7,16 @@ import pandas as pd
 from os.path import join, dirname, abspath
 
 
-def readCombo(name='BYLvPIM'):
+def readCombo(name='072718_PC9_BYL_PIM'):
     ''' Read in data file, melt each table across conditions, and then merge all measurements into one table. '''
-    filename = join(dirname(abspath(__file__)), 'data/combinations/' + name + '_raw.xlsx')
+    filename = join(dirname(abspath(__file__)), 'data/combinations/' + name + '_rawdata.xlsx')
 
     data = pd.read_excel(filename, sheet_name=None)
 
     del data['Conditions']
 
     for key in data:
+
         data[key]['Well'] = np.repeat([1, 2, 3], 25)
         data[key] = pd.melt(data[key], id_vars=['Elapsed', 'Well'], var_name='Condition', value_name='Measure')
         data[key].dropna(inplace=True)
@@ -80,6 +81,7 @@ def dataSplit(df, timepoint_start=0):
     phase = dfMAT.values
 
     dfRED = dfRed[keepCols].groupby(grpCols).agg({"Measure": "mean"}).unstack(0)
+
     dfRED.Measure = dfRED.Measure - dfRED.Measure.iloc[0]  # substract by control
     red = dfRED.values
 

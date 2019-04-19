@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from .sampleAnalysis import readModel
+from more_itertools import unique_everseen
 
 
 def reformatData(dfd, doseidx, params, dTypes=False):
@@ -37,21 +38,28 @@ def reformatData(dfd, doseidx, params, dTypes=False):
     return dfplot
 
 
-def violinplot(filename, drugs=None):
+def violinplot(filename, singles=None, drugs=None):
     '''
     Takes in a list of drugs
     Makes 1*len(parameters) violinplots for each drug
     '''
     import seaborn as sns
+
+    # Load model and dataset
+    if singles is None:
+        singles = False
+
     sns.set_context("paper", font_scale=1.2)
     # Read in dataframe
-    classM, df = readModel(filename)
+    classM, df = readModel(filename, singles=singles)
     alldrugs = classM.drugs
     alldoses = classM.doses
+
     # Get a list of drugs
     if drugs is None:
-        drugs = list(sorted(set(classM.drugs)))
+        drugs = list(unique_everseen(classM.drugs))
         drugs.remove('Control')
+        drugs = drugs[::-1]
 
     params = ['div', 'deathRate', 'apopfrac']
 

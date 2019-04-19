@@ -112,7 +112,7 @@ class drugInteractionModel:
 
         pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
 
-    def __init__(self, loadFile='BYLvPIM', drug1='PIM447', drug2='BYL749', timepoint_start=0):
+    def __init__(self, loadFile='072718_PC9_BYL_PIM', drug1='PIM447', drug2='BYL749', timepoint_start=0):
 
         # Save input data
         self.loadFile = loadFile

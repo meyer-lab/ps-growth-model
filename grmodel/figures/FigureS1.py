@@ -1,14 +1,11 @@
-"""
-This creates Figure S1.
-"""
+""" This creates Figure S1. """
 
 from string import ascii_uppercase
 from .FigureCommon import getSetup, subplotLabel
 
 
 def makeFigure():
-    ''' Make figure S1. Show that endpoint measurements can be
-    as useful as the full kinetics. '''
+    ''' Make figure S3. '''
 
     # Get list of axis objects
     ax, f, _ = getSetup((7, 6), (3, 3))

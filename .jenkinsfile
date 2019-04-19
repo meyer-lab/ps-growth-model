@@ -18,7 +18,7 @@ pipeline {
     stage('Report') {
       steps {
 		cobertura coberturaReportFile: 'coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
-		recordIssues qualityGates: [[threshold: 2, type: 'TOTAL_HIGH', unstable: true], [threshold: 36, type: 'TOTAL_NORMAL', unstable: true], [threshold: 88, type: 'TOTAL_LOW', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
+		recordIssues qualityGates: [[threshold: 4, type: 'TOTAL_HIGH', unstable: true], [threshold: 50, type: 'TOTAL_NORMAL', unstable: true], [threshold: 100, type: 'TOTAL_LOW', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
         archiveArtifacts artifacts: 'Manuscript/Figures/*.pdf', onlyIfSuccessful: true
 		publishHTML([allowMissing:false, alwaysLinkToLastBuild:false, keepAll:true,
           reportDir:'doc/build', reportFiles:'index.html', reportName:'Documentation', reportTitles:''])

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from ..fcseAnalysis import importFCS
+# from ..fcseAnalysis import importFCS
 
 
 def makeFigure():
@@ -18,7 +18,6 @@ def makeFigure():
     ax, f, _ = getSetup((12, 8), (4, 5))
 
     for axis in ax[0:20]:
-        axis.grid(linestyle='dotted', linewidth=1.0)  # set grid style
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
 
     # Blank out for cartoon
@@ -32,16 +31,10 @@ def makeFigure():
     violinPlots(axes=[ax[8], ax[9], ax[13], ax[14]])
 
     # TODO: change labels for each subplot
-    for ii, item in enumerate([ax[0], ax[3], ax[5], ax[8], ax[15], ax[18]]):
+    for ii, item in enumerate([ax[0], ax[5], ax[3], ax[8], ax[15], ax[17], ax[18]]):
         subplotLabel(item, ascii_uppercase[ii])
 
-    CFSEcurve(ax[15])
-
-    CFSEsamples(ax[16])
-
-    CFSEcorr(ax[17])
-
-    for axis in ax[18:20]:
+    for axis in ax[15:20]:
         axis.axis('off')
 
     # Try and fix overlapping elements
@@ -50,14 +43,18 @@ def makeFigure():
     return f
 
 
-def simulationPlots(axes):
+def simulationPlots(axes, ff='101117_H1299', drugAname='Dox', drugBname='NVB', sg=None):
     """ Make plots of experimental data. """
     from ..sampleAnalysis import readModel
 
     # Load model and dataset
-    classM, _ = readModel(ff='101117_H1299')
+    if sg is None:
+        sg = False
+
+    classM, _ = readModel(ff=ff, singles=sg)
 
     df = pd.DataFrame(classM.expTable)
+
     df['time'] = np.tile(classM.timeV, int(df.shape[0] / classM.timeV.size))
     df['dose'] = np.repeat(classM.doses, classM.timeV.size).astype(np.float64)
     df['drug'] = np.repeat(classM.drugs, int(df.shape[0] / len(classM.drugs)))
@@ -72,9 +69,9 @@ def simulationPlots(axes):
         quant = ['confl', 'apop', 'dna'][ii % 3]
 
         if ii < 3:
-            dfcur = df.loc[df['drug'] != 'NVB', :]
+            dfcur = df.loc[df['drug'] != drugAname, :]
         else:
-            dfcur = df.loc[df['drug'] != 'Dox', :]
+            dfcur = df.loc[df['drug'] != drugBname, :]
 
         # array of all doses for the drug
         doses = np.unique(dfcur['dose'])
@@ -99,6 +96,7 @@ def simulationPlots(axes):
         for k in range(len(doses)):
             # plot simulations for each drug dose
             qt = this_dfcur_avg[quant].iloc[k]
+
             if quant == 'confl':
                 ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9,
                         label=str(doses[k]))
@@ -114,31 +112,55 @@ def simulationPlots(axes):
                 y_high = [a_i - b_i for a_i, b_i in zip(y_high, ctrl)]
             ax.fill_between(times, y_high, y_low, color=palette(k), alpha=0.2)
 
+        # drugs with unitu nM
+        drugs_nM = ['Dox', 'NVB', 'Paclitaxel', 'Erl']
+        # drugs with lowercase drugname
+        drugs_lowercase = ['Erl', 'Paclitaxel', 'Binimetinib']
+
         # add legends
         if quant == 'confl':
-            ax.legend(loc=2, ncol=2, title='Doses', handletextpad=0.3,
-                      handlelength=0.8, columnspacing=0.5, prop={'size': 8})
+            if (ii < 3 and drugBname in drugs_nM) or (ii >= 3 and drugAname in drugs_nM):
+                title = 'Doses (nM)'
+            else:
+                title = r'Doses ($\mu$M)'
+            legend = ax.legend(loc=2, ncol=2, title=title, handletextpad=0.3,
+                               handlelength=0.5, columnspacing=0.5, prop={'size': 7})
+            legend.get_title().set_fontsize('8')
 
         # set titles and labels
         ax.set_xlabel('Time (hrs)')
 
         if ii < 3:
-            ax.set_title(quant_tt[ii % 3] + ' (DOX)')
+            if drugBname in drugs_lowercase:
+                ax.set_title(quant_tt[ii % 3] + ' (' + drugBname + ')')
+            else:
+                ax.set_title(quant_tt[ii % 3] + ' (' + drugBname.upper() + ')')
         else:
-            ax.set_title(quant_tt[ii % 3] + ' (NVB)')
+            if drugAname in drugs_lowercase:
+                ax.set_title(quant_tt[ii % 3] + ' (' + drugAname + ')')
+            else:
+                ax.set_title(quant_tt[ii % 3] + ' (' + drugAname.upper() + ')')
 
         if quant == 'confl':
             ax.set_ylim(0., 100.)
         else:
-            ax.set_ylim(-0.1, 0.5)
+            if ff == '101117_H1299':
+                ax.set_ylim(-0.1, 0.5)
+            else:
+                ax.set_ylim(-1.0, 10.0)
 
         ax.set_ylabel('Percent Image Positive')
 
 
-def violinPlots(axes):
+def violinPlots(axes, ff='101117_H1299', sg=None):
     """ Create violin plots of model posterior. """
     from ..utils import violinplot
-    dfdict, drugs, _ = violinplot('101117_H1299')
+
+    # Load model and dataset
+    if sg is None:
+        sg = False
+
+    dfdict, drugs, _ = violinplot(ff, singles=sg)
 
     # Plot params vs. drug dose
     for j, drug in enumerate(drugs):
@@ -147,10 +169,15 @@ def violinPlots(axes):
 
         # combine div and deathRate in one dataframe
         # take exponential
-        df = pd.DataFrame({'rate': np.exp(dfplot['div']).append(np.exp(dfplot['deathRate'])),
-                           'type': np.append(np.repeat('div', len(dfplot)),
-                                             np.repeat('deathRate', len(dfplot))),
-                           'dose': dfplot['dose'].append(dfplot['dose'])})
+        dose = np.array([float(ds) for ds in np.array(dfplot['dose'])])
+        df1 = pd.DataFrame({'rate': np.append(dfplot['div'], dfplot['deathRate']),
+                            'type': np.append(np.repeat('div', len(dfplot)),
+                                              np.repeat('deathRate', len(dfplot))),
+                            'dose': np.append(dose, dose)})
+
+        df2 = pd.DataFrame({'apopfrac': dfplot['apopfrac'], 'dose': dose})
+        df1 = df1.sort_values(by='dose')
+        df2 = df2.sort_values(by='dose')
 
         # Iterate over each parameter in params
         for i, param in enumerate(['rate', 'apopfrac']):
@@ -158,26 +185,38 @@ def violinPlots(axes):
             # Set y-axis confluence limits for each parameter
             if param == 'rate':
                 # Make violin plots
-                sns.violinplot(x='dose', y='rate', hue='type', data=df, ax=axes[idx],
-                               cut=0, palette='muted', linewidth=0.2)
+                sns.violinplot(x='dose', y='rate', hue='type', data=df1, ax=axes[idx],
+                               palette='Set2', linewidth=0.2)
                 # Set legend
-                axes[idx].legend(loc=6, handletextpad=0.3, handlelength=0.8, prop={'size': 8})
+                axes[idx].legend(loc=4, handletextpad=0.3, handlelength=0.8, prop={'size': 8})
+                # Set y label
+                axes[idx].set_ylabel('Rate')
             elif param == 'apopfrac':
-                axes[idx].set_ylim([0, 1])
                 # Make violin plots
-                sns.violinplot(x='dose', y=param, data=dfplot, ax=axes[idx], cut=0, linewidth=0.2)
+                sns.violinplot(x='dose', y=param, data=df2, ax=axes[idx],
+                               color=sns.color_palette('Set2')[2], linewidth=0.2)
+                # Set y label
+                axes[idx].set_ylabel('Apopfrac')
+                # Set ylim
+                axes[idx].set_ylim([0, 1])
 
-            if (drug == 'Dox'):
-                axes[idx].set_xlabel('DOX dose')
+            drugs_nM = ['Dox', 'NVB', 'Paclitaxel', 'Erl']
+            drugs_lowercase = ['Erl', 'Paclitaxel', 'Binimetinib']
+            if drug in drugs_nM:
+                if drug in drugs_lowercase:
+                    axes[idx].set_xlabel(drug + ' (nM)')
+                else:
+                    axes[idx].set_xlabel(drug.upper() + ' (nM)')
             else:
-                axes[idx].set_xlabel(drug + ' dose')
+                if drug in drugs_lowercase:
+                    axes[idx].set_xlabel(drug + r' ($\mu$M)')
+                else:
+                    axes[idx].set_xlabel(drug.upper() + r' ($\mu$M)')
 
-            # Rotate dosage labels
-            axes[idx].set_xticklabels(axes[idx].get_xticklabels(), rotation=45,
-                                      rotation_mode="anchor", ha="right",
-                                      position=(0, 0.05), fontsize=6)
+            axes[idx].tick_params(axis='x', labelsize=6)
 
 
+'''
 def CFSEcurve(ax):
     """ Plot the CFSE standard curve. """
     data = importFCS()
@@ -236,3 +275,4 @@ def CFSEcorr(ax):
     ax.set_xlim(-0.5, 0.3)
     ax.set_xlabel('Log(CFSE / SSC-W)')
     ax.set_ylabel('Fit Growth Rate (1/min)')
+'''
