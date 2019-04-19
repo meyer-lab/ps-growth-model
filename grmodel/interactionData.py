@@ -33,7 +33,7 @@ def filterDrugC(df, drugAname, drugBname):
     df['drugA'] = 0
 
     for index, row in df.iterrows():
-        m = re.search(drugAname + ' (\d*\.?\d*)', row['Condition'])
+        m = re.search(drugAname + r' (\d*\.?\d*)', row['Condition'])
 
         if m is not None:
             df.loc[index, 'drugA'] = float(m.group(1))
@@ -41,7 +41,7 @@ def filterDrugC(df, drugAname, drugBname):
     df['drugB'] = 0
 
     for index, row in df.iterrows():
-        m = re.search(drugBname + ' (\d*\.?\d*)', row['Condition'])
+        m = re.search(drugBname + r' (\d*\.?\d*)', row['Condition'])
 
         if m is not None:
             df.loc[index, 'drugB'] = float(m.group(1))

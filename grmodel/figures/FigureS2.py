@@ -17,4 +17,3 @@ def makeFigure():
     f.tight_layout()
 
     return f
-

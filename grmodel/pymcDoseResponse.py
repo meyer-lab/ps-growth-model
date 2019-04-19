@@ -72,8 +72,8 @@ def loadCellTiter(drug=None):
 
     if drug is None:
         return data
-    else:
-        return data[data['Drug'] == drug]
+
+    return data[data['Drug'] == drug]
 
 
 def loadIncucyte(drug=None):
@@ -90,8 +90,8 @@ def loadIncucyte(drug=None):
 
     if drug is None:
         return df
-    else:
-        return df[df['Drug'] == drug]
+
+    return df[df['Drug'] == drug]
 
 
 class doseResponseModel:

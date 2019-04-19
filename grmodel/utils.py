@@ -25,7 +25,7 @@ def reformatData(dfd, doseidx, params, dTypes=False):
     for dose in doseidx:
         dftemp = pd.DataFrame()
         for param in params:
-            dftemp[param] = dfd[param+'__'+str(doseidx[dose])]
+            dftemp[param] = dfd[param + '__' + str(doseidx[dose])]
         dftemp['dose'] = dose
         if dTypes:
             dftemp['Data Type'] = dfd['Data Type']
@@ -63,7 +63,7 @@ def violinplot(filename, drugs=None):
         doseidx = OrderedDict()
         flag = True
         # Iterate from the last condition to the first condition
-        for i in range(len(alldrugs)-1, -1, -1):
+        for i in range(len(alldrugs) - 1, -1, -1):
             # Condition matches drug of interest
             if alldrugs[i] == drug:
                 doseidx[alldoses[i]] = i
@@ -84,21 +84,21 @@ def violinplot(filename, drugs=None):
 
 def violinplot_split(filename, drugs=None):
     """
-    Make split violin plots for comparison of sampling distributions from 
+    Make split violin plots for comparison of sampling distributions from
     analyses of kinetic data and endpoint data.
     """
     import seaborn as sns
     # Read in model and kinetic dataframe
     classM, df = readModel(filename)
-    
+
     # Append a Data Type variable to dataframe
     df['Data Type'] = 'Kinetic'
     # Read in dataframe for endpoint data
-    _, df2 = readModel(filename+'_ends')
+    _, df2 = readModel(filename + '_ends')
     df2['Data Type'] = 'Endpoints'
     # Concatinate the two data frames
     df = pd.concat([df, df2], axis=0)
-    
+
     # Get variables from model
     alldrugs = classM.drugs
     alldoses = classM.doses
@@ -110,7 +110,7 @@ def violinplot_split(filename, drugs=None):
     params = ['div', 'deathRate', 'apopfrac']
 
     # Set up a len(drugs)*len(params) grid of subplots
-    _, axis = plt.subplots(len(drugs), len(params), figsize=(12, 3*len(drugs)), sharex=False, sharey='col')
+    _, axis = plt.subplots(len(drugs), len(params), figsize=(12, 3 * len(drugs)), sharex=False, sharey='col')
 
     # Interate over each drug
     for drug in drugs:
@@ -118,7 +118,7 @@ def violinplot_split(filename, drugs=None):
         doseidx = OrderedDict()
         flag = True
         # Iterate from the last condition to the first condition
-        for i in range(len(alldrugs)-1, -1, -1):
+        for i in range(len(alldrugs) - 1, -1, -1):
             # Condition matches drug of interest
             if alldrugs[i] == drug:
                 doseidx[alldoses[i]] = i
@@ -143,11 +143,10 @@ def violinplot_split(filename, drugs=None):
                 axis[j, i].set_ylim([0, 1])
             # Make violin plots
             sns.violinplot(x="dose", y=params[i], hue="Data Type",
-                                data=dfplot, palette="muted", split=True, ax=axis[j, i], cut=0)
-            axis[j, i].set_xlabel(drug+' dose')
+                           data=dfplot, palette="muted", split=True, ax=axis[j, i], cut=0)
+            axis[j, i].set_xlabel(drug + ' dose')
             axis[j, i].legend_.remove()
 
     plt.tight_layout()
 
     return axis
-

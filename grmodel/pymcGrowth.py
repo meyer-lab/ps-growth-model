@@ -4,8 +4,8 @@ This module handles experimental data, by fitting a growth and death rate for ea
 import bz2
 import os
 from os.path import join, dirname, abspath, exists
-import pandas
 import pickle
+import pandas
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
@@ -111,8 +111,8 @@ def conversionPriors(conv0, offset=True):
         apop_offset = pm.Lognormal('apop_offset', -1., 0.1)
         dna_offset = pm.Lognormal('dna_offset', -1., 0.1)
         return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
-    else:
-        return (confl_conv, apop_conv, dna_conv)
+
+    return (confl_conv, apop_conv, dna_conv)
 
 
 def build_model(conv0, doses, timeV, expTable):
@@ -141,17 +141,17 @@ def build_model(conv0, doses, timeV, expTable):
         confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec, conversions)
 
         # Fit model to confl, apop, dna, and overlap measurements
-        if ('confl') in expTable.keys():
+        if 'confl' in expTable.keys():
             # Observed error values for confl
             confl_obs = T.reshape(confl_exp, (-1, )) - expTable['confl']
 
             pm.Normal('dataFit', sd=T.std(confl_obs), observed=confl_obs)
-        if ('apop') in expTable.keys():
+        if 'apop' in expTable.keys():
             # Observed error values for apop
             apop_obs = T.reshape(apop_exp, (-1, )) - expTable['apop']
 
             pm.Normal('dataFita', sd=T.std(apop_obs), observed=apop_obs)
-        if ('dna') in expTable.keys():
+        if 'dna' in expTable.keys():
             # Observed error values for dna
             dna_obs = T.reshape(dna_exp, (-1, )) - expTable['dna']
 
@@ -247,7 +247,7 @@ class GrowthModel:
                 condName = data.columns.values[col]
 
                 # For data with combination therapies
-                if comb != None:
+                if comb is not None:
                     # Represent dose with a tuple of len(2) in each case
                     # If control
                     if 'Control' in condName:

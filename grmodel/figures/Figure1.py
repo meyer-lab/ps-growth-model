@@ -137,27 +137,6 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     ax6.set_ylabel('Drug death effect (1/min)')
 
 
-def plot_PCA(df, ax):
-    """ Check the dimensionality of the sampling uncertainty using PCA """
-    from sklearn.decomposition import PCA
-
-    # Separating out the features
-    m = df.values
-
-    pca = PCA(n_components=5)
-    pcs = pca.fit_transform(m)
-
-    # print out explained_variance
-    print(pca.explained_variance_ratio_)
-
-    # Scatter plot of PC1 vs. PC2
-    ax.scatter(pcs[:, 0], pcs[:, 1], s=2)
-    ax.set_xlabel('Principal Component 1')
-    ax.set_ylabel('Principal Component 2')
-
-    # TODO: Plot PCA's loadings
-
-
 def alphaFig(M, ax1):
     drug_lnum_effect = 0.25
 
@@ -201,7 +180,7 @@ def makeFigure():
     df['Emax_growth'] = M.Emax_growth
 
     # Get list of axis objects
-    ax, f, _ = getSetup((7, 6), (3, 3))
+    ax, f, _ = getSetup((7, 4), (2, 4))
 
     for axis in ax[0:9]:
         axis.grid(linestyle='dotted', linewidth=1.0)  # set grid style
@@ -218,8 +197,7 @@ def makeFigure():
 
     plot_exact_data(M, ax[2], ax[3])
     plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])
-    plot_PCA(df, ax[7])
-    alphaFig(M, ax[8])
+    alphaFig(M, ax[7])
 
     # Make first cartoon
     for ii, item in enumerate(ax):

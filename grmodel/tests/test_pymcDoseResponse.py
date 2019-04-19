@@ -22,6 +22,3 @@ class TestDoseResponseMethods(unittest.TestCase):
         M = doseResponseModel()
 
         self.assertIsInstance(M.drugCs, np.ndarray)
-
-
-

@@ -4,7 +4,7 @@ pan_common = -s -F pandoc-crossref -F pandoc-citeproc --filter=$(tdir)/figure-fi
 
 .PHONY: clean test profile testcover all doc
 
-all: Manuscript/index.html Manuscript/Manuscript.pdf
+all: $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf $(fdir)/FigureS1.pdf $(fdir)/FigureS2.pdf $(fdir)/FigureS3.pdf $(fdir)/FigureS4.pdf $(fdir)/FigureS5.pdf
 
 $(fdir)/Figure%.svg: genFigures.py grmodel/data/FCSE/24817.fcs
 	mkdir -p ./Manuscript/Figures
@@ -36,16 +36,6 @@ grmodel/data/062117_PC9_samples.pkl:
 
 grmodel/data/111717_PC9_ends_samples.pkl: 
 	curl -LSso $@ https://www.dropbox.com/s/8c1xj33chlhn7tw/111717_PC9_ends_samples.pkl?dl=0
-
-Manuscript/Manuscript.tex: Manuscript/Text/*.md
-	pandoc -s $(pan_common) --template=$(tdir)/default.latex --pdf-engine=xelatex -o $@
-
-Manuscript/Manuscript.pdf: Manuscript/Manuscript.tex $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf $(fdir)/FigureS1.pdf $(fdir)/FigureS2.pdf $(fdir)/FigureS3.pdf $(fdir)/FigureS4.pdf $(fdir)/FigureS5.pdf
-	(cd ./Manuscript && latexmk -xelatex -f -quiet)
-	rm -f ./Manuscript/Manuscript.b* ./Manuscript/Manuscript.aux ./Manuscript/Manuscript.fls
-
-Manuscript/index.html: Manuscript/Text/*.md $(fdir)/Figure1.svg $(fdir)/Figure2.svg $(fdir)/Figure3.svg $(fdir)/Figure4.svg $(fdir)/Figure5.svg $(fdir)/FigureS1.svg $(fdir)/FigureS2.svg $(fdir)/FigureS3.svg $(fdir)/FigureS4.svg $(fdir)/FigureS5.svg
-	pandoc -s $(pan_common) -t html5 --mathjax -c ./Templates/kultiad.css --template=$(tdir)/html.template -o $@
 
 clean:
 	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure* grmodel/data/FCSE/CFSE-SYB-20171106.tar.xz

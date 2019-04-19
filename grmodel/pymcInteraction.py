@@ -60,10 +60,10 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
         apopfrac = pm.Beta('apopfrac', 2., 2.)
 
         # Calculate the death rate
-        death_rates = E_con[0] * blissInteract(X1, X2, hill_death, IC50_death)
+        death_rates = E_con[0] * blissInteract(X1, X2, hill_death, IC50_death)  # pylint: disable=unsubscriptable-object
 
         # Calculate the growth rate
-        growth_rates = E_con[1] * (1 - blissInteract(X1, X2, hill_growth, IC50_growth))
+        growth_rates = E_con[1] * (1 - blissInteract(X1, X2, hill_growth, IC50_growth))  # pylint: disable=unsubscriptable-object
 
         # Test the dimension of growth_rates
         growth_rates = T.opt.Assert('growth_rates did not match X1 size')(growth_rates, T.eq(growth_rates.size, X1.size))

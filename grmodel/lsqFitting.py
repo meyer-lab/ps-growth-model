@@ -34,10 +34,10 @@ def lsqFitting(df=makeAdditiveData(t=72.0, a=0.0, E_con=1.0), hold=False):
     X = np.array((df['X1'].values, df['X2'].values), dtype=np.float64)
 
     # Starting point information
-    if hold: # IC1, IC2, hill1, hill2, E_con
+    if hold:  # IC1, IC2, hill1, hill2, E_con
         c0 = {'low': np.array([0.0, 0.0, -5.0, -5.0, 0.1]), 'high': np.array([5.0, 10.0, 0.0, 0.0, 1.0])}
         B = [(0, 0, -np.inf, -np.inf, 0), (np.inf, np.inf, 0, 0, np.inf)]
-    else: # IC1, IC2, hill1, hill2, E_con, a
+    else:  # IC1, IC2, hill1, hill2, E_con, a
         c0 = {'low': np.array([0.0, 0.0, -5.0, -5.0, 0.1, -5.0]), 'high': np.array([5.0, 10.0, 0.0, 0.0, 1.0, 5.0])}
         B = [(0, 0, -np.inf, -np.inf, 0, -np.inf), (np.inf, np.inf, 0, 0, np.inf, np.inf)]
 

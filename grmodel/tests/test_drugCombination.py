@@ -6,6 +6,7 @@ from ..drugCombination import concentration_effect, drugs
 
 cRng = floats(0.1, 10)
 
+
 class TestDrugCombination(unittest.TestCase):
     @given(IC1=cRng, IC2=cRng, X1=cRng, X2=cRng, hill1=floats(-4, -0.1),
            hill2=floats(-4, -0.1), a=floats(-1, 10))
