@@ -25,5 +25,9 @@ if __name__ == '__main__':
         # Overlay Figure 2 cartoon
         overlayCartoon(fdir + 'Figure2.svg',
                        './grmodel/figures/Figure2-Schematic.svg', 23, 4, 0.4)
+        overlayCartoon(fdir + 'Figure2.svg',
+                       './grmodel/figures/Figure2-CFSE.svg', 23, 450, 1.0)
+        overlayCartoon(fdir + 'Figure2.svg',
+                       './grmodel/figures/Figure2-CFSE-endpoint.svg', 360, 445, 0.6)
 
     print(nameOut + ' is done.')

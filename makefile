@@ -1,14 +1,21 @@
 fdir = ./Manuscript/Figures
-tdir = ./Manuscript/Templates
-pan_common = -s -F pandoc-crossref -F pandoc-citeproc --filter=$(tdir)/figure-filter.py -f markdown ./Manuscript/Text/*.md
 
 .PHONY: clean test profile testcover all doc
 
-all: $(fdir)/Figure1.pdf $(fdir)/Figure2.pdf $(fdir)/Figure3.pdf $(fdir)/Figure4.pdf $(fdir)/Figure5.pdf $(fdir)/FigureS1.pdf $(fdir)/FigureS2.pdf $(fdir)/FigureS3.pdf $(fdir)/FigureS4.pdf $(fdir)/FigureS5.pdf
+flist = 1 2 3 4 5 S1 S2 S3 S4 S5
 
-$(fdir)/Figure%.svg: genFigures.py
+all: $(patsubst %, $(fdir)/Figure%.pdf, $(flist))
+
+venv: venv/bin/activate
+
+venv/bin/activate: requirements.txt
+	test -d venv || virtualenv venv
+	. venv/bin/activate; pip install -Ur requirements.txt
+	touch venv/bin/activate
+
+$(fdir)/Figure%.svg: venv genFigures.py
 	mkdir -p ./Manuscript/Figures
-	python3 genFigures.py $*
+	. venv/bin/activate; ./genFigures.py $*
 
 $(fdir)/Figure%pdf: $(fdir)/Figure%svg
 	rsvg-convert -f pdf $< -o $@
@@ -32,8 +39,7 @@ grmodel/data/111717_PC9_ends_samples.pkl:
 	curl -LSso $@ https://www.dropbox.com/s/8c1xj33chlhn7tw/111717_PC9_ends_samples.pkl?dl=0
 
 clean:
-	rm -f ./Manuscript/Manuscript.* ./Manuscript/index.html $(fdir)/Figure*
-	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst
+	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst $(fdir)/Figure*
 
 dataclean:
 	rm -f grmodel/data/*.pkl
