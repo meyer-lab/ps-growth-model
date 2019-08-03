@@ -16,7 +16,7 @@ def makeFigure(loadFiles=['072718_PC9_BYL_PIM'], drugAname='PIM447', drugBname='
     from ..sampleAnalysis import read_dataset
     from ..pymcGrowth import theanoCore
     from .FigureCommon import getSetup, subplotLabel
-    from string import ascii_uppercase
+    from string import ascii_lowercase
 
     if timepoint_start == 72:
         # plot phase, green and red confl for three drug interactions
@@ -124,7 +124,7 @@ def makeFigure(loadFiles=['072718_PC9_BYL_PIM'], drugAname='PIM447', drugBname='
 
     # Make third figure
     for ii, item in enumerate([ax[0], ax[1], ax[2], ax[3], ax[6]]):
-        subplotLabel(item, ascii_uppercase[ii])
+        subplotLabel(item, ascii_lowercase[ii])
 
     for axis in ax[0:3]:
         axis.axis('off')

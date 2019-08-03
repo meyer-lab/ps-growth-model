@@ -5,7 +5,7 @@ def makeFigure():
     ''' Make Figure S3. This would be the violinplot of model posterior
         estimates of the data shown in Figure S1 '''
     from .Figure2 import violinPlots
-    from string import ascii_uppercase
+    from string import ascii_lowercase
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
@@ -25,7 +25,7 @@ def makeFigure():
 
     # TODO: change labels for each subplot
     for ii, item in enumerate([ax[0], ax[2], ax[8], ax[10]]):
-        subplotLabel(item, ascii_uppercase[ii])
+        subplotLabel(item, ascii_lowercase[ii])
 
     # Try and fix overlapping elements
     f.tight_layout(pad=0.1)

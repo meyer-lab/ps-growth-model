@@ -5,13 +5,12 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-# from ..fcseAnalysis import importFCS
 
 
 def makeFigure():
     ''' Make Figure 2. This should generally be initial analysis
     of the data we've been collecting. '''
-    from string import ascii_uppercase
+    from string import ascii_lowercase
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
@@ -21,7 +20,7 @@ def makeFigure():
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
 
     # Blank out for cartoon
-    for axis in ax[0:5]:
+    for axis in ax[0:5] + ax[15:20]:
         axis.axis('off')
 
     # Show simulation plots (predicted vs experimental)
@@ -31,11 +30,8 @@ def makeFigure():
     violinPlots(axes=[ax[8], ax[9], ax[13], ax[14]])
 
     # TODO: change labels for each subplot
-    for ii, item in enumerate([ax[0], ax[5], ax[3], ax[8], ax[15], ax[17], ax[18]]):
-        subplotLabel(item, ascii_uppercase[ii])
-
-    for axis in ax[15:20]:
-        axis.axis('off')
+    for ii, item in enumerate([ax[0], ax[5], ax[3], ax[8], ax[15]]):
+        subplotLabel(item, ascii_lowercase[ii])
 
     # Try and fix overlapping elements
     f.tight_layout(pad=0.1)
@@ -43,7 +39,7 @@ def makeFigure():
     return f
 
 
-def simulationPlots(axes, ff='101117_H1299', drugAname='Dox', drugBname='NVB', sg=None):
+def simulationPlots(axes, ff='101117_H1299', drugAname='NVB', drugBname='Dox', sg=None):
     """ Make plots of experimental data. """
     from ..sampleAnalysis import readModel
 
@@ -128,7 +124,7 @@ def simulationPlots(axes, ff='101117_H1299', drugAname='Dox', drugBname='NVB', s
             legend.get_title().set_fontsize('8')
 
         # set titles and labels
-        ax.set_xlabel('Time (hrs)')
+        ax.set_xlabel('Time (h)')
 
         if ii < 3:
             if drugBname in drugs_lowercase:
@@ -170,7 +166,8 @@ def violinPlots(axes, ff='101117_H1299', sg=None):
         # combine div and deathRate in one dataframe
         # take exponential
         dose = np.array([float(ds) for ds in np.array(dfplot['dose'])])
-        df1 = pd.DataFrame({'rate': np.append(dfplot['div'], dfplot['deathRate']),
+        df1 = pd.DataFrame({'rate': np.append(np.exp(dfplot['div']),
+                                              np.exp(dfplot['deathRate'])),
                             'type': np.append(np.repeat('div', len(dfplot)),
                                               np.repeat('deathRate', len(dfplot))),
                             'dose': np.append(dose, dose)})
@@ -188,9 +185,12 @@ def violinPlots(axes, ff='101117_H1299', sg=None):
                 sns.violinplot(x='dose', y='rate', hue='type', data=df1, ax=axes[idx],
                                palette='Set2', linewidth=0.2)
                 # Set legend
-                axes[idx].legend(loc=4, handletextpad=0.3, handlelength=0.8, prop={'size': 8})
+                axes[idx].legend(handletextpad=0.3, handlelength=0.8, prop={'size': 8})
                 # Set y label
-                axes[idx].set_ylabel('Rate')
+                axes[idx].set_ylabel(r'Rate (1/h)')
+                # axes[idx].set_ylabel(r'Rate ($\mathregular{h^{-1}}$)')
+                # Set ylim
+                axes[idx].set_ylim(bottom=0)
             elif param == 'apopfrac':
                 # Make violin plots
                 sns.violinplot(x='dose', y=param, data=df2, ax=axes[idx],
@@ -200,6 +200,7 @@ def violinPlots(axes, ff='101117_H1299', sg=None):
                 # Set ylim
                 axes[idx].set_ylim([0, 1])
 
+            # Set x labels
             drugs_nM = ['Dox', 'NVB', 'Paclitaxel', 'Erl']
             drugs_lowercase = ['Erl', 'Paclitaxel', 'Binimetinib']
             if drug in drugs_nM:

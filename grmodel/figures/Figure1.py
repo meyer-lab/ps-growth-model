@@ -18,7 +18,7 @@ def makeFigure():
     from matplotlib.ticker import FormatStrFormatter
     from ..pymcDoseResponse import doseResponseModel
     from .FigureCommon import getSetup, subplotLabel
-    from string import ascii_uppercase
+    from string import ascii_lowercase
 
     M = doseResponseModel()
     M.readSamples()
@@ -31,7 +31,7 @@ def makeFigure():
     df['Emax_growth'] = M.Emax_growth
 
     # Get list of axis objects
-    ax, f, _ = getSetup((7, 4), (2, 4))
+    ax, f, _ = getSetup((8, 4), (2, 4))
 
     # set significant figures for xtick
     ax[2].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
@@ -49,7 +49,7 @@ def makeFigure():
     # Make first cartoon
     ax.pop(1)
     for ii, item in enumerate(ax):
-        subplotLabel(item, ascii_uppercase[ii])
+        subplotLabel(item, ascii_lowercase[ii])
 
     # Try and fix overlapping elements
     f.tight_layout()

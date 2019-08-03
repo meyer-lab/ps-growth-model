@@ -59,7 +59,6 @@ def violinplot(filename, singles=None, drugs=None):
     if drugs is None:
         drugs = list(unique_everseen(classM.drugs))
         drugs.remove('Control')
-        drugs = drugs[::-1]
 
     params = ['div', 'deathRate', 'apopfrac']
 

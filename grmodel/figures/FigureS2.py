@@ -19,7 +19,7 @@ def makeFigure():
     ''' Make Figure S2. This should be the experimental data of
         single drug in each drug combinations '''
     from .Figure2 import simulationPlots
-    from string import ascii_uppercase
+    from string import ascii_lowercase
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
@@ -29,8 +29,8 @@ def makeFigure():
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
 
     files = ['072718_PC9_BYL_PIM', '081118_PC9_LCL_TXL', '071318_PC9_OSI_Bin', '090618_PC9_TXL_Erl']
-    drugAs = ['PIM447', 'LCL161', 'OSI-906', 'Paclitaxel']
-    drugBs = ['BYL749', 'Paclitaxel', 'Binimetinib', 'Erl']
+    drugAs = ['BYL749', 'Paclitaxel', 'Binimetinib', 'Erl']
+    drugBs = ['PIM447', 'LCL161', 'OSI-906', 'Paclitaxel']
 
     # Show simulation plots (predicted vs experimental)
     simulationPlots(axes=[ax[0], ax[1], ax[2], ax[6], ax[7], ax[8]],
@@ -44,7 +44,7 @@ def makeFigure():
 
     # TODO: change labels for each subplot
     for ii, item in enumerate([ax[0], ax[3], ax[12], ax[15]]):
-        subplotLabel(item, ascii_uppercase[ii])
+        subplotLabel(item, ascii_lowercase[ii])
 
     # Try and fix overlapping elements
     f.tight_layout(pad=0.1)
