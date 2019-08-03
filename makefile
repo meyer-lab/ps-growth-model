@@ -47,14 +47,11 @@ dataclean:
 sampleDose:
 	python3 -c "from grmodel.pymcDoseResponse import doseResponseModel; M = doseResponseModel(); M.sample()"
 
-test:
-	nosetests3 --with-timer
+test: venv
+	. venv/bin/activate && pytest
 
-testprofile:
-	nosetests3 --with-timer --with-cprofile --cprofile-stats-erase
-
-testcover:
-	nosetests3 --with-xunit --with-xcoverage --cover-package=grmodel -s --with-timer
+testcover: venv
+	. venv/bin/activate && pytest --junitxml=junit.xml --cov-branch --cov=grmodel --cov-report xml:coverage.xml
 
 profile:
 	python3 -c "from grmodel.pymcGrowth import GrowthModel; grM = GrowthModel(); grM.importData(3); grM.model.profile(grM.model.logpt).summary()"

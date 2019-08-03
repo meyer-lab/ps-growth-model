@@ -4,16 +4,13 @@ This module deals with calculating the effect of drug combinations.
 import numpy as np
 import pandas as pd
 from scipy.optimize import brentq
-from numba import jit
 
 
-@jit(nopython=True, cache=True, nogil=True)
 def drug(IC, X, EE):
     """ Define a component of concentration-effect function for drug_n """
     return np.multiply(X, np.divide(np.power(EE, np.reciprocal(IC[1])), IC[0]))
 
 
-@jit(nopython=True, cache=True, nogil=True)
 def drugs(E, IC1, IC2, a, E_con, X1, X2):
     """ Define a component of concentration-effect function for multiple drugs """
     EE = (E_con - E) / E

@@ -105,8 +105,8 @@ def simulationPlots(axes, ff='101117_H1299', drugAname='Dox', drugBname='NVB', s
 
             # plot confidence intervals for simulations for each drug dose
             dfci = dfcur[dfcur.dose == doses[k]].groupby('time')
-            y_low = np.array(dfci.quantile((1 - quantile) / 2)[quant])
-            y_high = np.array(dfci.quantile(1 - (1 - quantile) / 2)[quant])
+            y_low = dfci[quant].quantile((1 - quantile) / 2).values
+            y_high = dfci[quant].quantile(1 - (1 - quantile) / 2).values
             if quant != 'confl':
                 y_low = [a_i - b_i for a_i, b_i in zip(y_low, ctrl)]
                 y_high = [a_i - b_i for a_i, b_i in zip(y_high, ctrl)]

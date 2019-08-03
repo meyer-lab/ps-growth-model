@@ -18,6 +18,7 @@ pipeline {
     }
     stage('Report') {
       steps {
+        junit allowEmptyResults: false, testResults: 'junit.xml'
         cobertura coberturaReportFile: 'coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
         recordIssues qualityGates: [[threshold: 5, type: 'TOTAL_HIGH', unstable: true], [threshold: 150, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
         archiveArtifacts artifacts: 'Manuscript/Figures/*.pdf', onlyIfSuccessful: true
