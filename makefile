@@ -1,10 +1,10 @@
 fdir = ./Manuscript/Figures
 
-.PHONY: clean test profile testcover all doc
+.PHONY: clean test profile all doc
 
 flist = 1 2 3 4 5 S1 S2 S3 S4 S5
 
-all: $(patsubst %, $(fdir)/Figure%.pdf, $(flist))
+all: $(patsubst %, $(fdir)/Figure%.pdf, $(flist)) coverage.xml pylint.log
 
 venv: venv/bin/activate
 
@@ -50,8 +50,11 @@ sampleDose:
 test: venv
 	. venv/bin/activate && pytest
 
-testcover: venv
+coverage.xml: venv
 	. venv/bin/activate && pytest --junitxml=junit.xml --cov-branch --cov=grmodel --cov-report xml:coverage.xml
+
+pylint.log: venv
+	. venv/bin/activate && (pylint3 --rcfile=./common/pylintrc grmodel > pylint.log || echo "pylint3 exited with $?")
 
 profile:
 	python3 -c "from grmodel.pymcGrowth import GrowthModel; grM = GrowthModel(); grM.importData(3); grM.model.profile(grM.model.logpt).summary()"

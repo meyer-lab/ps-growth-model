@@ -15,7 +15,7 @@ def makeFigure():
     from .FigureCommon import getSetup, subplotLabel
 
     # plot division rate, rate of cells entering apoptosis, rate of cells straight to death
-    ax, f, _ = getSetup((10, 5), (1, 2))
+    ax, f = getSetup((10, 4), (1, 2))
 
     for axis in ax[0:3]:
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
@@ -26,9 +26,6 @@ def makeFigure():
     # Labels for each subplot
     for ii, item in enumerate([ax[0], ax[1]]):
         subplotLabel(item, ascii_lowercase[ii])
-
-    # Try and fix overlapping elements
-    f.tight_layout(pad=0.1)
 
     return f
 

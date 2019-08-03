@@ -14,7 +14,7 @@ def makeFigure():
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
-    ax, f, _ = getSetup((12, 8), (4, 5))
+    ax, f = getSetup((12, 8), (4, 5))
 
     for axis in ax[0:20]:
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
@@ -29,12 +29,8 @@ def makeFigure():
     # Show violin plots for model parameters
     violinPlots(axes=[ax[8], ax[9], ax[13], ax[14]])
 
-    # TODO: change labels for each subplot
     for ii, item in enumerate([ax[0], ax[5], ax[3], ax[8], ax[15]]):
         subplotLabel(item, ascii_lowercase[ii])
-
-    # Try and fix overlapping elements
-    f.tight_layout(pad=0.1)
 
     return f
 

@@ -1,21 +1,45 @@
+from matplotlib import gridspec, pyplot as plt, rcParams
 import seaborn as sns
 
 
-def getSetup(figsize, gridd):
-    from matplotlib import gridspec, pyplot as plt
+rcParams['xtick.major.pad'] = 1.5
+rcParams['ytick.major.pad'] = 1.5
+rcParams['xtick.minor.pad'] = 1.5
+rcParams['ytick.minor.pad'] = 1.5
 
-    sns.set(style="white", font_scale=0.7, color_codes=True, palette="colorblind")
 
-    # Setup plotting space
-    f = plt.figure(figsize=figsize)
+def getSetup(figsize, gridd, multz=None, empts=None):
+    """ Establish figure set-up with subplots. """
+    sns.set(style="whitegrid",
+            font_scale=0.7,
+            color_codes=True,
+            palette="colorblind",
+            rc={'grid.linestyle': 'dotted',
+                'axes.linewidth': 0.6})
 
-    # Make grid
-    gs1 = gridspec.GridSpec(*gridd)
+    # create empty list if empts isn't specified
+    if empts is None:
+        empts = []
+
+    if multz is None:
+        multz = dict()
+
+    # Setup plotting space and grid
+    f = plt.figure(figsize=figsize, constrained_layout=True)
+    gs1 = gridspec.GridSpec(*gridd, figure=f)
 
     # Get list of axis objects
-    ax = [f.add_subplot(gs1[x]) for x in range(gridd[0] * gridd[1])]
+    x = 0
+    ax = list()
+    while x < gridd[0] * gridd[1]:
+        if x not in empts and x not in multz.keys():  # If this is just a normal subplot
+            ax.append(f.add_subplot(gs1[x]))
+        elif x in multz.keys():  # If this is a subplot that spans grid elements
+            ax.append(f.add_subplot(gs1[x:x + multz[x] + 1]))
+            x += multz[x]
+        x += 1
 
-    return (ax, f, gs1)
+    return (ax, f)
 
 
 def subplotLabel(ax, letter, hstretch=1):

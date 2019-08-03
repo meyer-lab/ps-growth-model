@@ -20,10 +20,10 @@ def makeFigure(loadFiles=['072718_PC9_BYL_PIM'], drugAname='PIM447', drugBname='
 
     if timepoint_start == 72:
         # plot phase, green and red confl for three drug interactions
-        ax, f, _ = getSetup((10, 8), (3, 3))
+        ax, f = getSetup((10, 8), (3, 3))
     else:
         # plot lnum and dead for three drug interactions
-        ax, f, _ = getSetup((8, 9), (3, 2))
+        ax, f = getSetup((8, 9), (3, 2))
 
     for idx, loadFile in enumerate(loadFiles):
 
@@ -128,10 +128,6 @@ def makeFigure(loadFiles=['072718_PC9_BYL_PIM'], drugAname='PIM447', drugBname='
 
     for axis in ax[0:3]:
         axis.axis('off')
-
-    # Try and fix overlapping elements
-    f.tight_layout()
-    plt.show()
 
     return f
 

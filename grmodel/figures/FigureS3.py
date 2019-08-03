@@ -9,7 +9,7 @@ def makeFigure():
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
-    ax, f, _ = getSetup((12, 8), (4, 4))
+    ax, f = getSetup((12, 8), (4, 4))
 
     for axis in ax[0:16]:
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
@@ -23,11 +23,7 @@ def makeFigure():
     violinPlots(axes=[ax[8], ax[9], ax[12], ax[13]], ff=files[2], sg=True)
     violinPlots(axes=[ax[10], ax[11], ax[14], ax[15]], ff=files[3], sg=True)
 
-    # TODO: change labels for each subplot
     for ii, item in enumerate([ax[0], ax[2], ax[8], ax[10]]):
         subplotLabel(item, ascii_lowercase[ii])
-
-    # Try and fix overlapping elements
-    f.tight_layout(pad=0.1)
 
     return f

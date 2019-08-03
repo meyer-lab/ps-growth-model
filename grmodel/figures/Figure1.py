@@ -31,7 +31,7 @@ def makeFigure():
     df['Emax_growth'] = M.Emax_growth
 
     # Get list of axis objects
-    ax, f, _ = getSetup((8, 4), (2, 4))
+    ax, f = getSetup((7, 3.5), (2, 4))
 
     # set significant figures for xtick
     ax[2].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
@@ -51,30 +51,28 @@ def makeFigure():
     for ii, item in enumerate(ax):
         subplotLabel(item, ascii_lowercase[ii])
 
-    # Try and fix overlapping elements
-    f.tight_layout()
-
     return f
 
 
-def plot_mean_and_CI(_x, _y, confidence, ax):
+def plot_mean_and_CI(ax, _x, _y, confidence=True):
     """ Plot the mean value and confidence interval """
     # Group _y by _x and find the mean, standard deviation of _y at each _x
     x_unique, y_mean = npi.group_by(_x).mean(_y)
-    y_std = npi.group_by(_x).std(_y)[1]
     sample_size = npi.count(_x)[1]
-    yerr = []  # a list to store the confidence interval
-    for i, item in enumerate(sample_size):
-        yerr.append((y_std[i] / np.sqrt(item)) * sp.stats.t._ppf((1 + confidence) / 2., item - 1))
-    ax.errorbar(x=x_unique, y=y_mean, yerr=yerr, fmt='.', color='black')
+    y_sem = npi.group_by(_x).std(_y)[1] / np.sqrt(sample_size)
+    
+    if not confidence:
+        y_sem = None
+
+    ax.errorbar(x=x_unique, y=y_mean, yerr=y_sem, fmt='.', color='black')
 
 
 def plot_data_and_quantile(df2, xvar, yvar, ax, c='b', quantiles=[0.90, 0.75, 0.50], lb=None):
     """ Plot the median, low and high quantile """
-    _x = xvar.groups.keys()
+    _x = np.array(list(xvar.groups.keys()))
     _y = df2[yvar]
 
-    if(lb is None):
+    if lb is None:
         ax.plot(_x, _y, color=c, linewidth=1, alpha=0.9)
     else:
         ax.plot(_x, _y, color=c, linewidth=1, alpha=0.9, label=lb)
@@ -94,13 +92,13 @@ def plot_exact_data(M, ax2, ax3):
     """ Plot the data provided """
     X = np.array(M.drugCs)
     lObs = np.array(M.lObs)
-    # Figure C: plot the mean and 95% CI of lObs at each concentration X
-    plot_mean_and_CI(X, lObs, 0.95, ax2)
+    # Figure C: plot the mean and SEM of lObs at each concentration X
+    plot_mean_and_CI(ax2, X, lObs, )
     ax2.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
     ax2.set_ylabel(r'Cell viability' + '\n' + r'normalized to untreated cells')
     ax2.set_ylim(0, 1.1)
     # Part of Figure D: Compare the sampling lExp with the exact data lObs
-    plot_mean_and_CI(X, lObs, 0, ax3)
+    plot_mean_and_CI(ax3, X, lObs, confidence=False)
 
 
 def df_crossjoin(df1, df2, **kwargs):

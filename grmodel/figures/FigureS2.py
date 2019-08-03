@@ -23,7 +23,7 @@ def makeFigure():
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
-    ax, f, _ = getSetup((12, 8), (4, 6))
+    ax, f = getSetup((12, 8), (4, 6))
 
     for axis in ax[0:24]:
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
@@ -42,11 +42,7 @@ def makeFigure():
     simulationPlots(axes=[ax[15], ax[16], ax[17], ax[21], ax[22], ax[23]],
                     ff=files[3], drugAname=drugAs[3], drugBname=drugBs[3], sg=True)
 
-    # TODO: change labels for each subplot
     for ii, item in enumerate([ax[0], ax[3], ax[12], ax[15]]):
         subplotLabel(item, ascii_lowercase[ii])
-
-    # Try and fix overlapping elements
-    f.tight_layout(pad=0.1)
 
     return f

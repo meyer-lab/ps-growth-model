@@ -1,26 +1,19 @@
 pipeline {
   agent any
   stages {
-    stage('Clean') {
-      steps {
-        sh 'git clean -ffdx && make clean'
-        sh 'git submodule update --init --recursive'
-      }
+    stage('Clean') { steps { sh 'git clean -ffdx && make clean && git submodule update --init --recursive' } }
+    stage('Venv')  { steps { sh 'make venv' } }
+    stage('Build/Test/Lint') {
+        steps {
+            sh 'make all -j 4'
+            junit allowEmptyResults: false, testResults: 'junit.xml'
+            cobertura coberturaReportFile: 'coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+            recordIssues qualityGates: [[threshold: 5, type: 'TOTAL_HIGH', unstable: true], [threshold: 130, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
+        }
     }
-    stage('Venv') { steps { sh 'make venv' } }
-    stage('Build/Test') {
-      parallel {
-        stage('Build') { steps { sh 'make all -j 8' } }
-        stage('Test')  { steps { sh 'make testcover' } }
-        stage('Lint')  { steps { sh '(pylint3 --rcfile=./common/pylintrc grmodel > pylint.log || echo "pylint exited with $?")' } }
-        stage('Doc')   { steps { sh 'make doc' } }
-      }
-    }
+    stage('Doc')   { steps { sh 'make doc' } }
     stage('Report') {
       steps {
-        junit allowEmptyResults: false, testResults: 'junit.xml'
-        cobertura coberturaReportFile: 'coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
-        recordIssues qualityGates: [[threshold: 5, type: 'TOTAL_HIGH', unstable: true], [threshold: 150, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
         archiveArtifacts artifacts: 'Manuscript/Figures/*.pdf', onlyIfSuccessful: true
         publishHTML([allowMissing:false, alwaysLinkToLastBuild:false, keepAll:true,
         reportDir:'doc/build', reportFiles:'index.html', reportName:'Documentation', reportTitles:''])

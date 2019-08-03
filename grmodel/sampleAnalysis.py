@@ -39,7 +39,7 @@ def read_dataset(ff=None, singles=None, timepoint_start=0):
     return pickle.load(bz2.BZ2File(filename, 'rb'))
 
 
-def readModel(ff=None, singles=None, trim=False):
+def readModel(ff=None, singles=None):
     """
     Calls read_dataset to load pymc model
     Outputs: (model, table for the sampling results)
@@ -50,7 +50,6 @@ def readModel(ff=None, singles=None, trim=False):
 
     df = pm.backends.tracetab.trace_to_dataframe(model.samples)
 
-    # TODO: Get rid of needing samples
     return (model, df)
 
 

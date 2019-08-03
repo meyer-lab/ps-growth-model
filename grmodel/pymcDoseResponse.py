@@ -119,8 +119,6 @@ class doseResponseModel:
             hill = pm.Lognormal('hill', 0.0)
 
             Emin_growth = pm.Uniform('Emin_growth', lower=0.0, upper=self.Emax_growth)
-            # TODO: Explain large number of external assumptions
-            # TODO: Didn't really want this uniform...
 
             Emax_death = pm.Lognormal('Emax_death', -2.0, 2.0)
 
