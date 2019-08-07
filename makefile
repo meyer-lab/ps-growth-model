@@ -2,7 +2,7 @@ fdir = ./Manuscript/Figures
 
 .PHONY: clean test profile all doc
 
-flist = 1 2 3 4 5 S1 S2 S3 S4 S5
+flist = 1 2 3 4 S1 S2 S3 S4
 
 all: $(patsubst %, $(fdir)/Figure%.pdf, $(flist)) coverage.xml pylint.log
 

@@ -16,3 +16,4 @@ pytest
 pytest-xdist
 hypothesis
 pytest-cov
+pre-commit

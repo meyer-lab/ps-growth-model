@@ -14,13 +14,7 @@ import theano
 
 def simulate(params, ttime):
     ''' Takes in params for parameter values and ttimes, a list or array of times
-    params[0] = div
-    params[1] = d
-    params[2] = deathRate
-    params[3] = apopfrac
-    params[4] = confl_conv
-    params[5] = apop_conv
-    params[6] = dna_conv
+    params = [div, d, deathRate, apopfrac, confl_conv, apop_conv, dna_conv]
     '''
     # Calculate the growth rate
     GR = params[0] - params[2]
