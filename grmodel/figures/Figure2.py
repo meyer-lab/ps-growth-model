@@ -1,6 +1,12 @@
 """
-This creates Figure 2.
+.. module:: Figure2
+
+.. moduleauthor:: Guan Ning; Rui Yan <rachelyan@ucla.edu>; Aaron Meyer <ameyer@ucla.edu>
+
+This module generates Figure2 which should generally be initial analysis
+    of the data we've been collecting.
 """
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -8,8 +14,12 @@ import matplotlib.pyplot as plt
 
 
 def makeFigure():
-    ''' Make Figure 2. This should generally be initial analysis
-    of the data we've been collecting. '''
+    """This function generetes Figure 2.
+
+    Args None
+    Returns:
+        A figure
+    """
     from string import ascii_lowercase
     from .FigureCommon import getSetup, subplotLabel
 
@@ -35,21 +45,25 @@ def makeFigure():
     return f
 
 
-def simulationPlots(axes, ff='101117_H1299', drugAname='NVB', drugBname='Dox', sg=None):
+def simulationPlots(axes, ff='101117_H1299'):
     """ Make plots of experimental data. """
     from ..sampleAnalysis import readModel
+    from more_itertools import unique_everseen
 
     # Load model and dataset
-    if sg is None:
-        sg = False
-
-    classM, _ = readModel(ff=ff, singles=sg)
+    classM, _ = readModel(ff=ff, model='growthModel')
 
     df = pd.DataFrame(classM.expTable)
 
     df['time'] = np.tile(classM.timeV, int(df.shape[0] / classM.timeV.size))
     df['dose'] = np.repeat(classM.doses, classM.timeV.size).astype(np.float64)
     df['drug'] = np.repeat(classM.drugs, int(df.shape[0] / len(classM.drugs)))
+
+    # Get drug names
+    drugs = list(unique_everseen(classM.drugs))
+    drugs.remove('Control')
+    drugAname, drugBname = drugs
+    print('drugname: ' + drugAname + ', ' + drugBname)
 
     # help to name title
     quant_tt = ['Phase', 'Annexin V', 'YOYO-3']
@@ -90,8 +104,7 @@ def simulationPlots(axes, ff='101117_H1299', drugAname='NVB', drugBname='Dox', s
             qt = this_dfcur_avg[quant].iloc[k]
 
             if quant == 'confl':
-                ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9,
-                        label=str(doses[k]))
+                ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9, label=str(doses[k]))
             else:
                 ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9)
 
@@ -106,8 +119,6 @@ def simulationPlots(axes, ff='101117_H1299', drugAname='NVB', drugBname='Dox', s
 
         # drugs with unitu nM
         drugs_nM = ['Dox', 'NVB', 'Paclitaxel', 'Erl']
-        # drugs with lowercase drugname
-        drugs_lowercase = ['Erl', 'Paclitaxel', 'Binimetinib']
 
         # add legends
         if quant == 'confl':
@@ -123,15 +134,10 @@ def simulationPlots(axes, ff='101117_H1299', drugAname='NVB', drugBname='Dox', s
         ax.set_xlabel('Time (h)')
 
         if ii < 3:
-            if drugBname in drugs_lowercase:
-                ax.set_title(quant_tt[ii % 3] + ' (' + drugBname + ')')
-            else:
-                ax.set_title(quant_tt[ii % 3] + ' (' + drugBname.upper() + ')')
+            ax.set_title(quant_tt[ii % 3] + ' (' + drugBname + ')')
+
         else:
-            if drugAname in drugs_lowercase:
-                ax.set_title(quant_tt[ii % 3] + ' (' + drugAname + ')')
-            else:
-                ax.set_title(quant_tt[ii % 3] + ' (' + drugAname.upper() + ')')
+            ax.set_title(quant_tt[ii % 3] + ' (' + drugAname + ')')
 
         if quant == 'confl':
             ax.set_ylim(0., 100.)
@@ -144,26 +150,23 @@ def simulationPlots(axes, ff='101117_H1299', drugAname='NVB', drugBname='Dox', s
         ax.set_ylabel('Percent Image Positive')
 
 
-def violinPlots(axes, ff='101117_H1299', sg=None):
+def violinPlots(axes, ff='101117_H1299'):
     """ Create violin plots of model posterior. """
     from ..utils import violinplot
 
     # Load model and dataset
-    if sg is None:
-        sg = False
-
-    dfdict, drugs, _ = violinplot(ff, singles=sg)
+    dfdict, drugs, _ = violinplot(ff)
 
     # Plot params vs. drug dose
     for j, drug in enumerate(drugs):
         # Get drug
         dfplot = dfdict[drug]
 
-        # combine div and deathRate in one dataframe
-        # take exponential
+        # Combine div and deathRate in one dataframe
+        # Convert div and deathRate from log scale to linear
         dose = np.array([float(ds) for ds in np.array(dfplot['dose'])])
-        df1 = pd.DataFrame({'rate': np.append(np.exp(dfplot['div']),
-                                              np.exp(dfplot['deathRate'])),
+        df1 = pd.DataFrame({'rate': np.append(10 ** dfplot['div'],
+                                              10 ** dfplot['deathRate']),
                             'type': np.append(np.repeat('div', len(dfplot)),
                                               np.repeat('deathRate', len(dfplot))),
                             'dose': np.append(dose, dose)})
@@ -184,7 +187,6 @@ def violinPlots(axes, ff='101117_H1299', sg=None):
                 axes[idx].legend(handletextpad=0.3, handlelength=0.8, prop={'size': 8})
                 # Set y label
                 axes[idx].set_ylabel(r'Rate (1/h)')
-                # axes[idx].set_ylabel(r'Rate ($\mathregular{h^{-1}}$)')
                 # Set ylim
                 axes[idx].set_ylim(bottom=0)
             elif param == 'apopfrac':
@@ -198,78 +200,15 @@ def violinPlots(axes, ff='101117_H1299', sg=None):
 
             # Set x labels
             drugs_nM = ['Dox', 'NVB', 'Paclitaxel', 'Erl']
-            drugs_lowercase = ['Erl', 'Paclitaxel', 'Binimetinib']
+
             if drug in drugs_nM:
-                if drug in drugs_lowercase:
-                    axes[idx].set_xlabel(drug + ' (nM)')
-                else:
-                    axes[idx].set_xlabel(drug.upper() + ' (nM)')
+                axes[idx].set_xlabel(drug + ' (nM)')
             else:
-                if drug in drugs_lowercase:
-                    axes[idx].set_xlabel(drug + r' ($\mu$M)')
-                else:
-                    axes[idx].set_xlabel(drug.upper() + r' ($\mu$M)')
+                axes[idx].set_xlabel(drug + r' ($\mu$M)')
+
+            if ff == '101117_H1299':
+                axes[idx].set_ylim(bottom=-0.005)
+            else:
+                axes[idx].set_ylim(bottom=-0.01)
 
             axes[idx].tick_params(axis='x', labelsize=6)
-
-
-'''
-def CFSEcurve(ax):
-    """ Plot the CFSE standard curve. """
-    data = importFCS()
-
-    data_mean = data.groupby(['Sample'])['sFITC'].mean()
-
-    y = [data_mean['Day0 STD'], data_mean['Day1 STD'], data_mean['Day2 STD'],
-         data_mean['Day3 STD'], data_mean['Day4 STD'], data_mean['Dox  CTRL'],
-         data_mean['NVB  CTRL']]
-
-    df = pd.DataFrame({'Days': [0, 1, 2, 3, 4, 4, 4], 'CFSE': y})
-
-    sns.regplot(x="CFSE", y="Days", data=df, ax=ax)
-    ax.set_ylim(-0.4, 5)
-
-
-def CFSEsamples(ax):
-    """ Plot the distribution of CFSE values for each experimental sample. """
-    data = importFCS()
-
-    dataFilt = data.loc[data['Sample'].str.contains('Dox'), :]
-    dataFilt = dataFilt.append(data.loc[data['Sample'].str.contains('NVB'), :])
-
-    dataFilt.sort_values(inplace=True, by='Sample')
-
-    sns.boxenplot(x='Sample', y='sFITC', data=dataFilt, ax=ax)
-
-    for tick in ax.get_xticklabels():
-        tick.set_rotation(90)
-
-    ax.set_ylim(-1.5, 1.5)
-
-
-def CFSEcorr(ax):
-    """ Correlate CFSE signal with the inferred growth rate. """
-    data = importFCS()
-
-    data_mean = data.groupby(['Sample'])['sFITC'].mean().to_frame()
-
-    data_mean['Params'] = np.nan  # TODO: Replace with extracing from fit
-    data_mean.loc['Dox a100 nM', 'Params'] = -1.8
-    data_mean.loc['NVB 40 nM', 'Params'] = -1.6
-    data_mean.loc['Dox 50 nM', 'Params'] = -1.6
-    data_mean.loc['NVB  CTRL', 'Params'] = -1.5
-    data_mean.loc['Dox  CTRL', 'Params'] = -1.5
-    data_mean.loc['Dox 25 nM', 'Params'] = -1.5
-    data_mean.loc['NVB 20 nM', 'Params'] = -1.5
-    data_mean.loc['NVB 10 nM', 'Params'] = -1.5
-
-    data_mean['Params'] = np.exp(data_mean['Params'])
-
-    # Plot of predicted vs. actual
-    data_mean.plot.scatter(x='sFITC', y='Params')
-    ax.plot([-0.5, 2.34], [0.227, 0.0])  # TODO: Check how we should draw the line here
-    ax.set_ylim(0.15, 0.23)
-    ax.set_xlim(-0.5, 0.3)
-    ax.set_xlabel('Log(CFSE / SSC-W)')
-    ax.set_ylabel('Fit Growth Rate (1/min)')
-'''

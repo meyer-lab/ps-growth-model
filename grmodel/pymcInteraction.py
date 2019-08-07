@@ -101,33 +101,30 @@ class drugInteractionModel:
 
     def save(self):
         ''' Open file and dump pyMC3 objects through pickle. '''
-        if self.timepoint_start == 0:
-            filePrefix = './grmodel/data/' + self.loadFile
-        else:
-            # save the pymc modeling data built starting from certain timepoint
-            filePrefix = './grmodel/data/' + self.loadFile + '_' + str(self.timepoint_start)
+        filePrefix = './grmodel/data/interactionModel/' + self.loadFile
 
         if exists(filePrefix + '_samples.pkl'):
             os.remove(filePrefix + '_samples.pkl')
 
         pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
 
-    def __init__(self, loadFile='072718_PC9_BYL_PIM', drug1='PIM447', drug2='BYL749', timepoint_start=0):
+    def __init__(self, loadFile='072718_PC9_BYL_PIM', drug1='PIM447', drug2='BYL749'):
 
         # Save input data
         self.loadFile = loadFile
-        self.timepoint_start = timepoint_start
 
         # Load experimental data
         self.df = readCombo(self.loadFile)
 
         self.df = filterDrugC(self.df, drug1, drug2)
 
-        self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df, timepoint_start=self.timepoint_start)
+        self.drugs = [drug1, drug2]
+
+        self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df)
 
         # Build pymc model
         self.model = build_model(self.X1, self.X2, self.timeV, 1.0, False,
                                  confl=self.phase, apop=self.green, dna=self.red)
 
         # Perform pymc fitting given actual data
-        self.fit = pm.sampling.sample(1000, tune=1000, model=self.model)
+        self.samples = pm.sampling.sample(1000, tune=1000, model=self.model)

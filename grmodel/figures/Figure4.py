@@ -1,57 +1,37 @@
 """
 This creates Figure 4.
 """
+
 import numpy as np
-import pymc3 as pm
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from ..pymcInteraction import blissInteract, drugInteractionModel
-from ..pymcGrowth import convSignal
+import pandas as pd
+import seaborn as sns
+from ..sampleAnalysis import readModel
+from ..pymcInteraction import blissInteract
 
 
-def makeFigure(loadFiles=['072718_PC9_BYL_PIM'], drugAname='PIM447', drugBname='BYL749', timepoint_start=72):
+def makeFigure(loadFiles=['050719_PC9_LCL_OSI', '050719_PC9_PIM_OSI']):
     ''' Generate Figure 4: This figure should show looking at cell death can
     tell something about the cells' responses to drug interactions that are
     not captured by the traditional cell number measurements. '''
-    from ..sampleAnalysis import read_dataset
-    from ..pymcGrowth import theanoCore
     from .FigureCommon import getSetup, subplotLabel
     from string import ascii_lowercase
 
-    if timepoint_start == 72:
-        # plot phase, green and red confl for three drug interactions
-        ax, f = getSetup((10, 8), (3, 3))
-    else:
-        # plot lnum and dead for three drug interactions
-        ax, f = getSetup((8, 9), (3, 2))
+    # plot phase, green and red confl for three drug interactions
+    ax, f = getSetup((10, 10), (2, 2))
 
     for idx, loadFile in enumerate(loadFiles):
 
         # Read model from saved pickle file
-        M = read_dataset(loadFile)
-        trace = pm.backends.tracetab.trace_to_dataframe(M.fit)
-        trace_corr = trace
+        M, trace = readModel(loadFile, model='interactionModel')
 
-        if timepoint_start == 0:
-            timeV = M.timeV
-            # Trace is drawn from pymc samplings, this is only used to compute corr
-        elif timepoint_start == 72:
-            # We are not interested in corr at only one time point
-            timeV = np.array([72.])
-        else:
-            # This is only used to compute corr
-            M2 = read_dataset(loadFile, timepoint_start=timepoint_start)
-            timeV = M2.timeV
-            # Trace is drawn from pymc samplings, this is only used to compute corr
-            trace_corr = pm.backends.tracetab.trace_to_dataframe(M2.fit)
-
-        # Traceplot
-        # pm.plots.traceplot(M.fit)
+        # Randomly sample 10 rows from pymc sampling results
+        if trace.shape[0] > 100:
+            trace = trace.sample(100)
 
         def transform(name):
             ''' Transforms the data structure of parameters generated from pymc model'''
-            return np.vstack((np.array(trace[name + '__0'])[-1],
-                              np.array(trace[name + '__1'])[-1]))
+            return np.vstack((np.array(trace[name + '__0']),
+                              np.array(trace[name + '__1'])))
 
         E_con = transform('E_con')
         hill_death = transform('hill_death')
@@ -59,136 +39,72 @@ def makeFigure(loadFiles=['072718_PC9_BYL_PIM'], drugAname='PIM447', drugBname='
         IC50_death = transform('IC50_death')
         IC50_growth = transform('IC50_growth')
 
-        death_rates = E_con[0] * blissInteract(M.X1, M.X2, hill_death, IC50_death, numpyy=True)
-        growth_rates = E_con[1] * (1 - blissInteract(M.X1, M.X2, hill_growth, IC50_growth, numpyy=True))
-
-        # Compute the number of live cells, dead cells and early apoptosis cells
-        # given growth and death rate
-        lnum, eap, deadapop, deadnec = theanoCore(timeV, growth_rates, death_rates,
-                                                  np.array(trace['apopfrac'])[-1],
-                                                  np.array(trace['d'])[-1], numpyy=True)
-        dead = deadapop + deadnec
-
-        # Compute the conversions, the expected phase & green & red confluence
-        conversions = (np.array(trace['confl_conv'])[-1], np.array(trace['apop_conv'])[-1],
-                       np.array(trace['dna_conv'])[-1])
-
-        confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec,
-                                                  conversions, offset=False)
-
         X1 = np.unique(M.X1)
         X2 = np.unique(M.X2)
 
-        # Plot the graphs of the observed and expected value of phase, green and red confluence
-        if timepoint_start == 72:
-            # Get observed values of phase, green and red confl at the last time point
-            confl_obs = np.array([i[-1] for i in M.phase])
-            apop_obs = np.array([i[-1] for i in M.green])
-            dna_obs = np.array([i[-1] for i in M.red])
+        print('filename:', loadFiles)
 
-            # Reshape
-            N_X1 = len(X1)  # the number of drug 1 doses
-            N_X2 = len(X2)  # the number of drug 2 doses
+        N_obs = 100
 
-            lnum = lnum.reshape(N_X1, N_X2)  # number of live cells
-            dead = dead.reshape(N_X1, N_X2)  # number of dead cells
-            confl_obs = confl_obs.reshape(N_X1, N_X2)  # observed phase confl
-            apop_obs = apop_obs.reshape(N_X1, N_X2)  # observed green confl
-            dna_obs = dna_obs.reshape(N_X1, N_X2)  # observed red confl
+        # Compute death and growth rate
+        death_rates = np.empty([N_obs, len(X1) * len(X2)])
+        growth_rates = np.empty([N_obs, len(X1) * len(X2)])
 
-            confl_exp = confl_exp.reshape(N_X1, N_X2)  # expected phase confl
-            apop_exp = apop_exp.reshape(N_X1, N_X2)  # expected green confl
-            dna_exp = dna_exp.reshape(N_X1, N_X2)  # expected red confl
+        for i in range(N_obs):
+            this_hill_death = np.vstack([[x[i]] for x in hill_death])
+            this_IC50_death = np.vstack([[x[i]] for x in IC50_death])
+            this_death_rate = [E_con[0][i]] * blissInteract(M.X1, M.X2, this_hill_death, this_IC50_death, numpyy=True)
+            death_rates[i] = this_death_rate
 
-            # Plot the observed and expected value
-            plot_endpoints(X1, X2, confl_obs, confl_exp, 'Phase', loadFile, drugAname, drugBname,
-                           [ax[3 + 3 * idx], ax[3 + 3 * (idx + 1)]], legend=True)
-            plot_endpoints(X1, X2, apop_obs, apop_exp, 'Annexin V', loadFile, drugAname, drugBname,
-                           [ax[3 + 3 * idx + 1], ax[3 + 3 * (idx + 1) + 1]], legend=False)
-            plot_endpoints(X1, X2, dna_obs, dna_exp, 'YOYO-3', loadFile, drugAname, drugBname,
-                           [ax[3 + 3 * idx + 2], ax[3 + 3 * (idx + 1) + 2]], legend=False)
+            this_hill_growth = np.vstack([[x[i]] for x in hill_growth])
+            this_IC50_growth = np.vstack([[x[i]] for x in IC50_growth])
+            this_growth_rate = [E_con[1][i]] * (1 - blissInteract(M.X1, M.X2, this_hill_growth, this_IC50_growth, numpyy=True))
+            growth_rates[i] = this_growth_rate
 
-            add_corrmedian(trace_corr, 'confl_corr', ax[3 + 3 * (idx + 1)])
-            add_corrmedian(trace_corr, 'apop_corr', ax[3 + 3 * (idx + 1) + 1])
-            add_corrmedian(trace_corr, 'dna_corr', ax[3 + 3 * (idx + 1) + 2])
+        # Initialize a dataframe
+        params = ['div', 'deathRate', 'X1', 'X2']
+        dfplot = pd.DataFrame(columns=params)
 
-        else:
+        for i, dose2 in enumerate(X2):
+            dftemp = pd.DataFrame(columns=params)
+            for j, dose1 in enumerate(X1):
+                dftemp2 = pd.DataFrame(columns=params)
+                k = j * len(X2) + i
+                try:
+                    dftemp2['div'] = [x[k] for x in growth_rates]
+                    dftemp2['deathRate'] = [x[k] for x in death_rates]
+                    dftemp2['X1'] = dose1
+                    dftemp2['X2'] = dose2
+                except BaseException:
+                    print('this idx is out of bound:', k)
+                dftemp = pd.concat([dftemp, dftemp2], axis=0)
+            dfplot = pd.concat([dfplot, dftemp], axis=0)
 
-            plot_cellnumVStime(X1, lnum, 'live', loadFile, timeV, ax[2 * idx])
-            ax[2 * idx].set_ylim(min(min(dead.flatten()), min(lnum.flatten())) - 0.5,
-                                 max(max(dead.flatten()), max(lnum.flatten())) + 0.5)
-            # add_corrmedian(trace_corr, ax[2 * idx])
-            plot_cellnumVStime(X1, dead, 'dead', loadFile, timeV, ax[2 * idx + 1])
-            ax[2 * idx + 1].set_ylim(min(min(dead.flatten()), min(lnum.flatten())) - 0.5,
-                                     max(max(dead.flatten()), max(lnum.flatten())) + 0.5)
+        dfplot['X1'] = round(dfplot['X1'], 1)
+        dfplot['X2'] = round(dfplot['X2'], 1)
+
+        print(dfplot)
+
+        # Make violin plots
+        sns.violinplot(x='X2', y='div', hue='X1', data=dfplot, ax=ax[2 * idx],
+                       palette='Set2', linewidth=0.2)
+        sns.violinplot(x='X2', y='deathRate', hue='X1', data=dfplot, ax=ax[2 * idx + 1],
+                       palette='Set2', linewidth=0.2)
+
+        for axes in [ax[2 * idx], ax[2 * idx + 1]]:
+            # Set legend
+            axes.legend(handletextpad=0.3, title=M.drugs[0] + r'($\mu$M)', handlelength=0.8, prop={'size': 8})
+            # Set x label
+            axes.set_xlabel(M.drugs[1] + r'($\mu$M)')
+            # Set ylim
+            axes.set_ylim(bottom=0)
+
+        # Set y label
+        ax[2 * idx].set_ylabel(r'Division rate (1/h)')
+        ax[2 * idx + 1].set_ylabel(r'Death rate (1/h)')
 
     # Make third figure
-    for ii, item in enumerate([ax[0], ax[1], ax[2], ax[3], ax[6]]):
+    for ii, item in enumerate([ax[0], ax[2]]):
         subplotLabel(item, ascii_lowercase[ii])
 
-    for axis in ax[0:3]:
-        axis.axis('off')
-
     return f
-
-
-def build(loadFile='072718_PC9_BYL_PIM', drug1='PIM447', drug2='BYL749', timepoint_start=0):
-    ''' Build and save the drugInteractionModel '''
-    M = drugInteractionModel(loadFile, drug1, drug2, timepoint_start)
-    # Save the drug interaction model
-    M.save()
-
-
-def add_corrmedian(trace, item, ax):
-    ''' Compute the median of correlation coefficient of pymc fitting '''
-    median_corr = np.median(np.array(trace[item]))
-
-    # Add text box for displaying the corr
-    textstr = 'median_' + item + '=%.3f' % (median_corr, )
-
-    # these are matplotlib.patch.Patch properties
-    props = dict(boxstyle='round', facecolor='white', alpha=0.5)
-    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=8,
-            verticalalignment='top', bbox=props)
-
-
-def plot_cellnumVStime(X1, celltype, printname, loadFile, timeV, ax):
-    ''' Plot the number of live and dead cells by time for different drug interactions '''
-    for i in range(len(X1)):
-        ax.plot(timeV, celltype[i], label=str(X1[i]))
-
-    ax.legend(title='Drug1(uM)', loc='upper right', framealpha=0.3)
-    ax.set_xlabel('Time Ellapsed Post-Treatment (hrs)')
-    ax.set_ylabel('The number of ' + printname + ' cells')
-    ax.set_title('The number of ' + printname + ' cells by time (' + loadFile + ')')
-
-
-def plot_endpoints(X1, X2, obs, exp, itemname, loadFile, drugAname, drugBname, axes, legend):
-    ''' Plot the fitted vs. observed confl, apop and dna for different drug
-        interactions at t=72h '''
-    col = cm.rainbow(np.linspace(0, 1, len(X2)))
-
-    for i in range(len(X2)):
-        # plot for observed data
-        axes[0].scatter(X1, [x[i] for x in obs], color=col[i], label=str(round(X2[i], 1)))
-        axes[0].plot(X1, [x[i] for x in obs], color=col[i])
-        # axes[0].scatter(X1, [x[i] for x in exp], alpha=0.1, marker="^", color=col[i])
-        # plot for fitted data
-        # axes[1].scatter(X1, [x[i] for x in obs], alpha=0.1, color=col[i])
-        axes[1].scatter(X1, [x[i] for x in exp], marker="^", color=col[i], label=str(round(X2[i], 1)))
-        axes[1].plot(X1, [x[i] for x in exp], color=col[i])
-
-    for i in range(2):
-        axes[i].set_xlabel(drugAname + r' ($\mu$M)')
-        axes[i].set_ylabel("Percent Image Positive")
-        axes[i].set_ylim(bottom=-0.5)
-        axes[i].set_xticks([round(x, 1) for x in X1])
-
-        if i == 0:
-            axes[i].set_title('72h ' + itemname)
-        else:
-            axes[i].set_title('72h ' + itemname + ' (fitted)')
-
-        if legend:
-            axes[i].legend(title=drugBname + '\n' + r'   ($\mu$M)', loc='center left',
-                           bbox_to_anchor=(1, 0.5), fancybox=True)

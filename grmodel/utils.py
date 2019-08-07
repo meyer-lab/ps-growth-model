@@ -38,7 +38,7 @@ def reformatData(dfd, doseidx, params, dTypes=False):
     return dfplot
 
 
-def violinplot(filename, singles=None, drugs=None):
+def violinplot(filename, drugs=None, model='growthModel'):
     '''
     Takes in a list of drugs
     Makes 1*len(parameters) violinplots for each drug
@@ -46,12 +46,9 @@ def violinplot(filename, singles=None, drugs=None):
     import seaborn as sns
 
     # Load model and dataset
-    if singles is None:
-        singles = False
-
     sns.set_context("paper", font_scale=1.2)
     # Read in dataframe
-    classM, df = readModel(filename, singles=singles)
+    classM, df = readModel(filename, model=model)
     alldrugs = classM.drugs
     alldoses = classM.doses
 

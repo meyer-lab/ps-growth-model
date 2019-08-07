@@ -13,40 +13,39 @@ from os.path import join, dirname, abspath, exists
 from .pymcGrowth import simulate
 
 
-def read_dataset(ff=None, singles=None, timepoint_start=0):
+def read_dataset(ff=None, model=None):
     '''
     Read the pymc model from a sampling file
     Makes traceplots if traceplot=True
     '''
     if ff is None:
         ff = "101117_H1299"
-    if singles is None:
-        singles = False
+    if model is None:
+        model = 'growthModel'
 
     # read the data set from specified pickle files
-    if singles:
-        filePrefix = './grmodel/data/singles/'
-    else:
-        filePrefix = './grmodel/data/'
+    filePrefix = './grmodel/data/'
+    filename = filePrefix + model + '/' + ff + '_samples.pkl'
 
-    if timepoint_start == 0:
-        filename = filePrefix + ff + '_samples.pkl'
-    else:
-        # the pymc model sampling data built based on certain timepoints
-        filename = filePrefix + ff + '_' + str(timepoint_start) + '_samples.pkl'
-
-    # Read in class
-    return pickle.load(bz2.BZ2File(filename, 'rb'))
+    model = pickle.load(bz2.BZ2File(filename, 'rb'))
+    print(filename)
+    return model
 
 
-def readModel(ff=None, singles=None):
+def readModel(ff=None, model=None):
     """
     Calls read_dataset to load pymc model
     Outputs: (model, table for the sampling results)
     """
-    model = read_dataset(ff, singles)
+    if model is None:
+        model = 'growthModel'
 
-    model.samples = model.fit.sample(1000)
+    model = read_dataset(ff, model)
+
+    try:
+        model.samples = model.fit.sample(1000)
+    except BaseException:
+        print(model)
 
     df = pm.backends.tracetab.trace_to_dataframe(model.samples)
 

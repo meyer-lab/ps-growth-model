@@ -9,7 +9,7 @@ def makeFigure():
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
-    ax, f = getSetup((12, 8), (4, 4))
+    ax, f = getSetup((10, 8), (4, 4))
 
     for axis in ax[0:16]:
         axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
@@ -18,10 +18,10 @@ def makeFigure():
     files = ['072718_PC9_BYL_PIM', '081118_PC9_LCL_TXL', '071318_PC9_OSI_Bin', '090618_PC9_TXL_Erl']
 
     # Show violin plots (predicted vs experimental)
-    violinPlots(axes=[ax[0], ax[1], ax[4], ax[5]], ff=files[0], sg=True)
-    violinPlots(axes=[ax[2], ax[3], ax[6], ax[7]], ff=files[1], sg=True)
-    violinPlots(axes=[ax[8], ax[9], ax[12], ax[13]], ff=files[2], sg=True)
-    violinPlots(axes=[ax[10], ax[11], ax[14], ax[15]], ff=files[3], sg=True)
+    violinPlots(axes=[ax[0], ax[1], ax[4], ax[5]], ff=files[0])
+    violinPlots(axes=[ax[2], ax[3], ax[6], ax[7]], ff=files[1])
+    violinPlots(axes=[ax[8], ax[9], ax[12], ax[13]], ff=files[2])
+    violinPlots(axes=[ax[10], ax[11], ax[14], ax[15]], ff=files[3])
 
     for ii, item in enumerate([ax[0], ax[2], ax[8], ax[10]]):
         subplotLabel(item, ascii_lowercase[ii])

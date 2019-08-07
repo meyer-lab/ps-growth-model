@@ -58,7 +58,7 @@ def theanoCore(timeV, div, deathRate, apopfrac, d, numpyy=False):
         exp1 = T.exp
         # Make a vector of time and one for time-constant values
         timeV = T._shared(timeV)
-        constV = T.ones_like(timeV, dtype=theano.config.floatX)
+        constV = T.ones_like(timeV, dtype=theano.config.floatX)  # pylint: disable=no-member
 
     # Calculate the growth rate
     GR = outer(div - deathRate, constV)
@@ -173,10 +173,7 @@ class GrowthModel:
 
     def save(self):
         ''' Open file and dump pyMC3 objects through pickle. '''
-        if self.singles:
-            filePrefix = './grmodel/data/singles/'
-        else:
-            filePrefix = './grmodel/data/'
+        filePrefix = './grmodel/data/growthModel/'
 
         if self.interval:
             filePrefix = filePrefix + self.loadFile
@@ -199,10 +196,7 @@ class GrowthModel:
                       'dna': '_confluence_red.csv'}
 
         # Find path for csv files in the repository.
-        if self.singles:
-            pathcsv = join(dirname(abspath(__file__)), 'data/singles/' + self.loadFile)
-        else:
-            pathcsv = join(dirname(abspath(__file__)), 'data/' + self.loadFile)
+        pathcsv = join(dirname(abspath(__file__)), 'data/singles/' + self.loadFile)
 
         # Pull out selected column data
         self.selCols = []
@@ -238,7 +232,7 @@ class GrowthModel:
                 if key == 'confl':
                     data0 = dataset.loc[dataset['Elapsed'] == 0]
                     conv0 = np.mean(data0.iloc[:, firstCols:])
-            except FileNotFoundError:
+            except IOError:
                 print("No file for key: " + key)
                 continue
 
@@ -323,11 +317,9 @@ class GrowthModel:
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
 
-    def __init__(self, loadFile=None, singles=False):
+    def __init__(self, loadFile=None):
         # If no filename is given use a default
         if loadFile is None:
             self.loadFile = "101117_H1299"
         else:
             self.loadFile = loadFile
-
-        self.singles = singles

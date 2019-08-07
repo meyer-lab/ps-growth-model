@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import matplotlib as plt
@@ -20,11 +20,11 @@ if __name__ == '__main__':
     if sys.argv[1] == '1':
         # Overlay Figure 2 cartoon
         overlayCartoon(fdir + 'Figure1.svg',
-                       './grmodel/figures/Figure1-Schematic.svg', 23, 14, 0.4)
+                       './grmodel/figures/Figure1-Schematic.svg', 50, 25, 0.62)
     elif sys.argv[1] == '2':
         # Overlay Figure 2 cartoon
         overlayCartoon(fdir + 'Figure2.svg',
-                       './grmodel/figures/Figure2-Schematic.svg', 23, 4, 0.4)
+                       './grmodel/figures/Figure2-Schematic.svg', 560, 25, 0.6)
         overlayCartoon(fdir + 'Figure2.svg',
                        './grmodel/figures/Figure2-CFSE.svg', 23, 450, 1.0)
         overlayCartoon(fdir + 'Figure2.svg',
