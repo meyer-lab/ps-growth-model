@@ -4,7 +4,8 @@ This creates Figure 3.
 from string import ascii_lowercase
 import numpy as np
 import pandas as pd
-import seaborn as sns
+import matplotlib.pyplot as plt
+from seaborn import lineplot
 from .FigureCommon import getSetup, subplotLabel
 from ..utils import violinplot
 
@@ -30,8 +31,10 @@ def makeFigure():
     return f
 
 
-def ratePlots(axes, files=["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl"]):
+def ratePlots(axes):
     """ Create line plots of model posterior. """
+    files = ["072718_PC9_BYL_PIM", "050719_PC9_PIM_OSI", "050719_PC9_LCL_OSI", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl"]
+
     df = None
     for i, ff in enumerate(files):
 
@@ -39,13 +42,13 @@ def ratePlots(axes, files=["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_P
         dfdict, drugs, _ = violinplot(ff)
 
         # Plot params vs. drug dose
-        for j, drug in enumerate(drugs):
+        for _, drug in enumerate(drugs):
 
             # Get drug
             dfplot = dfdict[drug]
 
             # Change dose to the same unit muM (change nanoM to microM)
-            dfplot["dose"] = [float(ds) for ds in np.array(dfplot["dose"])]
+            dfplot["dose"] = dfplot["dose"].astype(float)
             if drug in ["Paclitaxel", "Erl"]:
                 dfplot["dose"] /= 1000.0
 
@@ -68,7 +71,7 @@ def ratePlots(axes, files=["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_P
             )
 
             # Sort the data set by the value of doses
-            df_temp = df_temp.sort_values(by="dose")
+            df_temp.sort_values(by="dose", inplace=True)
 
             if df is None:
                 df = df_temp
@@ -77,13 +80,16 @@ def ratePlots(axes, files=["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_P
 
     # Make line plots
     # Remove the data for Pacitaxel and only keep the one for Pacitacel1
-    df = df.loc[df["drugName"] != "Paclitaxel"]
-    df.loc[df["drugName"] == "Paclitaxel1", "drugName"] = "Paclitaxel"
+    df = df.loc[df["drugName"] != "OSI-90612"]
+    df = df.loc[df["drugName"] != "OSI-9061"]
+    df = df.loc[df["drugName"] != "PIM447"]
+    df.loc[df["drugName"] == "Erl", "drugName"] = "Erlotinib"
+    df.loc[df["drugName"] == "PIM4471", "drugName"] = "PIM447"
 
     # Division rate
-    sns.lineplot(x="dose", y="div", hue="drugName", marker="o", data=df, ax=axes[0], palette="muted")
+    lineplot(x="dose", y="div", hue="drugName", marker="o", data=df, ax=axes[0], palette="muted")
     # Death rate
-    sns.lineplot(x="dose", y="deathRate", hue="drugName", marker="o", data=df, ax=axes[1], palette="muted")
+    lineplot(x="dose", y="deathRate", hue="drugName", marker="o", data=df, ax=axes[1], palette="muted")
 
     # Set legend
     for i in range(2):
@@ -91,7 +97,10 @@ def ratePlots(axes, files=["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_P
         # Set x, y labels and title
         axes[i].set_ylabel(r"Rate (1/h)")
         axes[i].set_xlabel(r"$\mathregular{Log_{10}}$[dose($\mu$M))]")
-        axes[i].set_ylim(bottom=-0.005)
+        axes[i].set_ylim(bottom=-0.002)
+        axes[i].set_xlim(right=2.0)
+        axes[i].xaxis.set_major_locator(plt.MultipleLocator(1.0))
 
     axes[0].set_title("Division rate")
     axes[1].set_title("Death rate")
+    axes[1].get_legend().remove()

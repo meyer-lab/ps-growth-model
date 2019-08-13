@@ -4,8 +4,8 @@ This creates Figure S2.
 
 
 def makeFigure():
-    ''' Make Figure S2. This should be the experimental data of
-        single drug in each drug combinations '''
+    """ Make Figure S2. This should be the experimental data of
+        single drug in each drug combinations """
     from .Figure2 import simulationPlots
     from string import ascii_lowercase
     from .FigureCommon import getSetup, subplotLabel
@@ -14,9 +14,9 @@ def makeFigure():
     ax, f = getSetup((12, 8), (4, 6))
 
     for axis in ax[0:24]:
-        axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
+        axis.tick_params(axis="both", which="major", pad=-2)  # set ticks style
 
-    files = ['072718_PC9_BYL_PIM', '081118_PC9_LCL_TXL', '071318_PC9_OSI_Bin', '090618_PC9_TXL_Erl']
+    files = ["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl"]
 
     # Show simulation plots (predicted vs experimental)
     simulationPlots(axes=[ax[0], ax[1], ax[2], ax[6], ax[7], ax[8]], ff=files[0])
@@ -28,19 +28,3 @@ def makeFigure():
         subplotLabel(item, ascii_lowercase[ii])
 
     return f
-
-
-def buildGrowthModel(loadFile='072718_PC9_BYL_PIM'):
-    ''' Build and save the growthModel '''
-    from ..pymcGrowth import GrowthModel
-    M = GrowthModel(loadFile)
-    M.importData(firstCols=2)
-    M.performFit()
-    # Save the growth model
-    M.save()
-
-# from ..sampleAnalysis import readSingle
-# readSingle(ff='050719_PC9_LCL_OSI', drugAname='LCL161')
-# readSingle(ff='050719_PC9_PIM_OSI', drugAname='PIM447')
-# buildGrowthModel(loadFile='050719_PC9_LCL_OSI')
-# buildGrowthModel(loadFile='050719_PC9_PIM_OSI')
