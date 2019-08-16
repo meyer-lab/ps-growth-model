@@ -10,13 +10,13 @@ from ..pymcInteraction import blissInteract
 from .FigureCommon import getSetup, subplotLabel
 
 
-def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI"]):
+def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI", "071318_PC9_OSI_Bin"]):
     """ Generate Figure 4: This figure should show looking at cell death can
     tell something about the cells' responses to drug interactions that are
     not captured by the traditional cell number measurements. """
 
     # plot phase, green and red confl for three drug interactions
-    ax, f = getSetup((10, 5), (2, 2))
+    ax, f = getSetup((10, 7.5), (3, 2))
 
     for idx, loadFile in enumerate(loadFiles):
 
@@ -68,20 +68,17 @@ def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI"]):
             for j, dose1 in enumerate(X1):
                 dftemp2 = pd.DataFrame(columns=params)
                 k = j * len(X2) + i
-                try:
-                    dftemp2["div"] = [x[k] for x in growth_rates]
-                    dftemp2["deathRate"] = [x[k] for x in death_rates]
-                    dftemp2["X1"] = dose1
-                    dftemp2["X2"] = dose2
-                except BaseException:
-                    print("this idx is out of bound:", k)
+
+                dftemp2["div"] = [x[k] for x in growth_rates]
+                dftemp2["deathRate"] = [x[k] for x in death_rates]
+                dftemp2["X1"] = dose1
+                dftemp2["X2"] = dose2
+
                 dftemp = pd.concat([dftemp, dftemp2], axis=0)
             dfplot = pd.concat([dfplot, dftemp], axis=0)
 
         dfplot["X1"] = round(dfplot["X1"], 1)
         dfplot["X2"] = round(dfplot["X2"], 1)
-
-        print(dfplot)
 
         # Make violin plots
         sns.violinplot(x="X2", y="div", hue="X1", data=dfplot, ax=ax[2 * idx], palette="Set2", linewidth=0.2)
@@ -100,7 +97,7 @@ def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI"]):
         ax[2 * idx + 1].set_ylabel(r"Death rate (1/h)")
 
     # Make third figure
-    for ii, item in enumerate([ax[0], ax[2]]):
+    for ii, item in enumerate([ax[0], ax[2], ax[4]]):
         subplotLabel(item, ascii_lowercase[ii])
 
     return f
