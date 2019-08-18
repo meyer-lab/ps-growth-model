@@ -1,12 +1,12 @@
 pipeline {
-  agent any
+  agent { label 'docker' }
   stages {
     stage('Clean') { steps { sh 'git clean -ffdx && make clean && git submodule update --init --recursive' } }
     stage('Venv')  { steps { sh 'make venv' } }
     stage('Lint')  {
       steps {
         sh 'make pylint.log'
-        recordIssues qualityGates: [[threshold: 5, type: 'TOTAL_HIGH', unstable: true], [threshold: 130, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
+        recordIssues qualityGates: [[threshold: 2, type: 'TOTAL_HIGH', unstable: true], [threshold: 70, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
       }
     }
     stage('Test')  {
@@ -16,7 +16,7 @@ pipeline {
         cobertura coberturaReportFile: 'coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
       }
     }
-    stage('Build') { steps { sh 'make all -j 6' } }
+    stage('Build') { steps { sh 'make all -j 8' } }
     stage('Report') {
       steps { archiveArtifacts artifacts: 'Manuscript/Figures/*.svg', onlyIfSuccessful: true }
     }

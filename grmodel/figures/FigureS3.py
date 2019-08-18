@@ -2,20 +2,19 @@
 
 
 def makeFigure():
-    ''' Make Figure S3. This would be the violinplot of model posterior
-        estimates of the data shown in Figure S1 '''
+    """ Make Figure S3. This would be the violinplot of model posterior
+        estimates of the data shown in Figure S1 """
     from .Figure2 import violinPlots
-    from string import ascii_lowercase
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
     ax, f = getSetup((10, 8), (4, 4))
 
     for axis in ax[0:16]:
-        axis.tick_params(axis='both', which='major', pad=-2)  # set ticks style
+        axis.tick_params(axis="both", which="major", pad=-2)  # set ticks style
 
     # files include the filenames of each drug combination
-    files = ['072718_PC9_BYL_PIM', '081118_PC9_LCL_TXL', '071318_PC9_OSI_Bin', '090618_PC9_TXL_Erl']
+    files = ["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl"]
 
     # Show violin plots (predicted vs experimental)
     violinPlots(axes=[ax[0], ax[1], ax[4], ax[5]], ff=files[0])
@@ -23,7 +22,6 @@ def makeFigure():
     violinPlots(axes=[ax[8], ax[9], ax[12], ax[13]], ff=files[2])
     violinPlots(axes=[ax[10], ax[11], ax[14], ax[15]], ff=files[3])
 
-    for ii, item in enumerate([ax[0], ax[2], ax[8], ax[10]]):
-        subplotLabel(item, ascii_lowercase[ii])
+    subplotLabel([ax[0], ax[2], ax[8], ax[10]])
 
     return f

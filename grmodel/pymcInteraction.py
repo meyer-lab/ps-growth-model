@@ -8,15 +8,6 @@ from .pymcGrowth import theanoCore, convSignal, conversionPriors
 from .interactionData import readCombo, filterDrugC, dataSplit
 
 
-def theanoCorr(a, b):
-    a, b = T.flatten(a), T.flatten(b)
-    a_centered, b_centered = a - a.mean(), b - b.mean()
-    r_num = T.dot(a_centered, b_centered)
-    r_den = T.sqrt(T.dot(a_centered, a_centered) * T.dot(b_centered, b_centered))
-
-    return r_num / r_den
-
-
 def blissInteract(X1, X2, hill, IC50, numpyy=False):
     if numpyy:
         funcc = np.power
@@ -74,17 +65,14 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
         # Compare to experimental observation
         if confl is not None:
             confl_obs = T.flatten(confl_exp - confl)
-            pm.Deterministic("confl_corr", theanoCorr(confl_exp, T._shared(confl)))
             pm.Normal("confl_fit", sd=T.std(confl_obs), observed=confl_obs)
 
         if apop is not None:
             apop_obs = T.flatten(apop_exp - apop)
-            pm.Deterministic("apop_corr", theanoCorr(apop_exp, T._shared(apop)))
             pm.Normal("apop_fit", sd=T.std(apop_obs), observed=apop_obs)
 
         if dna is not None:
             dna_obs = T.flatten(dna_exp - dna)
-            pm.Deterministic("dna_corr", theanoCorr(dna_exp, T._shared(dna)))
             pm.Normal("dna_fit", sd=T.std(dna_obs), observed=dna_obs)
 
         pm.Deterministic("logp", drugInteractionModel.logpt)
@@ -93,7 +81,7 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
 
 
 class drugInteractionModel:
-    def __init__(self, loadFile="072718_PC9_BYL_PIM", drug1="PIM447", drug2="BYL749"):
+    def __init__(self, loadFile="072718_PC9_BYL_PIM", drug1="PIM447", drug2="BYL749", fit=True):
 
         # Save input data
         self.loadFile = loadFile
@@ -107,8 +95,9 @@ class drugInteractionModel:
 
         self.X1, self.X2, self.timeV, self.phase, self.red, self.green = dataSplit(self.df)
 
-        # Build pymc model
-        self.model = build_model(self.X1, self.X2, self.timeV, 1.0, False, confl=self.phase, apop=self.green, dna=self.red)
+        if fit:
+            # Build pymc model
+            self.model = build_model(self.X1, self.X2, self.timeV, 1.0, False, confl=self.phase, apop=self.green, dna=self.red)
 
-        # Perform pymc fitting given actual data
-        self.samples = pm.sampling.sample(tune=1000, chains=2, model=self.model, progressbar=False)
+            # Perform pymc fitting given actual data
+            self.samples = pm.sampling.sample(tune=1000, chains=2, model=self.model, progressbar=False)

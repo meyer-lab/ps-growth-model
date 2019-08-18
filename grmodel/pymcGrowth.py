@@ -1,6 +1,7 @@
 """
 This module handles experimental data, by fitting a growth and death rate for each condition separately.
 """
+import logging
 from os.path import join, dirname, abspath
 import pandas
 import numpy as np
@@ -138,11 +139,12 @@ def build_model(conv0, doses, timeV, expTable):
 class GrowthModel:
     def performFit(self):
         """ Run NUTS sampling"""
-        print("Building the model")
+        logging.info("Building the model")
         model = build_model(self.conv0, self.doses, self.timeV, self.expTable)
 
-        print("Performing inference")
-        self.fit = pm.variational.inference.fit(n=80000, model=model, progressbar=False)
+        logging.info("GrowthModel sampling")
+        self.samples = pm.sample(model=model, progressbar=False, chains=2, tune=1000)
+        self.df = pm.backends.tracetab.trace_to_dataframe(self.samples)
 
     # Directly import one column of data
     def importData(self, firstCols, comb=None, interval=True):

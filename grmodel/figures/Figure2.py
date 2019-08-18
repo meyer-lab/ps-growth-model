@@ -11,6 +11,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from ..sampleAnalysis import readModel
+from ..utils import violinplot
+from .FigureCommon import getSetup, subplotLabel
 
 
 def makeFigure():
@@ -20,8 +23,6 @@ def makeFigure():
     Returns:
         A figure
     """
-    from string import ascii_lowercase
-    from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
     ax, f = getSetup((12, 8), (4, 5))
@@ -39,18 +40,16 @@ def makeFigure():
     # Show violin plots for model parameters
     violinPlots(axes=[ax[8], ax[9], ax[13], ax[14]])
 
-    for ii, item in enumerate([ax[0], ax[5], ax[3], ax[8], ax[15]]):
-        subplotLabel(item, ascii_lowercase[ii])
+    subplotLabel([ax[0], ax[5], ax[3], ax[8], ax[15]])
 
     return f
 
 
 def simulationPlots(axes, ff="101117_H1299"):
     """ Make plots of experimental data. """
-    from ..sampleAnalysis import readModel
 
     # Load model and dataset
-    classM, _ = readModel(ff=ff, model="growthModel")
+    classM = readModel(ff=ff, model="growthModel", fit=False)
 
     df = pd.DataFrame(classM.expTable)
 
@@ -150,8 +149,6 @@ def simulationPlots(axes, ff="101117_H1299"):
 
 def violinPlots(axes, ff="101117_H1299"):
     """ Create violin plots of model posterior. """
-    from ..utils import violinplot
-
     # Load model and dataset
     dfdict, drugs, _ = violinplot(ff)
 
@@ -165,7 +162,7 @@ def violinPlots(axes, ff="101117_H1299"):
         dose = np.array([float(ds) for ds in np.array(dfplot["dose"])])
         df1 = pd.DataFrame(
             {
-                "rate": np.append(10 ** dfplot["div"], 10 ** dfplot["deathRate"]),
+                "rate": np.append(dfplot["div"], dfplot["deathRate"]),
                 "type": np.append(np.repeat("div", len(dfplot)), np.repeat("deathRate", len(dfplot))),
                 "dose": np.append(dose, dose),
             }

@@ -7,7 +7,6 @@ def makeFigure():
     """ Make Figure S2. This should be the experimental data of
         single drug in each drug combinations """
     from .Figure2 import simulationPlots
-    from string import ascii_lowercase
     from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
@@ -26,7 +25,6 @@ def makeFigure():
     simulationPlots(axes=[ax[24], ax[25], ax[26], ax[30], ax[31], ax[32]], ff=files[4])
     simulationPlots(axes=[ax[27], ax[28], ax[29], ax[33], ax[34], ax[35]], ff=files[5])
 
-    for ii, item in enumerate([ax[0], ax[3], ax[12], ax[15], ax[24], ax[27]]):
-        subplotLabel(item, ascii_lowercase[ii])
+    subplotLabel([ax[0], ax[3], ax[12], ax[15], ax[24], ax[27]])
 
     return f

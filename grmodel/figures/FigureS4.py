@@ -3,14 +3,14 @@ This creates Figure S4.
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from .Figure2 import simulationPlots
+from .FigureCommon import getSetup, subplotLabel
+from ..sampleAnalysis import readModel
 
 
 def makeFigure():
     """ Make Figure S4. This should be the experimental data of
         each drug combinations """
-    from .Figure2 import simulationPlots
-    from string import ascii_lowercase
-    from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
     ax, f = getSetup((12, 12), (6, 6))
@@ -26,15 +26,12 @@ def makeFigure():
     simulationPlots_comb(files[0], ax[6:18])
     simulationPlots_comb(files[1], ax[24:36])
 
-    for ii, item in enumerate([ax[0], ax[18]]):
-        subplotLabel(item, ascii_lowercase[ii])
+    subplotLabel([ax[0], ax[18]])
 
     return f
 
 
 def simulationPlots_comb(loadFile, axes):
-    from ..sampleAnalysis import read_dataset
-
     if loadFile == "050719_PC9_LCL_OSI":
         drug1 = "LCL161"
         drug2 = "OSI-906"
@@ -45,10 +42,9 @@ def simulationPlots_comb(loadFile, axes):
         raise ValueError("Unrecognized file.")
 
     # Read model
-    M = read_dataset(loadFile, model="interactionModel", drug1=drug1, drug2=drug2)
+    M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2, fit=False)
 
     drugAname, drugBname = M.drugs
-    print("drugname: " + drugAname + ", " + drugBname)
 
     X1 = np.unique(M.X1)
     X2 = np.unique(M.X2)

@@ -1,7 +1,6 @@
 """
 This creates Figure 3.
 """
-from string import ascii_lowercase
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -25,8 +24,7 @@ def makeFigure():
     ratePlots(axes=[ax[0], ax[1]])
 
     # Labels for each subplot
-    for ii, item in enumerate([ax[0], ax[1]]):
-        subplotLabel(item, ascii_lowercase[ii])
+    subplotLabel([ax[0], ax[1]])
 
     return f
 
@@ -63,8 +61,8 @@ def ratePlots(axes):
             # Convert dose from linear to log scale
             df_temp = pd.DataFrame(
                 {
-                    "div": 10 ** np.array(dfplot["div"]),
-                    "deathRate": 10 ** np.array(dfplot["deathRate"]),
+                    "div": np.array(dfplot["div"]),
+                    "deathRate": np.array(dfplot["deathRate"]),
                     "drugName": np.repeat(drug, len(dfplot["div"])),
                     "dose": dfplot["dose"].apply(np.log10),
                 }

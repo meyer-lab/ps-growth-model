@@ -32,13 +32,12 @@ class doseResponseModel:
     def sample(self):
         """ Run sampling. """
         with self.model:
-            self.trace = pm.sample(progressbar=False, chains=2)
+            self.trace = pm.sample(progressbar=False, chains=2, target_accept=0.9)
 
     def build_model(self):
         """ Builds then returns the pyMC model. """
 
-        if not hasattr(self, "drugCs"):
-            raise ValueError("Need to import data first.")
+        assert hasattr(self, "drugCs"), "Need to import data first."
 
         doseResponseModel = pm.Model()
 
@@ -46,26 +45,22 @@ class doseResponseModel:
             # The three values here are div and deathrate
             # Assume just one IC50 for simplicity
             lIC50 = pm.Normal("IC50s", 2.0)
-            hill = pm.Lognormal("hill", 0.0)
 
             Emin_growth = pm.Uniform("Emin_growth", lower=0.0, upper=self.Emax_growth)
-
             Emax_death = pm.Lognormal("Emax_death", -2.0, 2.0)
 
             # Import drug concentrations into theano vector
             drugCs = T._shared(self.drugCs)
 
             # Drug term since we're using constant IC50 and hill slope
-            drugTerm = 1.0 / (1.0 + T.pow(10.0, (lIC50 - drugCs) * hill))
+            drugTerm = 1.0 / (1.0 + T.pow(10.0, (lIC50 - drugCs) * pm.Lognormal("hill", 1.0)))
 
             # Do actual conversion to parameters for each drug condition
             growthV = self.Emax_growth + (Emin_growth - self.Emax_growth) * drugTerm
 
-            # _Assuming deathrate in the absence of drug is zero
-            deathV = Emax_death * drugTerm
-
             # Calculate the growth rate
-            GR = growthV - deathV
+            # _Assuming deathrate in the absence of drug is zero
+            GR = growthV - Emax_death * drugTerm
 
             # Calculate the number of live cells
             lnum = T.exp(GR * self.time)
@@ -81,7 +76,7 @@ class doseResponseModel:
 
         return doseResponseModel
 
-    def __init__(self, Drug=None, filename="sampling"):
+    def __init__(self, Drug=None):
         # If no filename is given use a default
         if Drug is None:
             self.drug = "DOX"
@@ -101,5 +96,3 @@ class doseResponseModel:
 
         # Build the model
         self.model = self.build_model()
-
-        self.fname = join(dirname(abspath(__file__)), "data/initial-data/", filename)

@@ -1,7 +1,6 @@
 """
 This creates Figure 4.
 """
-from string import ascii_lowercase
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -32,61 +31,29 @@ def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI", "071318_PC
             raise ValueError("Unrecognized file.")
 
         # Read model from saved pickle file
-        M, trace = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2)
+        M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2)
 
-        # Randomly sample 10 rows from pymc sampling results
-        if trace.shape[0] > 100:
-            trace = trace.sample(100)
-
-        def transform(name):
-            """ Transforms the data structure of parameters generated from pymc model"""
-            return np.vstack((np.array(trace[name + "__0"]), np.array(trace[name + "__1"])))
-
-        E_con = transform("E_con")
-        hill_death = transform("hill_death")
-        hill_growth = transform("hill_growth")
-        IC50_death = transform("IC50_death")
-        IC50_growth = transform("IC50_growth")
-
-        X1 = np.unique(M.X1)
-        X2 = np.unique(M.X2)
-
-        print("filename:", loadFiles)
+        E_con = M.samples["E_con"]
+        hill_death = M.samples["hill_death"]
+        hill_growth = M.samples["hill_growth"]
+        IC50_death = M.samples["IC50_death"]
+        IC50_growth = M.samples["IC50_growth"]
 
         N_obs = 100
-
-        # Compute death and growth rate
-        death_rates = np.empty([N_obs, len(X1) * len(X2)])
-        growth_rates = np.empty([N_obs, len(X1) * len(X2)])
-
-        for i in range(N_obs):
-            this_hill_death = np.vstack([[x[i]] for x in hill_death])
-            this_IC50_death = np.vstack([[x[i]] for x in IC50_death])
-            this_death_rate = [E_con[0][i]] * blissInteract(M.X1, M.X2, this_hill_death, this_IC50_death, numpyy=True)
-            death_rates[i] = this_death_rate
-
-            this_hill_growth = np.vstack([[x[i]] for x in hill_growth])
-            this_IC50_growth = np.vstack([[x[i]] for x in IC50_growth])
-            this_growth_rate = [E_con[1][i]] * (1 - blissInteract(M.X1, M.X2, this_hill_growth, this_IC50_growth, numpyy=True))
-            growth_rates[i] = this_growth_rate
 
         # Initialize a dataframe
         params = ["div", "deathRate", "X1", "X2"]
         dfplot = pd.DataFrame(columns=params)
 
-        for i, dose2 in enumerate(X2):
-            dftemp = pd.DataFrame(columns=params)
-            for j, dose1 in enumerate(X1):
-                dftemp2 = pd.DataFrame(columns=params)
-                k = j * len(X2) + i
+        for i in range(N_obs):
+            dftemp2 = pd.DataFrame(columns=params)
 
-                dftemp2["div"] = [x[k] for x in growth_rates]
-                dftemp2["deathRate"] = [x[k] for x in death_rates]
-                dftemp2["X1"] = dose1
-                dftemp2["X2"] = dose2
+            dftemp2["deathRate"] = E_con[i, 0] * blissInteract(M.X1, M.X2, hill_death[i, :], IC50_death[i, :], numpyy=True)
+            dftemp2["div"] = E_con[i, 1] * (1 - blissInteract(M.X1, M.X2, hill_growth[i, :], IC50_growth[i, :], numpyy=True))
+            dftemp2["X1"] = M.X1
+            dftemp2["X2"] = M.X2
 
-                dftemp = pd.concat([dftemp, dftemp2], axis=0)
-            dfplot = pd.concat([dfplot, dftemp], axis=0)
+            dfplot = pd.concat([dfplot, dftemp2], axis=0)
 
         dfplot["X1"] = round(dfplot["X1"], 1)
         dfplot["X2"] = round(dfplot["X2"], 1)
@@ -107,8 +74,6 @@ def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI", "071318_PC
         ax[2 * idx].set_ylabel(r"Division rate (1/h)")
         ax[2 * idx + 1].set_ylabel(r"Death rate (1/h)")
 
-    # Make third figure
-    for ii, item in enumerate([ax[0], ax[2], ax[4]]):
-        subplotLabel(item, ascii_lowercase[ii])
+    subplotLabel([ax[0], ax[2], ax[4]])
 
     return f

@@ -27,4 +27,4 @@ coverage.xml: venv
 	. venv/bin/activate && pytest --junitxml=junit.xml --cov-branch --cov=grmodel --cov-report xml:coverage.xml
 
 pylint.log: venv
-	. venv/bin/activate && (pylint3 --rcfile=./common/pylintrc grmodel > pylint.log || echo "pylint3 exited with $?")
+	. venv/bin/activate && (pylint --rcfile=./common/pylintrc grmodel > pylint.log || echo "pylint exited with $?")

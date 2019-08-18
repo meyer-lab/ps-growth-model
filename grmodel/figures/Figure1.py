@@ -19,7 +19,6 @@ def makeFigure():
     from ..pymcDoseResponse import doseResponseModel
     from .FigureCommon import getSetup, subplotLabel
     from matplotlib.ticker import FormatStrFormatter
-    from string import ascii_lowercase
 
     # Build and read the PyMC3 model for dose response sampling
     M = doseResponseModel()
@@ -57,8 +56,7 @@ def makeFigure():
 
     # Add subplot labels
     ax.pop(1)
-    for ii, item in enumerate(ax):
-        subplotLabel(item, ascii_lowercase[ii])
+    subplotLabel(ax)
 
     return f
 
@@ -86,7 +84,7 @@ def plot_mean_and_CI(ax, _x, _y, confidence=True):
     ax.errorbar(x=x_unique, y=y_mean, yerr=y_sem, fmt=".", color="black")
 
 
-def plot_data_and_quantile(data, yvar, q, ax, lb=None):
+def plot_data_and_quantile(data, yvar, q, ax):
     """This helper function plots the median and q quantile for yvar in df2 grouped by xvar.
 
     Args:
@@ -100,21 +98,15 @@ def plot_data_and_quantile(data, yvar, q, ax, lb=None):
     y_median = data.agg({yvar: "median"})
 
     # Plot the data _y vs. _x
-    if lb is None:
-        ax.plot(conc, y_median, color="b", linewidth=1, alpha=0.9)
-    else:
-        ax.plot(conc, y_median, color="b", linewidth=1, alpha=0.9, label=lb)
+    ax.plot(conc, y_median, color="b", linewidth=1, alpha=0.9)
 
     alphas = np.arange(0.2, 1.0, 0.8 / len(q))
 
-    for i in range(len(q)):
-        y_low = np.array(data.quantile((1 - q[i]) / 2)[yvar])
-        y_high = np.array(data.quantile(1 - (1 - q[i]) / 2)[yvar])
+    for i, qi in enumerate(q):
+        y_low = np.array(data.quantile((1 - qi) / 2)[yvar])
+        y_high = np.array(data.quantile(1 - (1 - qi) / 2)[yvar])
 
-        if lb is not None:
-            ax.fill_between(conc, y_high, y_low, color="b", alpha=alphas[i])
-        else:
-            ax.fill_between(conc, y_high, y_low, color="b", alpha=alphas[i], label=str(int(q[i] * 100)) + "% CI")
+        ax.fill_between(conc, y_high, y_low, color="b", alpha=alphas[i], label=str(int(qi * 100)) + "% CI")
 
 
 def plot_exact_data(M, ax2, ax3):
@@ -130,7 +122,7 @@ def plot_exact_data(M, ax2, ax3):
     plot_mean_and_CI(ax3, X, lObs, confidence=False)
 
 
-def df_crossjoin(df1, df2, **kwargs):
+def df_crossjoin(df1, df2):
     """
     Make a cross join (cartesian product) between two dataframes by using a constant temporary key.
     Also sets a MultiIndex which is the cartesian product of the indices of the input dataframes.
@@ -143,11 +135,8 @@ def df_crossjoin(df1, df2, **kwargs):
     df1["_tmpkey"] = 1
     df2["_tmpkey"] = 1
 
-    res = pd.merge(df1, df2, on="_tmpkey", **kwargs).drop("_tmpkey", axis=1)
+    res = pd.merge(df1, df2, on="_tmpkey").drop("_tmpkey", axis=1)
     res.index = pd.MultiIndex.from_product((df1.index, df2.index))
-
-    df1.drop("_tmpkey", axis=1, inplace=True)
-    df2.drop("_tmpkey", axis=1, inplace=True)
 
     return res
 
@@ -167,20 +156,19 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     df1["growthV"] = df1["Emax_growth"] + ((df1["Emin_growth"] - df1["Emax_growth"]) * df1["drugTerm"])
 
     # Control growth rate
-    df1["growthControl"] = df1["Emax_growth"] + ((df1["Emin_growth"] - df1["Emax_growth"]) * df1["controlDrugTerm"])
+    gControl = df1["Emax_growth"] + ((df1["Emin_growth"] - df1["Emax_growth"]) * df1["controlDrugTerm"])
 
     # Range of growth effect
     df1["growthRange"] = df1["Emax_growth"] - df1["Emin_growth"]
 
     # _Assuming deathrate in the absence of drug is zero
-    # deathV = Emax_death * drugTerm
     df1["deathV"] = df1["Emax_death"] * df1["drugTerm"]
 
     # Calculate the growth rate
-    df1["GR"] = df1["growthV"] - df1["deathV"]
+    GR = df1["growthV"] - df1["deathV"]
 
     # Calculate the number of live cells, normalized to T=0
-    df1["lExp"] = np.exp(df1["GR"] * 72.0 - df1["growthControl"] * 72.0)
+    df1["lExp"] = np.exp(GR * 72.0 - gControl * 72.0)
 
     df2 = df1.groupby(["concentration"])
 
@@ -216,6 +204,7 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
 
 
 def alphaFig(M, ax1):
+    """ Explore the consequences of a growth- vs. death-centric drug. """
     drug_lnum_effect = 0.25
 
     # alpha = (R_g0 - R_gd) / R_dD ---- R_d0 is 0
