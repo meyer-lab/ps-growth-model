@@ -4,7 +4,7 @@ fdir = ./Manuscript/Figures
 
 flist = 1 2 3 4 S1 S2 S3 S4
 
-all: $(patsubst %, $(fdir)/Figure%.pdf, $(flist)) coverage.xml pylint.log
+all: $(patsubst %, $(fdir)/Figure%.pdf, $(flist))
 
 venv: venv/bin/activate
 
@@ -20,29 +20,8 @@ $(fdir)/Figure%.svg: venv genFigures.py
 $(fdir)/Figure%pdf: $(fdir)/Figure%svg
 	rsvg-convert -f pdf $< -o $@
 
-grmodel/data/030317-2_H1299_samples.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/bh8swc75kk0z3b6/030317-2_H1299_samples.pkl?dl=0
-
-grmodel/data/111717_PC9_samples.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/z1xce0kwafa612a/111717_PC9_samples.pkl?dl=0
-
-grmodel/data/101117_H1299_ends_samples.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/eiwyq8pi67qut09/101117_H1299_ends_samples.pkl?dl=0
-
-grmodel/data/030317-2-R1_H1299_samples.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/a0al7xal2g6hpcd/030317-2-R1_H1299_samples.pkl?dl=0
-
-grmodel/data/062117_PC9_samples.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/1tdur7ljesn7thg/062117_PC9_samples.pkl?dl=0
-
-grmodel/data/111717_PC9_ends_samples.pkl: 
-	curl -LSso $@ https://www.dropbox.com/s/8c1xj33chlhn7tw/111717_PC9_ends_samples.pkl?dl=0
-
 clean:
 	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst $(fdir)/Figure*
-
-dataclean:
-	rm -f grmodel/data/*.pkl
 
 sampleDose:
 	python3 -c "from grmodel.pymcDoseResponse import doseResponseModel; M = doseResponseModel(); M.sample()"
@@ -55,10 +34,3 @@ coverage.xml: venv
 
 pylint.log: venv
 	. venv/bin/activate && (pylint3 --rcfile=./common/pylintrc grmodel > pylint.log || echo "pylint3 exited with $?")
-
-profile:
-	python3 -c "from grmodel.pymcGrowth import GrowthModel; grM = GrowthModel(); grM.importData(3); grM.model.profile(grM.model.logpt).summary()"
-
-doc:
-	sphinx-apidoc -o doc/source grmodel
-	sphinx-build doc/source doc/build

@@ -19,9 +19,20 @@ def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI", "071318_PC
     ax, f = getSetup((10, 7.5), (3, 2))
 
     for idx, loadFile in enumerate(loadFiles):
+        if loadFile == "050719_PC9_LCL_OSI":
+            drug1 = "LCL161"
+            drug2 = "OSI-906"
+        elif loadFile == "050719_PC9_PIM_OSI":
+            drug1 = "PIM447"
+            drug2 = "OSI-906"
+        elif loadFile == "071318_PC9_OSI_Bin":
+            drug1 = "OSI-906"
+            drug2 = "Binimetinib"
+        else:
+            raise ValueError("Unrecognized file.")
 
         # Read model from saved pickle file
-        M, trace = readModel(loadFile, model="interactionModel")
+        M, trace = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2)
 
         # Randomly sample 10 rows from pymc sampling results
         if trace.shape[0] > 100:

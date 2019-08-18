@@ -10,37 +10,35 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from os.path import join, dirname, abspath, exists
-from .pymcGrowth import simulate
+from .pymcGrowth import simulate, GrowthModel
+from .pymcInteraction import drugInteractionModel
 
 
-def read_dataset(ff=None, model=None):
-    '''
-    Read the pymc model from a sampling file
-    Makes traceplots if traceplot=True
-    '''
-    if ff is None:
-        ff = "101117_H1299"
-    if model is None:
-        model = 'growthModel'
+def read_dataset(ff, model, **kwargs):
+    """ Load the appropriate model object. """
 
-    # read the data set from specified pickle files
-    filePrefix = './grmodel/data/'
-    filename = filePrefix + model + '/' + ff + '_samples.pkl'
+    if model == "growthModel":
+        model = GrowthModel(loadFile=ff)
+        model.importData(2)
+        model.performFit()
+        print("fit: " + ff)
+    elif model == "interactionModel":
+        model = drugInteractionModel(loadFile=ff, **kwargs)
+    else:
+        raise ValueError("Wrong model specified")
 
-    model = pickle.load(bz2.BZ2File(filename, 'rb'))
-    print(filename)
     return model
 
 
-def readModel(ff=None, model=None):
+def readModel(ff=None, model=None, **kwargs):
     """
     Calls read_dataset to load pymc model
     Outputs: (model, table for the sampling results)
     """
     if model is None:
-        model = 'growthModel'
+        model = "growthModel"
 
-    model = read_dataset(ff, model)
+    model = read_dataset(ff, model, **kwargs)
 
     try:
         model.samples = model.fit.sample(1000)
@@ -61,10 +59,10 @@ def readSingle(ff=None, drugAname=None):
     if drugAname is None:
         drugAname = "PIM447"
 
-    filename = join(dirname(abspath(__file__)), 'data/combinations/' + ff + '_rawdata.xlsx')
+    filename = join(dirname(abspath(__file__)), "data/combinations/" + ff + "_rawdata.xlsx")
     data = pd.read_excel(filename, sheet_name=None)
 
-    del data['Conditions']
+    del data["Conditions"]
 
     dfPhase = []
     dfGreen = []
@@ -109,12 +107,12 @@ def readSingle(ff=None, drugAname=None):
     dfGreen = pd.concat(dfGreen, axis=1, sort=False)
     dfRed = pd.concat(dfRed, axis=1, sort=False)
 
-    path_name = join(dirname(abspath(__file__)), 'data/singles/')
+    path_name = join(dirname(abspath(__file__)), "data/singles/")
 
     if exists(path_name):
-        dfPhase.to_csv(path_name + ff + '_confluence_phase.csv', index=False)
-        dfRed.to_csv(path_name + ff + '_confluence_red.csv', index=False)
-        dfGreen.to_csv(path_name + ff + '_confluence_green.csv', index=False)
+        dfPhase.to_csv(path_name + ff + "_confluence_phase.csv", index=False)
+        dfRed.to_csv(path_name + ff + "_confluence_red.csv", index=False)
+        dfGreen.to_csv(path_name + ff + "_confluence_green.csv", index=False)
     else:
         os.mkdir(path_name)
 
@@ -143,27 +141,19 @@ def calcset(pdset, idx, time, idic):
     # Interate over each row of sampling data
     for row in pdset.iterrows():
         # Get parameter values
-        mparm = np.copy(np.array(row[1].values[[idic['div__' + idx],
-                                                idic['d'],
-                                                idic['deathRate__' + idx],
-                                                idic['apopfrac__' + idx]]]))
+        mparm = np.copy(np.array(row[1].values[[idic["div__" + idx], idic["d"], idic["deathRate__" + idx], idic["apopfrac__" + idx]]]))
         # Get raw model predictions
         simret = simulate(mparm, time)
         # Apply conversion factors to model predictions
         # Fill-in one row of the numpy arrays
-        calcset[varr, :] = (np.sum(simret, axis=1)
-                            * row[1].values[idic['confl_conv']])
-        calcseta[varr, :] = (np.sum(simret[:, 1:3], axis=1)
-                             * row[1].values[idic['apop_conv']]
-                             + row[1].values[idic['apop_offset']])
-        calcsetd[varr, :] = (np.sum(simret[:, 2:4], axis=1)
-                             * row[1].values[idic['dna_conv']]
-                             + row[1].values[idic['dna_offset']])
+        calcset[varr, :] = np.sum(simret, axis=1) * row[1].values[idic["confl_conv"]]
+        calcseta[varr, :] = np.sum(simret[:, 1:3], axis=1) * row[1].values[idic["apop_conv"]] + row[1].values[idic["apop_offset"]]
+        calcsetd[varr, :] = np.sum(simret[:, 2:4], axis=1) * row[1].values[idic["dna_conv"]] + row[1].values[idic["dna_offset"]]
         varr += 1
     return (calcset, calcseta, calcsetd)
 
 
-def simulation(filename, drug, ax=None, unit='nM'):
+def simulation(filename, drug, ax=None, unit="nM"):
     """Make simulation plots of experimental data overlayed with model predictions"""
     # Load model and dataset
     classM, pdset = readModel(ff=filename)
@@ -183,7 +173,7 @@ def simulation(filename, drug, ax=None, unit='nM'):
             doses.appendleft(alldoses[i])
             doseidx.appendleft(i)
         # Include the first control after drug conditions
-        elif alldrugs[i] == 'Control' and len(doses) != 0 and flag:
+        elif alldrugs[i] == "Control" and len(doses) != 0 and flag:
             doses.appendleft(alldoses[i])
             doseidx.appendleft(i)
             flag = False
@@ -195,21 +185,21 @@ def simulation(filename, drug, ax=None, unit='nM'):
     # Set up idic, a dictionary of parameter:column index (eg: div_1:3)
     idic = {}
     # Shared parameters
-    idic['d'] = pdset.columns.get_loc('d')
-    for param in ['confl_conv', 'apop_conv', 'dna_conv', 'apop_offset', 'dna_offset']:
+    idic["d"] = pdset.columns.get_loc("d")
+    for param in ["confl_conv", "apop_conv", "dna_conv", "apop_offset", "dna_offset"]:
         idic[param] = pdset.columns.get_loc(param)
     # Vectorized parameters, interate over each idx in doseidx
-    for param in ['div', 'deathRate', 'apopfrac']:
+    for param in ["div", "deathRate", "apopfrac"]:
         for i in doseidx:
-            idx = '__' + str(i)
+            idx = "__" + str(i)
             idic[param + idx] = pdset.columns.get_loc(param + idx)
 
     # The time increments for which model prediction is calculated
     time = np.arange(min(classM.timeV), max(classM.timeV))
 
     # Initialize variables
-    colors = sns.color_palette('hls', 10)
-    pltparams = ['confl', 'apop', 'dna']
+    colors = sns.color_palette("hls", 10)
+    pltparams = ["confl", "apop", "dna"]
     patches = []
 
     # Iterate over each dose
@@ -229,24 +219,23 @@ def simulation(filename, drug, ax=None, unit='nM'):
             # Plot observation
             idx1 = doseidx[cidx] * len(classM.timeV)
             idx2 = (doseidx[cidx] + 1) * len(classM.timeV)
-            ax[i].scatter(classM.timeV, classM.expTable[pltparams[i]][idx1:idx2],
-                          c=colors[cidx], marker='.', s=5)
+            ax[i].scatter(classM.timeV, classM.expTable[pltparams[i]][idx1:idx2], c=colors[cidx], marker=".", s=5)
 
             # Label Plot
             ax[i].set_title(pltparams[i])
             ax[i].set_xticks([0, 25, 50, 75])
-            ax[i].set_xlabel('Time (hr)')
+            ax[i].set_xlabel("Time (hr)")
             if i != 0:
                 ax[i].set_ylim([0, 1.3])
         # For each dose, add a patch to legend
-        patches.append(mpatches.Patch(color=colors[cidx], label=str(doses[cidx]) + ' ' + unit))
-    ax[0].set_ylabel(drug + ' Confluence')
+        patches.append(mpatches.Patch(color=colors[cidx], label=str(doses[cidx]) + " " + unit))
+    ax[0].set_ylabel(drug + " Confluence")
 
     return (ax, patches)
 
 
-def sim_plots(filename, drugs=None, unit='nM'):
-    ''' Plot sampling predictions overlaying experimental data for multiple drugs '''
+def sim_plots(filename, drugs=None, unit="nM"):
+    """ Plot sampling predictions overlaying experimental data for multiple drugs """
     sns.set_context("paper", font_scale=2)
     # If drugs given, make simulation plots for selected drugs
     if drugs is not None:
@@ -256,6 +245,6 @@ def sim_plots(filename, drugs=None, unit='nM'):
     else:
         classM, _ = readModel()
         drugs = list(set(classM.drugs))
-        drugs.remove('Control')
+        drugs.remove("Control")
         for drug in drugs:
             simulation(filename, drug, unit=unit)

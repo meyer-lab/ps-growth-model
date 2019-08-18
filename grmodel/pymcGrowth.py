@@ -13,9 +13,9 @@ import theano
 
 
 def simulate(params, ttime):
-    ''' Takes in params for parameter values and ttimes, a list or array of times
+    """ Takes in params for parameter values and ttimes, a list or array of times
     params = [div, d, deathRate, apopfrac, confl_conv, apop_conv, dna_conv]
-    '''
+    """
     # Calculate the growth rate
     GR = params[0] - params[2]
 
@@ -35,10 +35,9 @@ def simulate(params, ttime):
     deadapop = params[1] * cGRd * (lnum - 1) / GR + cGRd * (np.exp(-params[1] * ttime) - 1)
     deadnec = b * (lnum - 1) / GR
 
-    out = np.concatenate((np.expand_dims(lnum, axis=1),
-                          np.expand_dims(eap, axis=1),
-                          np.expand_dims(deadapop, axis=1),
-                          np.expand_dims(deadnec, axis=1)), axis=1)
+    out = np.concatenate(
+        (np.expand_dims(lnum, axis=1), np.expand_dims(eap, axis=1), np.expand_dims(deadapop, axis=1), np.expand_dims(deadnec, axis=1)), axis=1
+    )
     return out
 
 
@@ -91,43 +90,43 @@ def convSignal(lnum, eap, deadapop, deadnec, conversions, offset=True):
 
 def conversionPriors(conv0, offset=True):
     # Set up conversion rates
-    confl_conv = pm.Lognormal('confl_conv', np.log(conv0), 0.1)
-    apop_conv = pm.Lognormal('apop_conv', np.log(conv0) - 2.06, 0.2)
-    dna_conv = pm.Lognormal('dna_conv', np.log(conv0) - 1.85, 0.2)
+    confl_conv = pm.Lognormal("confl_conv", np.log(conv0), 0.1)
+    apop_conv = pm.Lognormal("apop_conv", np.log(conv0) - 2.06, 0.2)
+    dna_conv = pm.Lognormal("dna_conv", np.log(conv0) - 1.85, 0.2)
 
     # Priors on conv factors
-    pm.Lognormal('confl_apop', -2.06, 0.0647, observed=apop_conv / confl_conv)
-    pm.Lognormal('confl_dna', -1.85, 0.125, observed=dna_conv / confl_conv)
-    pm.Lognormal('apop_dna', 0.222, 0.141, observed=dna_conv / apop_conv)
+    pm.Lognormal("confl_apop", -2.06, 0.0647, observed=apop_conv / confl_conv)
+    pm.Lognormal("confl_dna", -1.85, 0.125, observed=dna_conv / confl_conv)
+    pm.Lognormal("apop_dna", 0.222, 0.141, observed=dna_conv / apop_conv)
 
     if offset:
         # Offset values for apop and dna
-        apop_offset = pm.Lognormal('apop_offset', -1., 0.1)
-        dna_offset = pm.Lognormal('dna_offset', -1., 0.1)
+        apop_offset = pm.Lognormal("apop_offset", -1.0, 0.1)
+        dna_offset = pm.Lognormal("dna_offset", -1.0, 0.1)
         return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
 
     return (confl_conv, apop_conv, dna_conv)
 
 
 def build_model(conv0, doses, timeV, expTable):
-    ''' Builds then returns the pyMC model. '''
+    """ Builds then returns the pyMC model. """
     growth_model = pm.Model()
 
     with growth_model:
         conversions = conversionPriors(conv0)
 
         # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
-        d = pm.Lognormal('d', np.log(0.01), 1)
+        d = pm.Lognormal("d", np.log(0.01), 1)
 
         # Specify vectors of prior distributions
         # Growth rate
-        div = pm.Lognormal('div', np.log(0.02), 1, shape=len(doses))
+        div = pm.Lognormal("div", np.log(0.02), 1, shape=len(doses))
 
         # Rate of entering apoptosis or skipping straight to death
-        deathRate = pm.Lognormal('deathRate', np.log(0.01), 1, shape=len(doses))
+        deathRate = pm.Lognormal("deathRate", np.log(0.01), 1, shape=len(doses))
 
         # Fraction of dying cells that go through apoptosis
-        apopfrac = pm.Beta('apopfrac', 2., 2., shape=len(doses))
+        apopfrac = pm.Beta("apopfrac", 2.0, 2.0, shape=len(doses))
 
         lnum, eap, deadapop, deadnec = theanoCore(timeV, div, deathRate, apopfrac, d)
 
@@ -135,49 +134,35 @@ def build_model(conv0, doses, timeV, expTable):
         confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec, conversions)
 
         # Fit model to confl, apop, dna, and overlap measurements
-        if 'confl' in expTable.keys():
+        if "confl" in expTable.keys():
             # Observed error values for confl
-            confl_obs = T.reshape(confl_exp, (-1, )) - expTable['confl']
+            confl_obs = T.reshape(confl_exp, (-1,)) - expTable["confl"]
 
-            pm.Normal('dataFit', sd=T.std(confl_obs), observed=confl_obs)
-        if 'apop' in expTable.keys():
+            pm.Normal("dataFit", sd=T.std(confl_obs), observed=confl_obs)
+        if "apop" in expTable.keys():
             # Observed error values for apop
-            apop_obs = T.reshape(apop_exp, (-1, )) - expTable['apop']
+            apop_obs = T.reshape(apop_exp, (-1,)) - expTable["apop"]
 
-            pm.Normal('dataFita', sd=T.std(apop_obs), observed=apop_obs)
-        if 'dna' in expTable.keys():
+            pm.Normal("dataFita", sd=T.std(apop_obs), observed=apop_obs)
+        if "dna" in expTable.keys():
             # Observed error values for dna
-            dna_obs = T.reshape(dna_exp, (-1, )) - expTable['dna']
+            dna_obs = T.reshape(dna_exp, (-1,)) - expTable["dna"]
 
-            pm.Normal('dataFitd', sd=T.std(dna_obs), observed=dna_obs)
+            pm.Normal("dataFitd", sd=T.std(dna_obs), observed=dna_obs)
 
-        pm.Deterministic('logp', growth_model.logpt)
+        pm.Deterministic("logp", growth_model.logpt)
 
     return growth_model
 
 
 class GrowthModel:
     def performFit(self):
-        ''' Run NUTS sampling'''
-        print('Building the model')
+        """ Run NUTS sampling"""
+        print("Building the model")
         model = build_model(self.conv0, self.doses, self.timeV, self.expTable)
 
-        print('Performing inference')
-        self.fit = pm.variational.inference.fit(n=80000, model=model)
-
-    def save(self):
-        ''' Open file and dump pyMC3 objects through pickle. '''
-        filePrefix = './grmodel/data/growthModel/'
-
-        if self.interval:
-            filePrefix = filePrefix + self.loadFile
-        else:
-            filePrefix = filePrefix + self.loadFile + '_ends'
-
-        if exists(filePrefix + '_samples.pkl'):
-            os.remove(filePrefix + '_samples.pkl')
-
-        pickle.dump(self, bz2.BZ2File(filePrefix + '_samples.pkl', 'wb'))
+        print("Performing inference")
+        self.fit = pm.variational.inference.fit(n=80000, model=model, progressbar=False)
 
     # Directly import one column of data
     def importData(self, firstCols, comb=None, interval=True):
@@ -185,12 +170,10 @@ class GrowthModel:
         self.interval = interval
 
         # Property list
-        properties = {'confl': '_confluence_phase.csv',
-                      'apop': '_confluence_green.csv',
-                      'dna': '_confluence_red.csv'}
+        properties = {"confl": "_confluence_phase.csv", "apop": "_confluence_green.csv", "dna": "_confluence_red.csv"}
 
         # Find path for csv files in the repository.
-        pathcsv = join(dirname(abspath(__file__)), 'data/singles/' + self.loadFile)
+        pathcsv = join(dirname(abspath(__file__)), "data/singles/" + self.loadFile)
 
         # Pull out selected column data
         self.selCols = []
@@ -209,28 +192,28 @@ class GrowthModel:
             try:
                 dataset = pandas.read_csv(pathcsv + value)
                 # Subtract control
-                dataset1 = dataset.iloc[:, 2:len(dataset.columns)]
+                dataset1 = dataset.iloc[:, 2 : len(dataset.columns)]
                 dataset1.sub(dataset1["Control"], axis=0)
                 dataset = pandas.concat([dataset.iloc[:, 0:2], dataset1], axis=1, sort=False)
 
                 # If interval=False, get endpoint data
                 if not interval:
-                    endtime = max(dataset['Elapsed'])
-                    data1 = dataset.loc[dataset['Elapsed'] == 0]
-                    data2 = dataset.loc[dataset['Elapsed'] == endtime]
+                    endtime = max(dataset["Elapsed"])
+                    data1 = dataset.loc[dataset["Elapsed"] == 0]
+                    data2 = dataset.loc[dataset["Elapsed"] == endtime]
                     data = pandas.concat([data1, data2])
                 # Otherwise get entire data set
                 else:
                     data = dataset
                 # Get phase confl was t=0 for confl_conv calculation
-                if key == 'confl':
-                    data0 = dataset.loc[dataset['Elapsed'] == 0]
+                if key == "confl":
+                    data0 = dataset.loc[dataset["Elapsed"] == 0]
                     conv0 = np.mean(data0.iloc[:, firstCols:])
             except IOError:
                 print("No file for key: " + key)
                 continue
 
-            if hasattr(self, 'timeV'):
+            if hasattr(self, "timeV"):
                 # Compare to existing vector
                 if np.max(self.timeV - data.iloc[:, 1].values) > 0.1:
                     raise ValueError("File time vectors don't match up.")
@@ -238,7 +221,7 @@ class GrowthModel:
                 # Set the time vector
                 self.timeV = data.iloc[:, 1].values
 
-            if not hasattr(self, 'totalCols'):
+            if not hasattr(self, "totalCols"):
                 self.totalCols = len(data.columns)
             if self.totalCols < firstCols + 2:
                 raise ValueError("Didn't find many columns.")
@@ -251,26 +234,26 @@ class GrowthModel:
                 if comb is not None:
                     # Represent dose with a tuple of len(2) in each case
                     # If control
-                    if 'Control' in condName:
-                        drug = 'Control'
+                    if "Control" in condName:
+                        drug = "Control"
                         dose1 = 0
                         dose2 = 0
                     # If only the combination drug
-                    elif condName.split(' ')[0] == comb:
+                    elif condName.split(" ")[0] == comb:
                         drug = comb
                         dose1 = 0
-                        dose2 = float(condName.split(' ')[1])
+                        dose2 = float(condName.split(" ")[1])
                     # If contains drug besides the combination drug
-                    elif 'blank' not in condName.lower():
+                    elif "blank" not in condName.lower():
                         try:  # Both combination drug and another drug
-                            drug1str = condName.split(', ')[0]
-                            dose1 = float(drug1str.split(' ')[1])
-                            combstr = condName.split(', ')[1]
-                            dose2 = float(combstr.split(' ')[1])
-                            drug = drug1str.split(' ')[0] + '+' + combstr.split(' ')[0]
+                            drug1str = condName.split(", ")[0]
+                            dose1 = float(drug1str.split(" ")[1])
+                            combstr = condName.split(", ")[1]
+                            dose2 = float(combstr.split(" ")[1])
+                            drug = drug1str.split(" ")[0] + "+" + combstr.split(" ")[0]
                         except IndexError:  # Only the other drug
-                            drug = condName.split(' ')[0]
-                            dose1 = condName.split(' ')[1]
+                            drug = condName.split(" ")[0]
+                            dose1 = condName.split(" ")[1]
                             dose2 = 0
                     dose = (dose1, dose2)
 
@@ -278,7 +261,7 @@ class GrowthModel:
                     self.expTable.setdefault(key, []).append(data.iloc[:, col].values)
 
                     # Append to class variables once per column of data
-                    if key == 'confl':
+                    if key == "confl":
                         self.drugs.append(drug)
                         self.doses.append(dose)
                         self.condNames.append(condName)
@@ -286,27 +269,27 @@ class GrowthModel:
                         selconv0.append(conv0[col - firstCols])
 
                 else:  # For data without combinations
-                    if 'blank' not in condName.lower():
+                    if "blank" not in condName.lower():
                         # Add the name of the condition we're considering
                         try:
-                            drug = condName.split(' ')[0]
-                            dose = condName.split(' ')[1]
+                            drug = condName.split(" ")[0]
+                            dose = condName.split(" ")[1]
                         except IndexError:
-                            drug = 'Control'
+                            drug = "Control"
                             dose = 0
 
                         # Add data to expTable
                         self.expTable.setdefault(key, []).append(data.iloc[:, col].values)
 
                         # Append to class variables once per column of data
-                        if key == 'confl':
+                        if key == "confl":
                             self.drugs.append(drug)
                             self.doses.append(dose)
                             self.condNames.append(condName)
                             self.selCols.append(col)
                             selconv0.append(conv0[col - firstCols])
             # Reshape experimental data into 1D array
-            self.expTable[key] = np.array(self.expTable[key]).reshape((-1, ))
+            self.expTable[key] = np.array(self.expTable[key]).reshape((-1,))
 
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
