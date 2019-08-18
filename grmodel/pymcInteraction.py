@@ -1,13 +1,9 @@
 """
 This module handles experimental data for drug interaction.
 """
-import os
-import bz2
-import pickle
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
-from os.path import exists
 from .pymcGrowth import theanoCore, convSignal, conversionPriors
 from .interactionData import readCombo, filterDrugC, dataSplit
 

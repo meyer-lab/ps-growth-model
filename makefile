@@ -4,7 +4,7 @@ fdir = ./Manuscript/Figures
 
 flist = 1 2 3 4 S1 S2 S3 S4
 
-all: $(patsubst %, $(fdir)/Figure%.pdf, $(flist))
+all: $(patsubst %, $(fdir)/Figure%.svg, $(flist))
 
 venv: venv/bin/activate
 
@@ -17,14 +17,8 @@ $(fdir)/Figure%.svg: venv genFigures.py
 	mkdir -p ./Manuscript/Figures
 	. venv/bin/activate; ./genFigures.py $*
 
-$(fdir)/Figure%pdf: $(fdir)/Figure%svg
-	rsvg-convert -f pdf $< -o $@
-
 clean:
 	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst $(fdir)/Figure*
-
-sampleDose:
-	python3 -c "from grmodel.pymcDoseResponse import doseResponseModel; M = doseResponseModel(); M.sample()"
 
 test: venv
 	. venv/bin/activate && pytest

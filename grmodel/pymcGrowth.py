@@ -1,10 +1,7 @@
 """
 This module handles experimental data, by fitting a growth and death rate for each condition separately.
 """
-import bz2
-import os
-from os.path import join, dirname, abspath, exists
-import pickle
+from os.path import join, dirname, abspath
 import pandas
 import numpy as np
 import pymc3 as pm
@@ -16,24 +13,7 @@ def simulate(params, ttime):
     """ Takes in params for parameter values and ttimes, a list or array of times
     params = [div, d, deathRate, apopfrac, confl_conv, apop_conv, dna_conv]
     """
-    # Calculate the growth rate
-    GR = params[0] - params[2]
-
-    # Calculate the number of live cells
-    lnum = np.exp(GR * ttime)
-
-    # cGDd is used later
-    cGRd = params[2] * params[3] / (GR + params[1])
-
-    # Number of early apoptosis cells at start is 0.0
-    eap = cGRd * (lnum - np.exp(-params[1] * ttime))
-
-    # b is the rate straight to death
-    b = params[2] * (1 - params[3])
-
-    # Calculate dead cells
-    deadapop = params[1] * cGRd * (lnum - 1) / GR + cGRd * (np.exp(-params[1] * ttime) - 1)
-    deadnec = b * (lnum - 1) / GR
+    lnum, eap, deadapop, deadnec = theanoCore(ttime, params[0], params[2], params[3], params[1], numpyy=True)
 
     out = np.concatenate(
         (np.expand_dims(lnum, axis=1), np.expand_dims(eap, axis=1), np.expand_dims(deadapop, axis=1), np.expand_dims(deadnec, axis=1)), axis=1
@@ -167,7 +147,6 @@ class GrowthModel:
     # Directly import one column of data
     def importData(self, firstCols, comb=None, interval=True):
         """Import experimental data"""
-        self.interval = interval
 
         # Property list
         properties = {"confl": "_confluence_phase.csv", "apop": "_confluence_green.csv", "dna": "_confluence_red.csv"}
@@ -194,32 +173,22 @@ class GrowthModel:
                 # Subtract control
                 dataset1 = dataset.iloc[:, 2 : len(dataset.columns)]
                 dataset1.sub(dataset1["Control"], axis=0)
-                dataset = pandas.concat([dataset.iloc[:, 0:2], dataset1], axis=1, sort=False)
+                data = pandas.concat([dataset.iloc[:, 0:2], dataset1], axis=1, sort=False)
 
-                # If interval=False, get endpoint data
+                # If interval=False, filter for endpoint data
                 if not interval:
-                    endtime = max(dataset["Elapsed"])
-                    data1 = dataset.loc[dataset["Elapsed"] == 0]
-                    data2 = dataset.loc[dataset["Elapsed"] == endtime]
-                    data = pandas.concat([data1, data2])
-                # Otherwise get entire data set
-                else:
-                    data = dataset
+                    data = data.loc[(data["Elapsed"] == 0) | (data["Elapsed"] == max(data["Elapsed"]))]
+
                 # Get phase confl was t=0 for confl_conv calculation
                 if key == "confl":
-                    data0 = dataset.loc[dataset["Elapsed"] == 0]
+                    data0 = data.loc[data["Elapsed"] == 0]
                     conv0 = np.mean(data0.iloc[:, firstCols:])
             except IOError:
                 print("No file for key: " + key)
                 continue
 
-            if hasattr(self, "timeV"):
-                # Compare to existing vector
-                if np.max(self.timeV - data.iloc[:, 1].values) > 0.1:
-                    raise ValueError("File time vectors don't match up.")
-            else:
-                # Set the time vector
-                self.timeV = data.iloc[:, 1].values
+            # Set the time vector
+            self.timeV = data.iloc[:, 1].values
 
             if not hasattr(self, "totalCols"):
                 self.totalCols = len(data.columns)

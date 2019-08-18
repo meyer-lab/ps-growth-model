@@ -23,25 +23,29 @@ def makeFigure():
 
     # Build and read the PyMC3 model for dose response sampling
     M = doseResponseModel()
-    M.readSamples()
+    M.sample()
 
     # Store the MCMC sampling priors to compute the lExp (fit celltiter quantitation), growthV (predicted growth rate) and deathV (predicted death rate) at each drug concentration.
-    df = pd.DataFrame({'IC50s': M.trace['IC50s'],
-                       'hill': M.trace['hill'],
-                       'Emin_growth': M.trace['Emin_growth'],
-                       'Emax_death': M.trace['Emax_death'],
-                       'Emax_growth': M.Emax_growth})
+    df = pd.DataFrame(
+        {
+            "IC50s": M.trace["IC50s"],
+            "hill": M.trace["hill"],
+            "Emin_growth": M.trace["Emin_growth"],
+            "Emax_death": M.trace["Emax_death"],
+            "Emax_growth": M.Emax_growth,
+        }
+    )
 
     # Plots arrangements
     # Get list of axis objects
     ax, f = getSetup((10, 5), (2, 4))
     # Set significant figures for xtick
-    ax[2].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    ax[3].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    ax[4].yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
+    ax[2].yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
+    ax[3].yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
+    ax[4].yaxis.set_major_formatter(FormatStrFormatter("%.3f"))
     # Empty several axes to put cartoons
-    ax[0].axis('off')
-    ax[1].axis('off')
+    ax[0].axis("off")
+    ax[1].axis("off")
 
     # Subplots
     # Fig. 1b plots the dose response measurement of H1299 cells to DOX:
@@ -79,7 +83,7 @@ def plot_mean_and_CI(ax, _x, _y, confidence=True):
     if not confidence:
         y_sem = None
 
-    ax.errorbar(x=x_unique, y=y_mean, yerr=y_sem, fmt='.', color='black')
+    ax.errorbar(x=x_unique, y=y_mean, yerr=y_sem, fmt=".", color="black")
 
 
 def plot_data_and_quantile(data, yvar, q, ax, lb=None):
@@ -93,13 +97,13 @@ def plot_data_and_quantile(data, yvar, q, ax, lb=None):
 
     """
     conc = np.array(list(data.groups.keys()))
-    y_median = data.agg({yvar: 'median'})
+    y_median = data.agg({yvar: "median"})
 
     # Plot the data _y vs. _x
     if lb is None:
-        ax.plot(conc, y_median, color='b', linewidth=1, alpha=0.9)
+        ax.plot(conc, y_median, color="b", linewidth=1, alpha=0.9)
     else:
-        ax.plot(conc, y_median, color='b', linewidth=1, alpha=0.9, label=lb)
+        ax.plot(conc, y_median, color="b", linewidth=1, alpha=0.9, label=lb)
 
     alphas = np.arange(0.2, 1.0, 0.8 / len(q))
 
@@ -107,11 +111,10 @@ def plot_data_and_quantile(data, yvar, q, ax, lb=None):
         y_low = np.array(data.quantile((1 - q[i]) / 2)[yvar])
         y_high = np.array(data.quantile(1 - (1 - q[i]) / 2)[yvar])
 
-        if(lb is not None):
-            ax.fill_between(conc, y_high, y_low, color='b', alpha=alphas[i])
+        if lb is not None:
+            ax.fill_between(conc, y_high, y_low, color="b", alpha=alphas[i])
         else:
-            ax.fill_between(conc, y_high, y_low, color='b', alpha=alphas[i],
-                            label=str(int(q[i] * 100)) + '% CI')
+            ax.fill_between(conc, y_high, y_low, color="b", alpha=alphas[i], label=str(int(q[i] * 100)) + "% CI")
 
 
 def plot_exact_data(M, ax2, ax3):
@@ -120,8 +123,8 @@ def plot_exact_data(M, ax2, ax3):
     lObs = np.array(M.lObs)
     # Figure C: plot the mean and SEM of lObs at each concentration X
     plot_mean_and_CI(ax2, X, lObs)
-    ax2.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
-    ax2.set_ylabel(r'Cell viability' + '\n' + r'normalized to untreated cells')
+    ax2.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
+    ax2.set_ylabel(r"Cell viability" + "\n" + r"normalized to untreated cells")
     ax2.set_ylim(0, 1.1)
     # Part of Figure D: Compare the sampling lExp with the exact data lObs
     plot_mean_and_CI(ax3, X, lObs, confidence=False)
@@ -137,14 +140,14 @@ def df_crossjoin(df1, df2, **kwargs):
     :param kwargs keyword arguments that will be passed to pd.merge()
     :return cross join of df1 and df2
     """
-    df1['_tmpkey'] = 1
-    df2['_tmpkey'] = 1
+    df1["_tmpkey"] = 1
+    df2["_tmpkey"] = 1
 
-    res = pd.merge(df1, df2, on='_tmpkey', **kwargs).drop('_tmpkey', axis=1)
+    res = pd.merge(df1, df2, on="_tmpkey", **kwargs).drop("_tmpkey", axis=1)
     res.index = pd.MultiIndex.from_product((df1.index, df2.index))
 
-    df1.drop('_tmpkey', axis=1, inplace=True)
-    df2.drop('_tmpkey', axis=1, inplace=True)
+    df1.drop("_tmpkey", axis=1, inplace=True)
+    df2.drop("_tmpkey", axis=1, inplace=True)
 
     return res
 
@@ -152,66 +155,64 @@ def df_crossjoin(df1, df2, **kwargs):
 def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     """ Check that MCMC actually fit the data provided """
     # Define drug concentrations x to test MCMC sampling data fit
-    df1 = df_crossjoin(df, pd.DataFrame({'concentration': np.arange(-1.0, 3.0, 0.01)}))
+    df1 = df_crossjoin(df, pd.DataFrame({"concentration": np.arange(-1.0, 3.0, 0.01)}))
 
     # Drug term since we're using constant IC50 and hill slope
-    df1['drugTerm'] = 1.0 / (1.0 + np.power(10.0, (df1['IC50s'] - df1['concentration']) * df1['hill']))
+    df1["drugTerm"] = 1.0 / (1.0 + np.power(10.0, (df1["IC50s"] - df1["concentration"]) * df1["hill"]))
 
     # Minimum drug term
-    df1['controlDrugTerm'] = 1.0 / (1.0 + np.power(10.0, (df1['IC50s'] - np.min(df1['concentration'])) * df1['hill']))
+    df1["controlDrugTerm"] = 1.0 / (1.0 + np.power(10.0, (df1["IC50s"] - np.min(df1["concentration"])) * df1["hill"]))
 
     # growthV = Emin_growth + (Emax_growth - Emin_growth) * drugTerm
-    df1['growthV'] = df1['Emax_growth'] + ((df1['Emin_growth'] - df1['Emax_growth']) * df1['drugTerm'])
+    df1["growthV"] = df1["Emax_growth"] + ((df1["Emin_growth"] - df1["Emax_growth"]) * df1["drugTerm"])
 
     # Control growth rate
-    df1['growthControl'] = df1['Emax_growth'] + ((df1['Emin_growth'] - df1['Emax_growth']) * df1['controlDrugTerm'])
+    df1["growthControl"] = df1["Emax_growth"] + ((df1["Emin_growth"] - df1["Emax_growth"]) * df1["controlDrugTerm"])
 
     # Range of growth effect
-    df1['growthRange'] = df1['Emax_growth'] - df1['Emin_growth']
+    df1["growthRange"] = df1["Emax_growth"] - df1["Emin_growth"]
 
     # _Assuming deathrate in the absence of drug is zero
     # deathV = Emax_death * drugTerm
-    df1['deathV'] = df1['Emax_death'] * df1['drugTerm']
+    df1["deathV"] = df1["Emax_death"] * df1["drugTerm"]
 
     # Calculate the growth rate
-    df1['GR'] = df1['growthV'] - df1['deathV']
+    df1["GR"] = df1["growthV"] - df1["deathV"]
 
     # Calculate the number of live cells, normalized to T=0
-    df1['lExp'] = np.exp(df1['GR'] * 72.0 - df1['growthControl'] * 72.0)
+    df1["lExp"] = np.exp(df1["GR"] * 72.0 - df1["growthControl"] * 72.0)
 
-    df2 = df1.groupby(['concentration'])
+    df2 = df1.groupby(["concentration"])
 
     # Plot the median, 90%, 75% and 50% quantiles of lExp, growthV, and deathV:
-    # X = list(conc.groups.keys())
     quantiles = [0.90, 0.75, 0.50]
 
     # lExp (Figure 1c)
-    plot_data_and_quantile(df2, 'lExp', quantiles, ax3)
-    ax3.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
-    ax3.set_ylabel('Fit CellTiter quantitation')
-    # ax3.set_ylim(0, 1.05)
+    plot_data_and_quantile(df2, "lExp", quantiles, ax3)
+    ax3.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
+    ax3.set_ylabel("Fit CellTiter quantitation")
+    ax3.set_ylim(bottom=0.0)
     ax3.legend(loc=6)
 
     # growthV (Figure 1d)
-    plot_data_and_quantile(df2, 'growthV', quantiles, ax4)
-    ax4.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
-    ax4.set_ylabel('Predicted growth rate (1/min)')
-    # ax4.set_ylim(0., ax4.get_ylim()[1])
+    plot_data_and_quantile(df2, "growthV", quantiles, ax4)
+    ax4.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
+    ax4.set_ylabel("Predicted growth rate (1/min)")
+    ax4.set_ylim(bottom=0.0)
     ax4.legend(loc=6)
 
     # deathV (Figure 1e)
-    plot_data_and_quantile(df2, 'deathV', quantiles, ax5)
-    ax5.set_xlabel(r'$\mathregular{Log_{10}}$[DOX(nM)]')
-    ax5.set_ylabel('Predicted death rate (1/min)')
+    plot_data_and_quantile(df2, "deathV", quantiles, ax5)
+    ax5.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
+    ax5.set_ylabel("Predicted death rate (1/min)")
     ax5.legend(loc=6)
 
     # Figure G: Plot growth rate vs. death rate
-    ax6.scatter(x=df['Emax_growth'] - df['Emin_growth'],
-                y=df['Emax_death'], color='b', s=1)
-    ax6.set_xlim(0., df['Emax_growth'][0])
-    ax6.set_ylim(0., 0.03)
-    ax6.set_xlabel('Drug growth effect (1/min)')
-    ax6.set_ylabel('Drug death effect (1/min)')
+    ax6.scatter(x=df["Emax_growth"] - df["Emin_growth"], y=df["Emax_death"], color="b", s=1)
+    ax6.set_xlim(0.0, df["Emax_growth"][0])
+    ax6.set_ylim(0.0, 0.03)
+    ax6.set_xlabel("Drug growth effect (1/min)")
+    ax6.set_ylabel("Drug death effect (1/min)")
 
 
 def alphaFig(M, ax1):
@@ -224,11 +225,11 @@ def alphaFig(M, ax1):
     R_dD = -np.log(drug_lnum_effect) / M.time / (1 + alpha)
     R_gD = M.Emax_growth - R_dD * alpha
 
-    cellDiv = R_gD * 72.
-    deadCells = R_dD * (np.exp((R_gD - R_dD) * 72.) - 1) / (R_gD - R_dD)
+    cellDiv = R_gD * 72.0
+    deadCells = R_dD * (np.exp((R_gD - R_dD) * 72.0) - 1) / (R_gD - R_dD)
 
     ax1.semilogx(alpha, deadCells, label="cum. # dead")
-    ax1.set_xlabel(r'$\alpha$ (ratio growth to death effect)')
-    ax1.set_ylabel('Quantity per starting cell')
-    ax1.semilogx(alpha, cellDiv, 'r', label="avg. divisions")
+    ax1.set_xlabel(r"$\alpha$ (ratio growth to death effect)")
+    ax1.set_ylabel("Quantity per starting cell")
+    ax1.semilogx(alpha, cellDiv, "r", label="avg. divisions")
     ax1.legend(handlelength=0.5)

@@ -26,7 +26,6 @@ def makeFigure():
     simulationPlots_comb(files[0], ax[6:18])
     simulationPlots_comb(files[1], ax[24:36])
 
-    # TODO: change labels for each subplot
     for ii, item in enumerate([ax[0], ax[18]]):
         subplotLabel(item, ascii_lowercase[ii])
 
@@ -42,13 +41,10 @@ def simulationPlots_comb(loadFile, axes):
     elif loadFile == "050719_PC9_PIM_OSI":
         drug1 = "PIM447"
         drug2 = "OSI-906"
-    elif loadFile == "071318_PC9_OSI_Bin":
-        drug1 = "OSI-906"
-        drug2 = "Binimetinib"
     else:
         raise ValueError("Unrecognized file.")
 
-    # Read model from saved pickle file
+    # Read model
     M = read_dataset(loadFile, model="interactionModel", drug1=drug1, drug2=drug2)
 
     drugAname, drugBname = M.drugs

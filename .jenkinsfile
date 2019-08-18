@@ -16,9 +16,9 @@ pipeline {
         cobertura coberturaReportFile: 'coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
       }
     }
-    stage('Build') { steps { sh 'make all -j 2' } }
+    stage('Build') { steps { sh 'make all -j 6' } }
     stage('Report') {
-      steps { archiveArtifacts artifacts: 'Manuscript/Figures/*.pdf', onlyIfSuccessful: true }
+      steps { archiveArtifacts artifacts: 'Manuscript/Figures/*.svg', onlyIfSuccessful: true }
     }
   }
   post {

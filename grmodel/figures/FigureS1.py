@@ -14,6 +14,6 @@ def makeFigure():
     for ii, item in enumerate(ax):
         subplotLabel(item, ascii_uppercase[ii])
 
-    # violinplot_split("101117_H1299", ax)
+    violinplot_split("101117_H1299", ax)
 
     return f

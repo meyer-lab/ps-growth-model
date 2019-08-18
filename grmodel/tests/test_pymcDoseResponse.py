@@ -1,19 +1,13 @@
 import unittest
 import pandas as pd
 import numpy as np
-from ..pymcDoseResponse import doseResponseModel, loadCellTiter, loadIncucyte
+from ..pymcDoseResponse import doseResponseModel, loadCellTiter
 
 
 class TestDoseResponseMethods(unittest.TestCase):
     def test_loadCellTiter(self):
 
-        data = loadCellTiter(drug='DOX')
-
-        self.assertIsInstance(data, pd.DataFrame)
-
-    def test_loadIncucyte(self):
-
-        data = loadIncucyte()
+        data = loadCellTiter(drug="DOX")
 
         self.assertIsInstance(data, pd.DataFrame)
 
