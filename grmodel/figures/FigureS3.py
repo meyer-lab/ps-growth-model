@@ -3,7 +3,7 @@
 
 def makeFigure():
     """ Make Figure S3. This would be the violinplot of model posterior
-        estimates of the data shown in Figure S1 """
+        estimates of the data shown in Figure S2 """
     from .Figure2 import violinPlots
     from .FigureCommon import getSetup, subplotLabel
 
@@ -13,15 +13,13 @@ def makeFigure():
     for axis in ax[0:16]:
         axis.tick_params(axis="both", which="major", pad=-2)  # set ticks style
 
-    # files include the filenames of each drug combination
-    files = ["072718_PC9_BYL_PIM", "081118_PC9_LCL_TXL", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl"]
-
     # Show violin plots (predicted vs experimental)
-    violinPlots(axes=[ax[0], ax[1], ax[4], ax[5]], ff=files[0])
-    violinPlots(axes=[ax[2], ax[3], ax[6], ax[7]], ff=files[1])
-    violinPlots(axes=[ax[8], ax[9], ax[12], ax[13]], ff=files[2])
-    violinPlots(axes=[ax[10], ax[11], ax[14], ax[15]], ff=files[3])
+    violinPlots(axes=ax[0:2], ff="072718_PC9_BYL_PIM", remm="PIM447")
+    violinPlots(axes=ax[2:4], ff="050719_PC9_PIM_OSI", remm="OSI-906")
+    violinPlots(axes=ax[4:6], ff="050719_PC9_LCL_OSI", remm="OSI-906")
+    violinPlots(axes=ax[6:10], ff="071318_PC9_OSI_Bin")
+    violinPlots(axes=ax[10:14], ff="090618_PC9_TXL_Erl")
 
-    subplotLabel([ax[0], ax[2], ax[8], ax[10]])
+    subplotLabel(ax[::2])
 
     return f

@@ -60,11 +60,7 @@ def simulationPlots_comb(loadFile, axes):
 
     palette = plt.get_cmap("tab10")  # color palette
 
-    for i in range(len(X1)):
-        # skip X1 = 0
-        if i == 0:
-            continue
-
+    for i in range(1, len(X1)):
         this_obs = [confl_obs[i], apop_obs[i], dna_obs[i]]
 
         for j in range(len(X2)):

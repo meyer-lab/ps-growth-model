@@ -147,10 +147,13 @@ def simulationPlots(axes, ff="101117_H1299"):
         ax.set_ylabel("Percent Image Positive")
 
 
-def violinPlots(axes, ff="101117_H1299"):
+def violinPlots(axes, ff="101117_H1299", remm=None):
     """ Create violin plots of model posterior. """
     # Load model and dataset
     dfdict, drugs, _ = violinplot(ff)
+
+    if remm is not None:
+        drugs.remove(remm)
 
     # Plot params vs. drug dose
     for j, drug in enumerate(drugs):
@@ -175,6 +178,7 @@ def violinPlots(axes, ff="101117_H1299"):
         # Iterate over each parameter in params
         for i, param in enumerate(["rate", "apopfrac"]):
             idx = 2 * j + i
+
             # Set y-axis confluence limits for each parameter
             if param == "rate":
                 # Make violin plots
@@ -194,16 +198,10 @@ def violinPlots(axes, ff="101117_H1299"):
                 axes[idx].set_ylim([0, 1])
 
             # Set x labels
-            drugs_nM = ["Dox", "NVB", "Paclitaxel", "Erl"]
-
-            if drug in drugs_nM:
+            if drug in ["Dox", "NVB", "Paclitaxel", "Erl"]:
                 axes[idx].set_xlabel(drug + " (nM)")
             else:
                 axes[idx].set_xlabel(drug + r" ($\mu$M)")
 
-            if ff == "101117_H1299":
-                axes[idx].set_ylim(bottom=-0.005)
-            else:
-                axes[idx].set_ylim(bottom=-0.01)
-
+            axes[idx].set_ylim(bottom=-0.002)
             axes[idx].tick_params(axis="x", labelsize=6)
