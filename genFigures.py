@@ -6,7 +6,7 @@ import matplotlib as plt
 plt.use("AGG")
 from grmodel.figures.FigureCommon import overlayCartoon
 
-fdir = "./Manuscript/Figures/"
+fdir = "./output/"
 
 if __name__ == "__main__":
     nameOut = "Figure" + sys.argv[1]

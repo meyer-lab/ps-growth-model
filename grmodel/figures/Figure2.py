@@ -97,17 +97,17 @@ def simulationPlots(axes, ff="101117_H1299"):
         quantile = 0.95
         palette = plt.get_cmap("tab10")  # color palette
 
-        for k in range(len(doses)):
+        for k, dose in enumerate(doses):
             # plot simulations for each drug dose
             qt = this_dfcur_avg[quant].iloc[k]
 
             if quant == "confl":
-                ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9, label=str(doses[k]))
+                ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9, label=str(dose))
             else:
                 ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9)
 
             # plot confidence intervals for simulations for each drug dose
-            dfci = dfcur[dfcur.dose == doses[k]].groupby("time")
+            dfci = dfcur[dfcur.dose == dose].groupby("time")
             y_low = dfci[quant].quantile((1 - quantile) / 2).values
             y_high = dfci[quant].quantile(1 - (1 - quantile) / 2).values
             if quant != "confl":

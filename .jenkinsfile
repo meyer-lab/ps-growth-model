@@ -6,7 +6,7 @@ pipeline {
     stage('Lint')  {
       steps {
         sh 'make pylint.log'
-        recordIssues qualityGates: [[threshold: 2, type: 'TOTAL_HIGH', unstable: true], [threshold: 70, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
+        recordIssues qualityGates: [[threshold: 50, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
       }
     }
     stage('Test')  {
@@ -18,7 +18,10 @@ pipeline {
     }
     stage('Build') { steps { sh 'make all -j 2' } }
     stage('Report') {
-      steps { archiveArtifacts artifacts: 'Manuscript/Figures/*.svg', onlyIfSuccessful: true }
+      steps {
+        archiveArtifacts artifacts: 'output/*.svg, output/*.pdf', onlyIfSuccessful: true
+        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'output', reportFiles: 'manuscript.html', reportName: 'Manuscript'])
+      }
     }
   }
   post {

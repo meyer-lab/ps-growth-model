@@ -11,3 +11,8 @@ xlrd
 pytest
 pytest-cov
 pre-commit
+manubot==0.2.4
+pandoc-fignos
+pandoc-eqnos
+pandoc-tablenos
+weasyprint

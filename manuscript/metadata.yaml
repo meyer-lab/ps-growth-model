@@ -1,0 +1,43 @@
+---
+title: "Measurement and models accounting for cell death capture hidden variation in compound response"
+keywords:
+  - drug response
+  - cell death
+  - cancer
+lang: en-US
+author_info:
+  -
+    name: Song Yi Bae
+    initials: SYB
+    affiliations:
+      - Department of Bioengineering; University of California, Los Angeles, CA
+  -
+    name: Ning Guan
+    initials: NG
+    affiliations:
+      - Department of Biological Engineering; Massachusetts Institute of Technology, Cambridge, MA
+  -
+    name: Rui Yan
+    initials: RY
+    affiliations:
+      - Department of Bioengineering; University of California, Los Angeles, CA
+  -
+    name: Katrina Warner
+    initials: KW
+    affiliations:
+      - Department of Biochemistry; University of Washington, Seattle, WA
+  -
+    github: aarmey
+    name: Aaron S Meyer
+    initials: ASM
+    orcid: 0000-0003-4513-1840
+    twitter: aarmey
+    email: aaron@asmlab.org
+    affiliations:
+      - Department of Bioengineering; University of California, Los Angeles, CA
+      - Department of Bioinformatics; University of California, Los Angeles, CA
+      - Jonsson Comprehensive Cancer Center; University of California, Los Angeles, CA
+      - Eli and Edythe Broad Center of Regenerative Medicine and Stem Cell Research; University of California, Los Angeles, CA
+    funders:
+      - NIH DP5-OD019815
+      - Terri Brodeur Foundation Fellowship

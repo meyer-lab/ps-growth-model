@@ -63,11 +63,11 @@ def simulationPlots_comb(loadFile, axes):
     for i in range(1, len(X1)):
         this_obs = [confl_obs[i], apop_obs[i], dna_obs[i]]
 
-        for j in range(len(X2)):
+        for j, Xj in enumerate(X2):
             n = i - 1
             for k in range(3):
                 ii = (3 * n) + k
-                axes[ii].plot(timeV, this_obs[k][j], color=palette(j), linewidth=1, alpha=0.9, label=str(X2[j]))
+                axes[ii].plot(timeV, this_obs[k][j], color=palette(j), linewidth=1, alpha=0.9, label=str(Xj))
 
                 if ii % 3 == 0:
                     axes[ii].set_ylim(0.0, 100.0)
