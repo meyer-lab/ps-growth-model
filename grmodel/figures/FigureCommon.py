@@ -39,6 +39,7 @@ def getSetup(figsize, gridd, multz=None, empts=None):
 
 
 def subplotLabel(axs):
+    """ Place subplot labels on figure. """
     for ii, ax in enumerate(axs):
         ax.text(-0.2, 1.2, ascii_lowercase[ii], transform=ax.transAxes, fontsize=16, fontweight="bold", va="top")
 

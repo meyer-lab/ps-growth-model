@@ -8,6 +8,10 @@ This module generates Figure1 which motivates looking at cell death by showing t
 
 import numpy as np
 import pandas as pd
+import numpy_indexed as npi
+from matplotlib.ticker import FormatStrFormatter
+from ..pymcDoseResponse import doseResponseModel
+from .FigureCommon import getSetup, subplotLabel
 
 
 def makeFigure():
@@ -16,10 +20,6 @@ def makeFigure():
     Args None
     Returns: A figure
     """
-    from ..pymcDoseResponse import doseResponseModel
-    from .FigureCommon import getSetup, subplotLabel
-    from matplotlib.ticker import FormatStrFormatter
-
     # Build and read the PyMC3 model for dose response sampling
     M = doseResponseModel()
     M.sample()
@@ -71,8 +71,6 @@ def plot_mean_and_CI(ax, _x, _y, confidence=True):
     Returns: None
 
     """
-    import numpy_indexed as npi
-
     # Group _y by _x and find the mean, standard deviation of _y at each _x
     x_unique, y_mean = npi.group_by(_x).mean(_y)
     sample_size = npi.count(_x)[1]
