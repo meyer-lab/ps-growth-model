@@ -3,7 +3,7 @@
 flist = 1 2 3 4 S1 S2 S3 S4
 flistFull = $(patsubst %, output/Figure%.svg, $(flist))
 
-all: $(flistFull) output/manuscript.html output/manuscript.pdf
+all: coverage.xml pylint.log output/manuscript.html output/manuscript.pdf
 
 venv: venv/bin/activate
 

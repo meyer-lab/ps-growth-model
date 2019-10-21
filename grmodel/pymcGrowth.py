@@ -107,7 +107,7 @@ def build_model(conv0, doses, timeV, expTable):
         deathRate = pm.Lognormal("deathRate", np.log(0.01), 1, shape=len(doses))
 
         # Fraction of dying cells that go through apoptosis
-        apopfrac = pm.Beta("apopfrac", 2.0, 2.0, shape=len(doses))
+        apopfrac = pm.Beta("apopfrac", 1.0, 1.0, shape=len(doses))
 
         lnum, eap, deadapop, deadnec = theanoCore(timeV, div, deathRate, apopfrac, d)
 
@@ -143,7 +143,7 @@ class GrowthModel:
         model = build_model(self.conv0, self.doses, self.timeV, self.expTable)
 
         logging.info("GrowthModel sampling")
-        self.samples = pm.sample(model=model, progressbar=False, chains=2, tune=1000)
+        self.samples = pm.sample(model=model, progressbar=False, chains=2, tune=1000, target_accept=0.9)
         self.df = pm.backends.tracetab.trace_to_dataframe(self.samples)
 
     # Directly import one column of data

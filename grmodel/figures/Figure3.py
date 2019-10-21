@@ -15,16 +15,16 @@ def makeFigure():
         death rate of cancer cells under their treatments. """
 
     # plot division rate, rate of cells entering apoptosis, rate of cells straight to death
-    ax, f = getSetup((6, 2.5), (1, 2))
+    ax, f = getSetup((7.5, 2.5), (1, 3))
 
     for axis in ax[0:3]:
         axis.tick_params(axis="both", which="major", pad=-2)  # set ticks style
 
     # Show line plots of rates for each drug
-    ratePlots(axes=[ax[0], ax[1]])
+    ratePlots(ax)
 
     # Labels for each subplot
-    subplotLabel([ax[0], ax[1]])
+    subplotLabel(ax)
 
     return f
 
@@ -88,6 +88,9 @@ def ratePlots(axes):
     lineplot(x="dose", y="div", hue="drugName", marker="o", data=df, ax=axes[0], palette="muted")
     # Death rate
     lineplot(x="dose", y="deathRate", hue="drugName", marker="o", data=df, ax=axes[1], palette="muted")
+    # Division vs. death
+    df2 = df.groupby(["drugName", "dose"], sort=False).median().reset_index()
+    lineplot(x="div", y="deathRate", hue="drugName", marker="o", data=df2, ax=axes[2], palette="muted")
 
     # Set legend
     for i in range(2):
@@ -95,10 +98,16 @@ def ratePlots(axes):
         # Set x, y labels and title
         axes[i].set_ylabel(r"Rate (1/h)")
         axes[i].set_xlabel(r"$\mathregular{Log_{10}}$[dose($\mu$M))]")
-        axes[i].set_ylim(bottom=-0.002)
+        axes[i].set_ylim(bottom=-0.001)
         axes[i].set_xlim(right=2.0)
         axes[i].xaxis.set_major_locator(plt.MultipleLocator(1.0))
 
     axes[0].set_title("Division rate")
     axes[1].set_title("Death rate")
     axes[1].get_legend().remove()
+
+    axes[2].set_xlabel(r"Division rate (1/h)")
+    axes[2].set_ylabel(r"Death rate (1/h)")
+    axes[2].set_ylim(bottom=-0.001)
+    axes[2].set_xlim(left=-0.001)
+    axes[2].get_legend().remove()
