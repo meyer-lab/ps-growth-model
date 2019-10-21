@@ -38,7 +38,7 @@ def makeFigure():
     simulationPlots(axes=[ax[5], ax[6], ax[7], ax[10], ax[11], ax[12]])
 
     # Show violin plots for model parameters
-    violinPlots(axes=[ax[8], ax[9], ax[13], ax[14]])
+    violinPlots(axes=[ax[13], ax[14], ax[8], ax[9]])
 
     subplotLabel([ax[0], ax[5], ax[3], ax[8], ax[15]])
 
@@ -162,7 +162,7 @@ def violinPlots(axes, ff="101117_H1299", remm=None):
 
         # Combine div and deathRate in one dataframe
         # Convert div and deathRate from log scale to linear
-        dose = np.array([float(ds) for ds in np.array(dfplot["dose"])])
+        dose = dfplot["dose"].to_numpy(dtype=np.float)
         df1 = pd.DataFrame(
             {
                 "rate": np.append(dfplot["div"], dfplot["deathRate"]),
