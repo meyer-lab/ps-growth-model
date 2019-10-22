@@ -52,10 +52,16 @@ def violinplot_split(filename, axis):
         for i, param in enumerate(params):
             # Make violin plots
             sns.violinplot(x="dose", y=param, hue="Data Type", data=dfplot, palette="muted", split=True, ax=axis[3 * j + i], cut=0, linewidth=0.2)
-            axis[3 * j + i].set_xlabel(drug + " dose")
+            axis[3 * j + i].set_xlabel(drug + " (nM)")
+
+        axis[3 * j].set_ylabel(params[0] + " (1/hr)")
+        axis[3 * j + 1].set_ylabel(params[1] + " (1/hr)")
 
     for i, ax in enumerate(axis):
         ax.set_ylim(bottom=0.0)
 
         if i > 0:
             ax.legend_.remove()
+
+    axis[2].set_ylim(top=1.0)
+    axis[5].set_ylim(top=1.0)

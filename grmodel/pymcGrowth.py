@@ -82,8 +82,8 @@ def conversionPriors(conv0, offset=True):
 
     if offset:
         # Offset values for apop and dna
-        apop_offset = pm.Lognormal("apop_offset", -1.0, 0.1)
-        dna_offset = pm.Lognormal("dna_offset", -1.0, 0.1)
+        apop_offset = pm.Lognormal("apop_offset", np.log(0.1), 0.1)
+        dna_offset = pm.Lognormal("dna_offset", np.log(0.1), 0.1)
         return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
 
     return (confl_conv, apop_conv, dna_conv)
@@ -97,7 +97,7 @@ def build_model(conv0, doses, timeV, expTable):
         conversions = conversionPriors(conv0)
 
         # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
-        d = pm.Lognormal("d", np.log(0.01), 1)
+        d = pm.Lognormal("d", np.log(0.001), 0.5)
 
         # Specify vectors of prior distributions
         # Growth rate
