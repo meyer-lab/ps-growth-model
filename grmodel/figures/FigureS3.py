@@ -1,11 +1,11 @@
 """ This creates Figure S3. """
+from .Figure2 import violinPlots
+from .FigureCommon import getSetup, subplotLabel
 
 
 def makeFigure():
     """ Make Figure S3. This would be the violinplot of model posterior
         estimates of the data shown in Figure S2 """
-    from .Figure2 import violinPlots
-    from .FigureCommon import getSetup, subplotLabel
 
     # Get list of axis objects
     ax, f = getSetup((10, 8), (4, 4))

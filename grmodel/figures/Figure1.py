@@ -216,7 +216,7 @@ def alphaFig(M, ax1):
     deadCells = R_dD * (np.exp((R_gD - R_dD) * 72.0) - 1) / (R_gD - R_dD)
 
     ax1.semilogx(alpha, deadCells, label="cum. # dead")
-    ax1.set_xlabel(r"$\alpha$ (ratio growth to death effect)")
+    ax1.set_xlabel(r"Growth/death effect ratio")
     ax1.set_ylabel("Quantity per starting cell")
     ax1.semilogx(alpha, cellDiv, "r", label="avg. divisions")
     ax1.legend(handlelength=0.5)
