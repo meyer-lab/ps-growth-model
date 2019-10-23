@@ -5,7 +5,7 @@ seaborn==0.9.0
 svgutils
 pandas==0.25.2
 pymc3==3.7
-numpy_indexed
+numpy_indexed==0.3.5
 pylint
 xlrd
 pytest
@@ -15,4 +15,4 @@ manubot==0.2.4
 pandoc-fignos
 pandoc-eqnos
 pandoc-tablenos
-weasyprint
+weasyprint==49

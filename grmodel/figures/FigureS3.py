@@ -20,6 +20,9 @@ def makeFigure():
     violinPlots(axes=ax[6:10], ff="071318_PC9_OSI_Bin")
     violinPlots(axes=ax[10:14], ff="090618_PC9_TXL_Erl")
 
-    subplotLabel(ax[::2])
+    subplotLabel(ax[0:-2:2])
+
+    ax[14].axis("off")
+    ax[15].axis("off")
 
     return f

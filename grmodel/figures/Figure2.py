@@ -35,10 +35,10 @@ def makeFigure():
         axis.axis("off")
 
     # Show simulation plots (predicted vs experimental)
-    simulationPlots(axes=[ax[5], ax[6], ax[7], ax[10], ax[11], ax[12]])
+    simulationPlots(axes=[ax[10], ax[11], ax[12], ax[5], ax[6], ax[7]])
 
     # Show violin plots for model parameters
-    violinPlots(axes=[ax[13], ax[14], ax[8], ax[9]])
+    violinPlots(axes=[ax[8], ax[9], ax[13], ax[14]])
 
     subplotLabel([ax[0], ax[5], ax[3], ax[8], ax[15]])
 
@@ -128,7 +128,7 @@ def simulationPlots(axes, ff="101117_H1299"):
             legend.get_title().set_fontsize("8")
 
         # set titles and labels
-        ax.set_xlabel("Time (h)")
+        ax.set_xlabel("Time (hr)")
 
         if ii < 3:
             ax.set_title(quant_tt[ii % 3] + " (" + drugBname + ")")
@@ -186,7 +186,7 @@ def violinPlots(axes, ff="101117_H1299", remm=None):
                 # Set legend
                 axes[idx].legend(handletextpad=0.3, handlelength=0.8, prop={"size": 8})
                 # Set y label
-                axes[idx].set_ylabel(r"Rate (1/h)")
+                axes[idx].set_ylabel(r"Rate (1/hr)")
                 # Set ylim
                 axes[idx].set_ylim(bottom=0)
             elif param == "apopfrac":
@@ -199,6 +199,9 @@ def violinPlots(axes, ff="101117_H1299", remm=None):
 
             # Set x labels
             if drug in ["Dox", "NVB", "Paclitaxel", "Erl"]:
+                if drug == "Erl":
+                    drug = "Erlotinib"
+
                 axes[idx].set_xlabel(drug + " (nM)")
             else:
                 axes[idx].set_xlabel(drug + r" ($\mu$M)")
