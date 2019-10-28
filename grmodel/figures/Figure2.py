@@ -35,10 +35,10 @@ def makeFigure():
         axis.axis("off")
 
     # Show simulation plots (predicted vs experimental)
-    simulationPlots(axes=[ax[10], ax[11], ax[12], ax[5], ax[6], ax[7]])
+    simulationPlots(axes=[ax[5], ax[6], ax[7], ax[10], ax[11], ax[12]])
 
     # Show violin plots for model parameters
-    violinPlots(axes=[ax[8], ax[9], ax[13], ax[14]])
+    violinPlots(axes=[ax[13], ax[14], ax[8], ax[9]])
 
     subplotLabel([ax[0], ax[5], ax[3], ax[8], ax[15]])
 
