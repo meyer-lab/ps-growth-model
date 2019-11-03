@@ -181,24 +181,29 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     ax3.legend(loc=6)
 
     # growthV (Figure 1d)
+    df1["growthV"] *= 24.0
     plot_data_and_quantile(df2, "growthV", quantiles, ax4)
     ax4.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
-    ax4.set_ylabel("Predicted growth rate (1/min)")
+    ax4.set_ylabel("Predicted growth rate (1/day)")
     ax4.set_ylim(bottom=0.0)
     ax4.legend(loc=6)
 
     # deathV (Figure 1e)
+    df1["deathV"] *= 24.0
     plot_data_and_quantile(df2, "deathV", quantiles, ax5)
     ax5.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
-    ax5.set_ylabel("Predicted death rate (1/min)")
+    ax5.set_ylabel("Predicted death rate (1/day)")
     ax5.legend(loc=6)
 
     # Figure G: Plot growth rate vs. death rate
+    df["Emax_growth"] *= 24.0
+    df["Emin_growth"] *= 24.0
+    df["Emax_death"] *= 24.0
     ax6.scatter(x=df["Emax_growth"] - df["Emin_growth"], y=df["Emax_death"], color="b", s=1)
-    ax6.set_xlim(0.0, df["Emax_growth"][0])
-    ax6.set_ylim(0.0, 0.03)
-    ax6.set_xlabel("Drug growth effect (1/min)")
-    ax6.set_ylabel("Drug death effect (1/min)")
+    ax6.set_xlim(0.0, 0.72)
+    ax6.set_ylim(0.0, 0.72)
+    ax6.set_xlabel("Drug growth effect (1/day)")
+    ax6.set_ylabel("Drug death effect (1/day)")
 
 
 def alphaFig(M, ax1):
