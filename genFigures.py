@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "1":
         # Overlay Figure 2 cartoon
-        overlayCartoon(fdir + "Figure1.svg", "./grmodel/figures/Figure1-Schematic.svg", 50, 25, 0.62)
+        overlayCartoon(fdir + "Figure1.svg", "./grmodel/figures/Figure1-Schematic.svg", 30, 25, 0.8)
     elif sys.argv[1] == "2":
         # Overlay Figure 2 cartoon
         overlayCartoon(fdir + "Figure2.svg", "./grmodel/figures/Figure2-Schematic.svg", 560, 25, 0.6)
