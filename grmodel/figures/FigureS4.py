@@ -51,12 +51,9 @@ def simulationPlots_comb(loadFile, axes):
     timeV = M.timeV
 
     # Reshape
-    N_X1 = len(X1)  # the number of drug 1 doses
-    N_X2 = len(X2)  # the number of drug 2 doses
-
-    confl_obs = M.phase.reshape(N_X1, N_X2, len(timeV))  # observed phase confl
-    apop_obs = M.green.reshape(N_X1, N_X2, len(timeV))  # observed green confl
-    dna_obs = M.red.reshape(N_X1, N_X2, len(timeV))  # observed red confl
+    confl_obs = M.phase.reshape(X1.size, X2.size, len(timeV))  # observed phase confl
+    apop_obs = M.green.reshape(X1.size, X2.size, len(timeV))  # observed green confl
+    dna_obs = M.red.reshape(X1.size, X2.size, len(timeV))  # observed red confl
 
     palette = plt.get_cmap("tab10")  # color palette
 

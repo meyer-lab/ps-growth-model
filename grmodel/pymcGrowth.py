@@ -7,7 +7,6 @@ import pandas
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
-import theano
 
 
 def simulate(params, ttime):
@@ -23,6 +22,7 @@ def simulate(params, ttime):
 
 
 def theanoCore(timeV, div, deathRate, apopfrac, d, numpyy=False):
+    """ Assemble the core growth model. """
     if numpyy:
         outer = np.outer
         exp1 = np.exp
@@ -32,7 +32,7 @@ def theanoCore(timeV, div, deathRate, apopfrac, d, numpyy=False):
         exp1 = T.exp
         # Make a vector of time and one for time-constant values
         timeV = T._shared(timeV)
-        constV = T.ones_like(timeV, dtype=theano.config.floatX)  # pylint: disable=no-member
+        constV = T.ones_like(timeV)  # pylint: disable=no-member
 
     # Calculate the growth rate
     GR = outer(div - deathRate, constV)
@@ -55,6 +55,7 @@ def theanoCore(timeV, div, deathRate, apopfrac, d, numpyy=False):
 
 
 def convSignal(lnum, eap, deadapop, deadnec, conversions, offset=True):
+    """ Sums up the cell populations to link number of cells to image area. """
     if offset:
         conv, offset = conversions
         confl_exp = (lnum + eap + deadapop + deadnec) * conv[0]
@@ -70,6 +71,7 @@ def convSignal(lnum, eap, deadapop, deadnec, conversions, offset=True):
 
 
 def conversionPriors(conv0, offset=True):
+    """ Sets the various fluorescence conversion priors. """
     # Set up conversion rates
     confl_conv = pm.Lognormal("confl_conv", np.log(conv0), 0.1)
     apop_conv = pm.Lognormal("apop_conv", np.log(conv0) - 2.06, 0.2)
@@ -101,10 +103,10 @@ def build_model(conv0, doses, timeV, expTable):
 
         # Specify vectors of prior distributions
         # Growth rate
-        div = pm.Lognormal("div", np.log(0.02), 1, shape=len(doses))
+        div = pm.Uniform("div", lower=0.0, upper=0.035, shape=len(doses))
 
         # Rate of entering apoptosis or skipping straight to death
-        deathRate = pm.Lognormal("deathRate", np.log(0.01), 1, shape=len(doses))
+        deathRate = pm.Lognormal("deathRate", np.log(0.001), 0.5, shape=len(doses))
 
         # Fraction of dying cells that go through apoptosis
         apopfrac = pm.Beta("apopfrac", 1.0, 1.0, shape=len(doses))
@@ -179,7 +181,8 @@ class GrowthModel:
 
                 # If interval=False, filter for endpoint data
                 if not interval:
-                    data = data.loc[(data["Elapsed"] == 0) | (data["Elapsed"] == max(data["Elapsed"]))]
+                    # Keep data within an hour of the beginning or end
+                    data = data.loc[(data["Elapsed"] < 1.0) | (max(data["Elapsed"]) - data["Elapsed"] < 1.0)]
 
                 # Get phase confl was t=0 for confl_conv calculation
                 if key == "confl":

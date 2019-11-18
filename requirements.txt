@@ -1,9 +1,9 @@
 matplotlib==3.1.1
-numpy==1.17.3
-scipy==1.3.1
+numpy==1.17.4
+scipy==1.3.2
 seaborn==0.9.0
 svgutils
-pandas==0.25.2
+pandas==0.25.3
 pymc3==3.7
 numpy_indexed==0.3.5
 pylint

@@ -1,12 +1,14 @@
 from string import ascii_lowercase
 from matplotlib import gridspec, pyplot as plt, rcParams
 import seaborn as sns
+import svgutils.transform as st
 
 
 rcParams["xtick.major.pad"] = 1.5
 rcParams["ytick.major.pad"] = 1.5
 rcParams["xtick.minor.pad"] = 1.5
 rcParams["ytick.minor.pad"] = 1.5
+rcParams["legend.labelspacing"] = 0.1
 
 
 def getSetup(figsize, gridd, multz=None, empts=None):
@@ -46,8 +48,6 @@ def subplotLabel(axs):
 
 def overlayCartoon(figFile, cartoonFile, x, y, scalee=1):
     """ Add cartoon to a figure file. """
-    import svgutils.transform as st
-
     # Overlay Figure 4 cartoon
     template = st.fromfile(figFile)
     cartoon = st.fromfile(cartoonFile).getroot()

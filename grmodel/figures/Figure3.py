@@ -23,6 +23,10 @@ def makeFigure():
     # Show line plots of rates for each drug
     ratePlots(ax)
 
+    # Remove legend title
+    handles, labels = ax[0].get_legend_handles_labels()
+    ax[0].legend(handles=handles[1:], labels=labels[1:])
+
     # Labels for each subplot
     subplotLabel(ax)
 

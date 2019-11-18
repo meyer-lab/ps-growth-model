@@ -7,6 +7,7 @@ This module generates Figure2 which should generally be initial analysis
     of the data we've been collecting.
 """
 
+from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -40,7 +41,7 @@ def makeFigure():
     # Show violin plots for model parameters
     violinPlots(axes=[ax[13], ax[14], ax[8], ax[9]])
 
-    subplotLabel([ax[0], ax[5], ax[3], ax[8], ax[15]])
+    subplotLabel([ax[0], ax[5], ax[3], ax[8], ax[15], ax[17], ax[18]])
 
     return f
 
@@ -58,7 +59,7 @@ def simulationPlots(axes, ff="101117_H1299"):
     df["drug"] = np.repeat(classM.drugs, int(df.shape[0] / len(classM.drugs)))
 
     # Get drug names
-    drugs = set(classM.drugs)
+    drugs = list(OrderedDict.fromkeys(classM.drugs))
     drugs.remove("Control")
     drugAname, drugBname = drugs
     print("drugname: " + drugAname + ", " + drugBname)
@@ -86,10 +87,10 @@ def simulationPlots(axes, ff="101117_H1299"):
         this_dfcur_avg = this_dfcur.agg({quant: "mean"}).unstack(0)
 
         # subtratc ctrl for apop and dna
-        if quant == "apop":  # apop (annexin v)
+        if quant == "apop":  # apop (Annexin v)
             ctrl = np.array(this_dfcur_avg.apop.iloc[0])
             this_dfcur_avg.apop = this_dfcur_avg.apop - ctrl
-        elif quant == "dna":  # dna (vovo-3)
+        elif quant == "dna":  # dna (YOYO-3)
             ctrl = np.array(this_dfcur_avg.dna.iloc[0])
             this_dfcur_avg.dna = this_dfcur_avg.dna - ctrl
 

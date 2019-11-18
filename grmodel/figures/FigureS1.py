@@ -1,5 +1,6 @@
 """ This creates Figure S1. """
 
+from collections import OrderedDict
 import seaborn as sns
 import pandas as pd
 from .FigureCommon import getSetup, subplotLabel
@@ -39,7 +40,7 @@ def violinplot_split(filename, axis):
     df = pd.concat([df, df2], axis=0)
 
     # Get a list of drugs
-    drugs = set(classM.drugs)
+    drugs = list(OrderedDict.fromkeys(classM.drugs))
     drugs.remove("Control")
 
     params = ["div", "deathRate", "apopfrac"]
@@ -54,8 +55,9 @@ def violinplot_split(filename, axis):
             sns.violinplot(x="dose", y=param, hue="Data Type", data=dfplot, palette="muted", split=True, ax=axis[3 * j + i], cut=0, linewidth=0.2)
             axis[3 * j + i].set_xlabel(drug + " (nM)")
 
-        axis[3 * j].set_ylabel(params[0] + " (1/hr)")
-        axis[3 * j + 1].set_ylabel(params[1] + " (1/hr)")
+        axis[3 * j].set_ylabel("Division Rate (1/hr)")
+        axis[3 * j + 1].set_ylabel("Death Rate (1/hr)")
+        axis[3 * j + 2].set_ylabel("Apoptosis Fraction")
 
     for i, ax in enumerate(axis):
         ax.set_ylim(bottom=0.0)

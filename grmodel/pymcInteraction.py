@@ -8,7 +8,7 @@ from .pymcGrowth import theanoCore, convSignal, conversionPriors
 from .interactionData import readCombo, filterDrugC, dataSplit
 
 
-def blissInteract(X1, X2, hill, IC50, numpyy=False):
+def blissInteract(X1, X2, hill, IC50, numpyy=False, justAdd=False):
     if numpyy:
         funcc = np.power
     else:
@@ -16,6 +16,10 @@ def blissInteract(X1, X2, hill, IC50, numpyy=False):
 
     drug_one = funcc(X1, hill[0]) / (funcc(IC50[0], hill[0]) + funcc(X1, hill[0]))
     drug_two = funcc(X2, hill[1]) / (funcc(IC50[1], hill[1]) + funcc(X2, hill[1]))
+
+    if justAdd:
+        return drug_one + drug_two
+
     return drug_one + drug_two - drug_one * drug_two
 
 
@@ -47,7 +51,7 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
         apopfrac = pm.Beta("apopfrac", 2.0, 2.0)
 
         # Calculate the death rate
-        death_rates = E_con[0] * blissInteract(X1, X2, hill_death, IC50_death)  # pylint: disable=unsubscriptable-object
+        death_rates = E_con[0] * blissInteract(X1, X2, hill_death, IC50_death, justAdd=True)  # pylint: disable=unsubscriptable-object
 
         # Calculate the growth rate
         growth_rates = E_con[1] * (1 - blissInteract(X1, X2, hill_growth, IC50_growth))  # pylint: disable=unsubscriptable-object

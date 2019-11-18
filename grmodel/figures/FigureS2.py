@@ -22,6 +22,6 @@ def makeFigure():
     simulationPlots(axes=ax[18:24], ff="071318_PC9_OSI_Bin")
     simulationPlots(axes=ax[24:30], ff="090618_PC9_TXL_Erl")
 
-    subplotLabel(ax[::6])
+    subplotLabel(ax[::3])
 
     return f
