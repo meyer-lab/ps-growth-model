@@ -7,9 +7,9 @@ pandas==0.25.3
 pymc3==3.7
 numpy_indexed==0.3.5
 pylint
-xlrd
-pytest
-pytest-cov
+xlrd==1.2.0
+pytest==5.2.4
+pytest-cov==2.8.1
 pre-commit
 manubot==0.2.4
 pandoc-fignos
