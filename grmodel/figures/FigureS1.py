@@ -18,6 +18,9 @@ def makeFigure():
 
     violinplot_split("101117_H1299", ax)
 
+    for axis in ax:
+        axis.set_xticklabels(axis.get_xticklabels(), rotation=25, horizontalalignment="right")
+
     return f
 
 
@@ -67,3 +70,9 @@ def violinplot_split(filename, axis):
 
     axis[2].set_ylim(top=1.0)
     axis[5].set_ylim(top=1.0)
+
+    axis[1].set_ylim(top=0.07)
+    axis[4].set_ylim(top=0.07)
+
+    axis[0].set_ylim(top=0.04)
+    axis[3].set_ylim(top=0.04)

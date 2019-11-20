@@ -8,7 +8,7 @@ from ..sampleAnalysis import readModel
 from .FigureCommon import getSetup, subplotLabel
 
 
-def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI", "071318_PC9_OSI_Bin"]):
+def makeFigure():
     """ Generate Figure 4: This figure should show looking at cell death can
     tell something about the cells' responses to drug interactions that are
     not captured by the traditional cell number measurements. """
@@ -28,10 +28,9 @@ def makeFigure(loadFiles=["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI", "071318_PC
 
 
 def simPlots_comb(loadFile, axes, drug1, drug2):
+    """ Output raw data plotting for Bliss additivity. """
     # Read model
     M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2, fit=False)
-
-    drugAname, drugBname = M.drugs
 
     dfplot = pd.DataFrame()
     dfplot["confl"] = M.phase.flatten()
@@ -52,11 +51,11 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     confl /= confl[0, 0]
     confl = 1.0 - confl
 
-    assert np.all(0.0 <= confl) and np.all(confl <= 1.0)
+    assert np.all(confl >= 0.0) and np.all(confl <= 1.0)
 
     additive = (confl[:, 0][:, None] + confl[0, :][None, :]) - np.outer(confl[:, 0], confl[0, :])
 
-    assert np.all(0.0 <= additive) and np.all(additive <= 1.0)
+    assert np.all(additive >= 0.0) and np.all(additive <= 1.0)
 
     confldf.iloc[:, :] = confl - additive
 

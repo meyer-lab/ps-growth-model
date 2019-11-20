@@ -1,7 +1,7 @@
 pipeline {
   agent { label 'docker' }
   stages {
-    stage('Clean') { steps { sh 'git clean -ffdx && make clean && git submodule update --init --recursive' } }
+    stage('Clean') { steps { sh 'make clean && git submodule update --init --recursive' } }
     stage('Build/Test') { steps { sh 'make all -j 6' } }
     stage('Report') {
       steps {

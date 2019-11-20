@@ -2,9 +2,9 @@
 This module handles reading drug combination data.
 """
 import re
+from os.path import join, dirname, abspath
 import numpy as np
 import pandas as pd
-from os.path import join, dirname, abspath
 
 
 def readCombo(name="072718_PC9_BYL_PIM"):

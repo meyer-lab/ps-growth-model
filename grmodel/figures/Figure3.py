@@ -4,6 +4,7 @@ This creates Figure 3.
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 from seaborn import lineplot
 from .FigureCommon import getSetup, subplotLabel
 from ..utils import violinplot
@@ -26,6 +27,13 @@ def makeFigure():
     # Remove legend title
     handles, labels = ax[0].get_legend_handles_labels()
     ax[0].legend(handles=handles[1:], labels=labels[1:])
+
+    ax[0].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
+    ax[1].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
+    ax[0].set_ylim(top=0.03)
+    ax[1].set_ylim(bottom=0.0, top=0.02)
+    ax[2].set_ylim(bottom=0.0, top=0.02)
+    ax[2].set_xlim(left=0.0, right=0.03)
 
     # Labels for each subplot
     subplotLabel(ax)
@@ -100,18 +108,18 @@ def ratePlots(axes):
     for i in range(2):
         axes[i].legend(handletextpad=0.3, handlelength=0.8, prop={"size": 8})
         # Set x, y labels and title
-        axes[i].set_ylabel(r"Rate (1/h)")
+        axes[i].set_ylabel(r"Rate (1/hr)")
         axes[i].set_xlabel(r"$\mathregular{Log_{10}}$[dose($\mu$M))]")
-        axes[i].set_ylim(bottom=-0.001)
+        axes[i].set_ylim(bottom=0.0)
         axes[i].set_xlim(right=2.0)
         axes[i].xaxis.set_major_locator(plt.MultipleLocator(1.0))
 
-    axes[0].set_title("Division rate")
-    axes[1].set_title("Death rate")
+    axes[0].set_title("Division Rate")
+    axes[1].set_title("Death Rate")
     axes[1].get_legend().remove()
 
-    axes[2].set_xlabel(r"Division rate (1/h)")
-    axes[2].set_ylabel(r"Death rate (1/h)")
+    axes[2].set_xlabel(r"Division Rate (1/hr)")
+    axes[2].set_ylabel(r"Death Rate (1/hr)")
     axes[2].set_ylim(bottom=-0.001)
     axes[2].set_xlim(left=-0.001)
     axes[2].get_legend().remove()

@@ -139,6 +139,7 @@ def build_model(conv0, doses, timeV, expTable):
 
 
 class GrowthModel:
+    """ Model for fitting data incorporating cell death response. """
     def performFit(self):
         """ Run NUTS sampling"""
         logging.info("Building the model")

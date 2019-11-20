@@ -88,6 +88,7 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
 
 
 class drugInteractionModel:
+    """ An interaction model for two drug response. """
     def __init__(self, loadFile="072718_PC9_BYL_PIM", drug1="PIM447", drug2="BYL749", fit=True):
 
         # Save input data

@@ -5,3 +5,4 @@ grmodel/data/FCSE/*.fcs
 .ipynb_checkpoints
 .hypothesis
 venv
+.DS_Store

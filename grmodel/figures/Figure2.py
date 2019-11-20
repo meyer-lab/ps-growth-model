@@ -46,7 +46,7 @@ def makeFigure():
     return f
 
 
-def simulationPlots(axes, ff="101117_H1299"):
+def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
     """ Make plots of experimental data. """
 
     # Load model and dataset
@@ -62,6 +62,10 @@ def simulationPlots(axes, ff="101117_H1299"):
     drugs = list(OrderedDict.fromkeys(classM.drugs))
     drugs.remove("Control")
     drugAname, drugBname = drugs
+
+    if swapDrugs:
+        drugAname, drugBname = drugBname, drugAname
+
     print("drugname: " + drugAname + ", " + drugBname)
 
     # help to name title
@@ -74,17 +78,20 @@ def simulationPlots(axes, ff="101117_H1299"):
         quant = ["confl", "apop", "dna"][ii % 3]
 
         if ii < 3:
-            dfcur = df.loc[df["drug"] != drugAname, :]
+            curDrug = drugBname
         else:
-            dfcur = df.loc[df["drug"] != drugBname, :]
+            curDrug = drugAname
+
+        dfcur = df.loc[np.logical_or(df["drug"] == curDrug, df["drug"] == "Control"), :]
+
+        if curDrug == "Erl":
+            curDrug = "Erlotinib"
 
         # array of all doses for the drug
         doses = np.unique(dfcur["dose"])
 
         # take average of quant for all data points
-        grpCols = ["time", "dose", "drug"]
-        this_dfcur = dfcur.groupby(grpCols)
-        this_dfcur_avg = this_dfcur.agg({quant: "mean"}).unstack(0)
+        this_dfcur_avg = dfcur.groupby(["time", "dose", "drug"]).agg({quant: "mean"}).unstack(0)
 
         # subtratc ctrl for apop and dna
         if quant == "apop":  # apop (Annexin v)
@@ -103,7 +110,7 @@ def simulationPlots(axes, ff="101117_H1299"):
             qt = this_dfcur_avg[quant].iloc[k]
 
             if quant == "confl":
-                ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9, label=str(dose))
+                ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9, label=str(round(float(dose), 1)))
             else:
                 ax.plot(times, qt, color=palette(k), linewidth=1, alpha=0.9)
 
@@ -116,12 +123,9 @@ def simulationPlots(axes, ff="101117_H1299"):
                 y_high = [a_i - b_i for a_i, b_i in zip(y_high, ctrl)]
             ax.fill_between(times, y_high, y_low, color=palette(k), alpha=0.2)
 
-        # drugs with unitu nM
-        drugs_nM = ["Dox", "NVB", "Paclitaxel", "Erl"]
-
         # add legends
         if quant == "confl":
-            if (ii < 3 and drugBname in drugs_nM) or (ii >= 3 and drugAname in drugs_nM):
+            if curDrug in ["Dox", "NVB", "Paclitaxel", "Erlotinib"]: # drugs with nM units
                 title = "Doses (nM)"
             else:
                 title = r"Doses ($\mu$M)"
@@ -131,19 +135,15 @@ def simulationPlots(axes, ff="101117_H1299"):
         # set titles and labels
         ax.set_xlabel("Time (hr)")
 
-        if ii < 3:
-            ax.set_title(quant_tt[ii % 3] + " (" + drugBname + ")")
-
-        else:
-            ax.set_title(quant_tt[ii % 3] + " (" + drugAname + ")")
+        ax.set_title(quant_tt[ii % 3] + " (" + curDrug + ")")
 
         if quant == "confl":
-            ax.set_ylim(0.0, 100.0)
+            ax.set_ylim(-0.1, 100.0)
         else:
             if ff == "101117_H1299":
-                ax.set_ylim(-0.1, 0.5)
+                ax.set_ylim(-0.05, 0.5)
             else:
-                ax.set_ylim(-1.0, 10.0)
+                ax.set_ylim(-0.5, 5.0)
 
         ax.set_ylabel("Percent Image Positive")
 
@@ -167,7 +167,7 @@ def violinPlots(axes, ff="101117_H1299", remm=None):
         df1 = pd.DataFrame(
             {
                 "rate": np.append(dfplot["div"], dfplot["deathRate"]),
-                "type": np.append(np.repeat("div", len(dfplot)), np.repeat("deathRate", len(dfplot))),
+                "type": np.append(np.repeat("Division", len(dfplot)), np.repeat("Death", len(dfplot))),
                 "dose": np.append(dose, dose),
             }
         )
@@ -208,4 +208,4 @@ def violinPlots(axes, ff="101117_H1299", remm=None):
                 axes[idx].set_xlabel(drug + r" ($\mu$M)")
 
             axes[idx].set_ylim(bottom=-0.002)
-            axes[idx].tick_params(axis="x", labelsize=6)
+            axes[idx].set_xticklabels(axes[idx].get_xticklabels(), rotation=25, horizontalalignment="right")

@@ -12,7 +12,7 @@ venv/bin/activate: requirements.txt
 	. venv/bin/activate; pip install -Ur requirements.txt
 	touch venv/bin/activate
 
-output/Figure%.svg: venv genFigures.py
+output/Figure%.svg: venv genFigures.py grmodel/figures/Figure%.py
 	mkdir -p ./output
 	. venv/bin/activate; ./genFigures.py $*
 
@@ -55,7 +55,7 @@ output/manuscript.pdf: venv output/manuscript.md $(flistFull)
 
 clean:
 	mv output/requests-cache.sqlite requests-cache.sqlite || true
-	rm -rf doc/build/* doc/build/.doc* doc/build/.build* doc/source/grmodel.* doc/source/modules.rst output
+	rm -rf output venv
 	mkdir output
 	mv requests-cache.sqlite output/requests-cache.sqlite || true
 

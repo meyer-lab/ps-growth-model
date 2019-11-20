@@ -38,10 +38,7 @@ def makeFigure():
     # Plots arrangements
     # Get list of axis objects
     ax, f = getSetup((10, 5), (2, 4))
-    # Set significant figures for xtick
-    ax[2].yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
-    ax[3].yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
-    ax[4].yaxis.set_major_formatter(FormatStrFormatter("%.3f"))
+
     # Empty several axes to put cartoons
     ax[0].axis("off")
     ax[1].axis("off")
@@ -53,6 +50,12 @@ def makeFigure():
     plot_sampling_data(df, ax[3], ax[4], ax[5], ax[6])
     # Fig. 1g
     alphaFig(M, ax[7])
+
+    # Set significant figures for xtick
+    for i in range(2, 6):
+        ax[i].yaxis.set_major_formatter(FormatStrFormatter("%.1f"))
+        ax[i].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
+        ax[i].set_xlim(-1.0, 3.0)
 
     # Add subplot labels
     ax.pop(1)
@@ -185,7 +188,7 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     plot_data_and_quantile(df2, "growthV", quantiles, ax4)
     ax4.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
     ax4.set_ylabel("Predicted growth rate (1/day)")
-    ax4.set_ylim(bottom=0.0)
+    ax4.set_ylim(bottom=0.0, top=0.8)
     ax4.legend(loc=6)
 
     # deathV (Figure 1e)
@@ -200,8 +203,8 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     df["Emin_growth"] *= 24.0
     df["Emax_death"] *= 24.0
     ax6.scatter(x=df["Emax_growth"] - df["Emin_growth"], y=df["Emax_death"], color="b", s=1)
-    ax6.set_xlim(0.0, 0.72)
-    ax6.set_ylim(0.0, 0.72)
+    ax6.set_xlim(0.0, 0.6)
+    ax6.set_ylim(0.0, 0.6)
     ax6.set_xlabel("Drug growth effect (1/day)")
     ax6.set_ylabel("Drug death effect (1/day)")
 

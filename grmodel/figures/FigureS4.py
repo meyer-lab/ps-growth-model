@@ -32,6 +32,7 @@ def makeFigure():
 
 
 def simulationPlots_comb(loadFile, axes):
+    """ Raw data plots of the drug combination experiments. """
     if loadFile == "050719_PC9_LCL_OSI":
         drug1 = "LCL161"
         drug2 = "OSI-906"
@@ -44,16 +45,13 @@ def simulationPlots_comb(loadFile, axes):
     # Read model
     M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2, fit=False)
 
-    drugAname, drugBname = M.drugs
-
     X1 = np.unique(M.X1)
     X2 = np.unique(M.X2)
-    timeV = M.timeV
 
     # Reshape
-    confl_obs = M.phase.reshape(X1.size, X2.size, len(timeV))  # observed phase confl
-    apop_obs = M.green.reshape(X1.size, X2.size, len(timeV))  # observed green confl
-    dna_obs = M.red.reshape(X1.size, X2.size, len(timeV))  # observed red confl
+    confl_obs = M.phase.reshape(X1.size, X2.size, len(M.timeV))  # observed phase confl
+    apop_obs = M.green.reshape(X1.size, X2.size, len(M.timeV))  # observed green confl
+    dna_obs = M.red.reshape(X1.size, X2.size, len(M.timeV))  # observed red confl
 
     palette = plt.get_cmap("tab10")  # color palette
 
@@ -64,7 +62,7 @@ def simulationPlots_comb(loadFile, axes):
             n = i - 1
             for k in range(3):
                 ii = (3 * n) + k
-                axes[ii].plot(timeV, this_obs[k][j], color=palette(j), linewidth=1, alpha=0.9, label=str(Xj))
+                axes[ii].plot(M.timeV, this_obs[k][j], color=palette(j), linewidth=1, alpha=0.9, label=str(Xj))
 
                 if ii % 3 == 0:
                     axes[ii].set_ylim(0.0, 100.0)
@@ -73,4 +71,4 @@ def simulationPlots_comb(loadFile, axes):
 
                 axes[ii].set_xlabel("Time (h)")
                 axes[ii].set_ylabel("Percent Image Positive")
-                axes[ii].set_title(drugAname + " " + str(round(X1[i], 1)) + r"$\mu$M + " + drugBname)
+                axes[ii].set_title(M.drugs[0] + " " + str(round(X1[i], 1)) + r"$\mu$M + " + M.drugs[1])
