@@ -70,6 +70,9 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
         if confl is not None:
             confl_obs = T.flatten(confl_exp - confl)
             pm.Normal("confl_fit", sd=T.std(confl_obs), observed=confl_obs)
+            conflmean = T.mean(confl, axis=1)
+            confl_exp_mean = T.mean(confl_exp, axis=1)
+            pm.Deterministic("conflResid", (confl_exp_mean - conflmean) / conflmean[0])
 
         if apop is not None:
             apop_obs = T.flatten(apop_exp - apop)
