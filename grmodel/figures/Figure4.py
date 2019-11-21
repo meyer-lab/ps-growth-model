@@ -32,6 +32,9 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     # Read model
     M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2, fit=False)
 
+    drug1 = drug1 + r" ($\mu$M)"
+    drug2 = drug2 + r" ($\mu$M)"
+
     dfplot = pd.DataFrame()
     dfplot["confl"] = M.phase.flatten()
     dfplot["apop"] = M.green.flatten()
@@ -70,13 +73,14 @@ def fittingPlots(ax, loadFile, drug1, drug2):
     resid = np.median(M.samples["conflResid"], axis=0).reshape(5, 7)
     sns.heatmap(resid, ax=ax[0], cmap="PiYG", vmin=-0.5, vmax=0.5, cbar=False, square=True)
 
-    df1 = pd.DataFrame({"drug": drug1, "rate": "IC50_growth", "value": M.samples["IC50_growth"][:, 0]})
-    df2 = pd.DataFrame({"drug": drug2, "rate": "IC50_growth", "value": M.samples["IC50_growth"][:, 1]})
-    df3 = pd.DataFrame({"drug": drug1, "rate": "IC50_death", "value": M.samples["IC50_death"][:, 0]})
-    df4 = pd.DataFrame({"drug": drug2, "rate": "IC50_death", "value": M.samples["IC50_death"][:, 1]})
+    df1 = pd.DataFrame({"drug": drug1, "rate": "Growth", "value": M.samples["IC50_growth"][:, 0]})
+    df2 = pd.DataFrame({"drug": drug2, "rate": "Growth", "value": M.samples["IC50_growth"][:, 1]})
+    df3 = pd.DataFrame({"drug": drug1, "rate": "Death", "value": M.samples["IC50_death"][:, 0]})
+    df4 = pd.DataFrame({"drug": drug2, "rate": "Death", "value": M.samples["IC50_death"][:, 1]})
 
     dfplot = pd.concat([df1, df2, df3, df4])
     dfplot["value"] = np.log10(dfplot["value"])
 
     sns.violinplot(x="drug", y="value", hue="rate", data=dfplot, ax=ax[1], linewidth=0.1)
-    ax[1].set_ylabel(r'log_{10}(nM)')
+    ax[1].set_ylabel(r"Log$_{10}$[$\mu$M]")
+    ax[1].set_ylim(1.0, 2.25)

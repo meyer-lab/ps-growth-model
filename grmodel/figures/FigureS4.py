@@ -67,8 +67,8 @@ def simulationPlots_comb(loadFile, axes):
                 if ii % 3 == 0:
                     axes[ii].set_ylim(0.0, 100.0)
                 else:
-                    axes[ii].set_ylim(-1.0, 10.0)
+                    axes[ii].set_ylim(-0.5, 5.0)
 
-                axes[ii].set_xlabel("Time (h)")
+                axes[ii].set_xlabel("Time (hr)")
                 axes[ii].set_ylabel("Percent Image Positive")
                 axes[ii].set_title(M.drugs[0] + " " + str(round(X1[i], 1)) + r"$\mu$M + " + M.drugs[1])
