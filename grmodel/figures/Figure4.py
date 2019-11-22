@@ -4,7 +4,7 @@ This creates Figure 4.
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from ..sampleAnalysis import readModel
+from ..pymcInteraction import drugInteractionModel
 from .FigureCommon import getSetup, subplotLabel
 
 
@@ -30,7 +30,7 @@ def makeFigure():
 def simPlots_comb(loadFile, axes, drug1, drug2):
     """ Output raw data plotting for Bliss additivity. """
     # Read model
-    M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2, fit=False)
+    M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=False)
 
     drug1 = drug1 + r" ($\mu$M)"
     drug2 = drug2 + r" ($\mu$M)"
@@ -68,7 +68,8 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
 def fittingPlots(ax, loadFile, drug1, drug2):
     """ Plots of additive interaction fit. """
     # Read model from saved pickle file
-    M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2)
+    M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=True)
+
 
     resid = np.median(M.samples["conflResid"], axis=0).reshape(5, 7)
     sns.heatmap(resid, ax=ax[0], cmap="PiYG", vmin=-0.5, vmax=0.5, cbar=False, square=True)
@@ -84,3 +85,7 @@ def fittingPlots(ax, loadFile, drug1, drug2):
     sns.violinplot(x="drug", y="value", hue="rate", data=dfplot, ax=ax[1], linewidth=0.1)
     ax[1].set_ylabel(r"Log$_{10}$[$\mu$M]")
     ax[1].set_ylim(1.0, 2.25)
+
+    # Remove legend title
+    handles, labels = ax[1].get_legend_handles_labels()
+    ax[1].legend(handles=handles, labels=labels)

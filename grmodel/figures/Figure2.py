@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from ..sampleAnalysis import readModel
+from ..pymcGrowth import GrowthModel
 from ..utils import violinplot
 from .FigureCommon import getSetup, subplotLabel
 
@@ -36,10 +36,10 @@ def makeFigure():
         axis.axis("off")
 
     # Show simulation plots (predicted vs experimental)
-    simulationPlots(axes=[ax[5], ax[6], ax[7], ax[10], ax[11], ax[12]])
+    simulationPlots(axes=[ax[5], ax[6], ax[7], ax[10], ax[11], ax[12]], swapDrugs=True)
 
     # Show violin plots for model parameters
-    violinPlots(axes=[ax[13], ax[14], ax[8], ax[9]])
+    violinPlots(axes=[ax[13], ax[14], ax[8], ax[9]], swapDrugs=True)
 
     subplotLabel([ax[0], ax[5], ax[3], ax[8], ax[15], ax[17], ax[18]])
 
@@ -50,7 +50,8 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
     """ Make plots of experimental data. """
 
     # Load model and dataset
-    classM = readModel(ff=ff, model="growthModel", fit=False)
+    classM = GrowthModel(loadFile=ff)
+    classM.importData()
 
     df = pd.DataFrame(classM.expTable)
 
@@ -61,12 +62,9 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
     # Get drug names
     drugs = list(OrderedDict.fromkeys(classM.drugs))
     drugs.remove("Control")
-    drugAname, drugBname = drugs
 
     if swapDrugs:
-        drugAname, drugBname = drugBname, drugAname
-
-    print("drugname: " + drugAname + ", " + drugBname)
+        drugs = list(reversed(drugs))
 
     # help to name title
     quant_tt = ["Phase", "Annexin V", "YOYO-3"]
@@ -78,9 +76,9 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
         quant = ["confl", "apop", "dna"][ii % 3]
 
         if ii < 3:
-            curDrug = drugBname
+            curDrug = drugs[1]
         else:
-            curDrug = drugAname
+            curDrug = drugs[0]
 
         dfcur = df.loc[np.logical_or(df["drug"] == curDrug, df["drug"] == "Control"), :]
 
@@ -148,10 +146,10 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
         ax.set_ylabel("Percent Image Positive")
 
 
-def violinPlots(axes, ff="101117_H1299", remm=None):
+def violinPlots(axes, ff="101117_H1299", remm=None, swapDrugs=False):
     """ Create violin plots of model posterior. """
     # Load model and dataset
-    dfdict, drugs, _ = violinplot(ff)
+    dfdict, drugs, _ = violinplot(ff, swapDrugs=swapDrugs)
 
     if remm is not None:
         drugs.remove(remm)

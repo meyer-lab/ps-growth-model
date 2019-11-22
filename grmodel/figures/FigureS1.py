@@ -4,7 +4,7 @@ from collections import OrderedDict
 import seaborn as sns
 import pandas as pd
 from .FigureCommon import getSetup, subplotLabel
-from ..sampleAnalysis import readModel
+from ..pymcGrowth import GrowthModel
 from ..utils import reformatData
 
 
@@ -30,12 +30,16 @@ def violinplot_split(filename, axis):
     analyses of kinetic data and endpoint data.
     """
     # Read in model and kinetic dataframe
-    classM = readModel(filename, model="growthModel")
+    classM = GrowthModel(loadFile=filename)
+    classM.importData()
+    classM.performFit()
     df = classM.df
     df["Data Type"] = "Kinetic"
 
     # Read in dataframe for endpoint data
-    classM2 = readModel(filename, model="growthModel", interval=False)
+    classM2 = GrowthModel(loadFile=filename)
+    classM2.importData(interval=False)
+    classM2.performFit()
     df2 = classM2.df
     df2["Data Type"] = "Endpoints"
 

@@ -150,7 +150,7 @@ class GrowthModel:
         self.df = pm.backends.tracetab.trace_to_dataframe(self.samples)
 
     # Directly import one column of data
-    def importData(self, firstCols, comb=None, interval=True):
+    def importData(self, firstCols=2, comb=None, interval=True):
         """Import experimental data"""
 
         # Property list

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .Figure2 import simulationPlots
 from .FigureCommon import getSetup, subplotLabel
-from ..sampleAnalysis import readModel
+from ..pymcInteraction import drugInteractionModel
 
 
 def makeFigure():
@@ -43,7 +43,7 @@ def simulationPlots_comb(loadFile, axes):
         raise ValueError("Unrecognized file.")
 
     # Read model
-    M = readModel(loadFile, model="interactionModel", drug1=drug1, drug2=drug2, fit=False)
+    M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=False)
 
     X1 = np.unique(M.X1)
     X2 = np.unique(M.X2)

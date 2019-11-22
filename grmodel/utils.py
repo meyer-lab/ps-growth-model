@@ -3,7 +3,7 @@ Various utility functions, probably mostly for plotting.
 """
 from collections import OrderedDict
 import pandas as pd
-from .sampleAnalysis import readModel
+from .pymcGrowth import GrowthModel
 
 
 def reformatData(dfd, alldoses, alldrugs, drug, params):
@@ -46,7 +46,7 @@ def reformatData(dfd, alldoses, alldrugs, drug, params):
     return dfplot
 
 
-def violinplot(filename, model="growthModel"):
+def violinplot(filename, swapDrugs=False):
     """
     Takes in a list of drugs
     Makes 1*len(parameters) violinplots for each drug
@@ -54,12 +54,17 @@ def violinplot(filename, model="growthModel"):
 
     # Load model and dataset
     # Read in dataframe
-    classM = readModel(filename, model=model)
+    classM = GrowthModel(filename)
+    classM.importData()
+    classM.performFit()
     df = classM.df
 
     # Get a list of drugs
-    drugs = set(classM.drugs)
+    drugs = list(OrderedDict.fromkeys(classM.drugs))
     drugs.remove("Control")
+
+    if swapDrugs:
+        drugs = list(reversed(drugs))
 
     params = ["div", "deathRate", "apopfrac"]
 
