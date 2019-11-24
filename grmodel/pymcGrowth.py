@@ -9,68 +9,43 @@ import pymc3 as pm
 import theano.tensor as T
 
 
-def simulate(params, ttime):
-    """ Takes in params for parameter values and ttimes, a list or array of times
-    params = [div, d, deathRate, apopfrac, confl_conv, apop_conv, dna_conv]
-    """
-    lnum, eap, deadapop, deadnec = theanoCore(ttime, params[0], params[2], params[3], params[1], numpyy=True)
-
-    out = np.concatenate(
-        (np.expand_dims(lnum, axis=1), np.expand_dims(eap, axis=1), np.expand_dims(deadapop, axis=1), np.expand_dims(deadnec, axis=1)), axis=1
-    )
-    return out
-
-
-def theanoCore(timeV, div, deathRate, apopfrac, d, numpyy=False):
+def theanoCore(timeV, div, deathRate, apopfrac, d):
     """ Assemble the core growth model. """
-    if numpyy:
-        outer = np.outer
-        exp1 = np.exp
-        constV = np.ones_like(timeV, dtype=float)
-    else:
-        outer = T.outer
-        exp1 = T.exp
-        # Make a vector of time and one for time-constant values
-        timeV = T._shared(timeV)
-        constV = T.ones_like(timeV)  # pylint: disable=no-member
+    # Make a vector of time and one for time-constant values
+    timeV = T._shared(timeV)
+    constV = T.ones_like(timeV)  # pylint: disable=no-member
 
     # Calculate the growth rate
-    GR = outer(div - deathRate, constV)
+    GR = T.outer(div - deathRate, constV)
     # cGDd is used later
-    cGRd = outer(deathRate * apopfrac, constV) / (GR + d)
+    cGRd = T.outer(deathRate * apopfrac, constV) / (GR + d)
 
     # b is the rate straight to death
-    b = outer(deathRate * (1 - apopfrac), constV)
+    b = T.outer(deathRate * (1 - apopfrac), constV)
 
-    lnum = exp1(GR * timeV)
+    lnum = T.exp(GR * timeV)
 
     # Number of early apoptosis cells at start is 0.0
-    eap = cGRd * (lnum - exp1(-d * timeV))
+    eap = cGRd * (lnum - T.exp(-d * timeV))
 
     # Calculate dead cells via apoptosis and via necrosis
     deadnec = b * (lnum - 1) / GR
-    deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (exp1(-d * timeV) - 1)
+    deadapop = d * cGRd * (lnum - 1) / GR + cGRd * (T.exp(-d * timeV) - 1)
 
     return (lnum, eap, deadapop, deadnec)
 
 
-def convSignal(lnum, eap, deadapop, deadnec, conversions, offset=True):
+def convSignal(lnum, eap, deadapop, deadnec, conversions):
     """ Sums up the cell populations to link number of cells to image area. """
-    if offset:
-        conv, offset = conversions
-        confl_exp = (lnum + eap + deadapop + deadnec) * conv[0]
-        apop_exp = (eap + deadapop) * conv[1] + offset[0]
-        dna_exp = (deadapop + deadnec) * conv[2] + offset[1]
-    else:
-        conv = conversions
-        confl_exp = (lnum + eap + deadapop + deadnec) * conv[0]
-        apop_exp = (eap + deadapop) * conv[1]
-        dna_exp = (deadapop + deadnec) * conv[2]
+    conv, offset = conversions
+    confl_exp = (lnum + eap + deadapop + deadnec) * conv[0]
+    apop_exp = (eap + deadapop) * conv[1] + offset[0]
+    dna_exp = (deadapop + deadnec) * conv[2] + offset[1]
 
     return (confl_exp, apop_exp, dna_exp)
 
 
-def conversionPriors(conv0, offset=True):
+def conversionPriors(conv0):
     """ Sets the various fluorescence conversion priors. """
     # Set up conversion rates
     confl_conv = pm.Lognormal("confl_conv", np.log(conv0), 0.1)
@@ -82,13 +57,21 @@ def conversionPriors(conv0, offset=True):
     pm.Lognormal("confl_dna", -1.85, 0.125, observed=dna_conv / confl_conv)
     pm.Lognormal("apop_dna", 0.222, 0.141, observed=dna_conv / apop_conv)
 
-    if offset:
-        # Offset values for apop and dna
-        apop_offset = pm.Lognormal("apop_offset", np.log(0.1), 0.1)
-        dna_offset = pm.Lognormal("dna_offset", np.log(0.1), 0.1)
-        return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
+    # Offset values for apop and dna
+    apop_offset = pm.Lognormal("apop_offset", np.log(0.1), 0.1)
+    dna_offset = pm.Lognormal("dna_offset", np.log(0.1), 0.1)
+    return ((confl_conv, apop_conv, dna_conv), (apop_offset, dna_offset))
 
-    return (confl_conv, apop_conv, dna_conv)
+
+def deathPriors(numApop):
+    """ Setup priors for cell death parameters. """
+    # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
+    d = pm.Lognormal("d", np.log(0.001), 0.5)
+
+    # Fraction of dying cells that go through apoptosis
+    apopfrac = pm.Beta("apopfrac", 1.0, 1.0, shape=numApop)
+
+    return d, apopfrac
 
 
 def build_model(conv0, doses, timeV, expTable):
@@ -97,9 +80,7 @@ def build_model(conv0, doses, timeV, expTable):
 
     with growth_model:
         conversions = conversionPriors(conv0)
-
-        # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
-        d = pm.Lognormal("d", np.log(0.001), 0.5)
+        d, apopfrac = deathPriors(len(doses))
 
         # Specify vectors of prior distributions
         # Growth rate
@@ -107,9 +88,6 @@ def build_model(conv0, doses, timeV, expTable):
 
         # Rate of entering apoptosis or skipping straight to death
         deathRate = pm.Lognormal("deathRate", np.log(0.001), 0.5, shape=len(doses))
-
-        # Fraction of dying cells that go through apoptosis
-        apopfrac = pm.Beta("apopfrac", 1.0, 1.0, shape=len(doses))
 
         lnum, eap, deadapop, deadnec = theanoCore(timeV, div, deathRate, apopfrac, d)
 

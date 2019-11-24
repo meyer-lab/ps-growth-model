@@ -36,12 +36,9 @@ class doseResponseModel:
 
     def build_model(self):
         """ Builds then returns the pyMC model. """
+        M = pm.Model()
 
-        assert hasattr(self, "drugCs"), "Need to import data first."
-
-        doseResponseModel = pm.Model()
-
-        with doseResponseModel:
+        with M:
             # The three values here are div and deathrate
             # Assume just one IC50 for simplicity
             lIC50 = pm.Normal("IC50s", 2.0)
@@ -74,7 +71,7 @@ class doseResponseModel:
 
             pm.Normal("dataFitlnum", sd=T.std(residual), observed=residual)
 
-        return doseResponseModel
+        return M
 
     def __init__(self, Drug=None):
         # If no filename is given use a default

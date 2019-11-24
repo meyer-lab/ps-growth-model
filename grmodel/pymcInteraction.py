@@ -1,21 +1,16 @@
 """
 This module handles experimental data for drug interaction.
 """
-import numpy as np
 import pymc3 as pm
 import theano.tensor as T
-from .pymcGrowth import theanoCore, convSignal, conversionPriors
+from .pymcGrowth import theanoCore, convSignal, conversionPriors, deathPriors
 from .interactionData import readCombo, filterDrugC, dataSplit
 
 
-def blissInteract(X1, X2, hill, IC50, numpyy=False, justAdd=False):
-    if numpyy:
-        funcc = np.power
-    else:
-        funcc = T.pow
-
-    drug_one = funcc(X1, hill[0]) / (funcc(IC50[0], hill[0]) + funcc(X1, hill[0]))
-    drug_two = funcc(X2, hill[1]) / (funcc(IC50[1], hill[1]) + funcc(X2, hill[1]))
+def blissInteract(X1, X2, hill, IC50, justAdd=False):
+    """ Calculate Bliss additive interaction of two Hill curves. """
+    drug_one = T.pow(X1, hill[0]) / (T.pow(IC50[0], hill[0]) + T.pow(X1, hill[0]))
+    drug_two = T.pow(X2, hill[1]) / (T.pow(IC50[1], hill[1]) + T.pow(X2, hill[1]))
 
     if justAdd:
         return drug_one + drug_two
@@ -23,18 +18,16 @@ def blissInteract(X1, X2, hill, IC50, numpyy=False, justAdd=False):
     return drug_one + drug_two - drug_one * drug_two
 
 
-def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dna=None):
+def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
     """ Builds then returns the PyMC model. """
 
     assert X1.shape == X2.shape
 
-    drugInteractionModel = pm.Model()
+    M = pm.Model()
 
-    with drugInteractionModel:
-        conversions = conversionPriors(conv0, offset)
-
-        # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
-        d = pm.Lognormal("d", np.log(0.01), 1)
+    with M:
+        conversions = conversionPriors(conv0)
+        d, apopfrac = deathPriors(1)
 
         # hill coefs for drug 1, 2; assumed to be the same for both phenotype
         hill_growth = pm.Lognormal("hill_growth", 0.0, 0.1, shape=2)
@@ -46,9 +39,6 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
 
         # E_con values; first death then growth
         E_con = pm.Lognormal("E_con", -1.0, 1.0, shape=2)
-
-        # Fraction of dying cells that go through apoptosis
-        apopfrac = pm.Beta("apopfrac", 2.0, 2.0)
 
         # Calculate the death rate
         death_rates = E_con[0] * blissInteract(X1, X2, hill_death, IC50_death, justAdd=True)  # pylint: disable=unsubscriptable-object
@@ -64,7 +54,7 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
         # Test the size of lnum
         lnum = T.opt.Assert("lnum did not match X1*timeV size")(lnum, T.eq(lnum.size, X1.size * timeV.size))
 
-        confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec, conversions, offset)
+        confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec, conversions)
 
         # Compare to experimental observation
         if confl is not None:
@@ -82,9 +72,9 @@ def build_model(X1, X2, timeV, conv0=0.1, offset=True, confl=None, apop=None, dn
             dna_obs = T.flatten(dna_exp - dna)
             pm.Normal("dna_fit", sd=T.std(dna_obs), observed=dna_obs)
 
-        pm.Deterministic("logp", drugInteractionModel.logpt)
+        pm.Deterministic("logp", M.logpt)
 
-    return drugInteractionModel
+    return M
 
 
 class drugInteractionModel:
@@ -105,7 +95,7 @@ class drugInteractionModel:
 
         if fit:
             # Build pymc model
-            self.model = build_model(self.X1, self.X2, self.timeV, 1.0, False, confl=self.phase, apop=self.green, dna=self.red)
+            self.model = build_model(self.X1, self.X2, self.timeV, 1.0, confl=self.phase, apop=self.green, dna=self.red)
 
             # Perform pymc fitting given actual data
             self.samples = pm.sampling.sample(tune=1000, chains=2, model=self.model, progressbar=False)
