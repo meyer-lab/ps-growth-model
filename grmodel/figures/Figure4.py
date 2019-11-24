@@ -16,11 +16,11 @@ def makeFigure():
     # plot phase, green and red confl for three drug interactions
     ax, f = getSetup((10, 4), (2, 5))
 
-    fittingPlots([ax[2], ax[4]], "050719_PC9_LCL_OSI", "LCL161", "OSI-906")
-    fittingPlots([ax[7], ax[9]], "050719_PC9_PIM_OSI", "PIM447", "OSI-906")
+    A = simPlots_comb("050719_PC9_LCL_OSI", ax[0:4], "LCL161", "OSI-906")
+    B = simPlots_comb("050719_PC9_PIM_OSI", ax[5:9], "PIM447", "OSI-906")
 
-    simPlots_comb("050719_PC9_LCL_OSI", ax[0:4], "LCL161", "OSI-906")
-    simPlots_comb("050719_PC9_PIM_OSI", ax[5:9], "PIM447", "OSI-906")
+    fittingPlots([ax[2], ax[4]], "050719_PC9_LCL_OSI", "LCL161", "OSI-906", A)
+    fittingPlots([ax[7], ax[9]], "050719_PC9_PIM_OSI", "PIM447", "OSI-906", B)
 
     subplotLabel(ax)
 
@@ -64,15 +64,17 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
 
     sns.heatmap(confldf, ax=axes[1], cmap="PiYG", vmin=-0.5, vmax=0.5, square=True)
 
+    return confldf
 
-def fittingPlots(ax, loadFile, drug1, drug2):
+
+def fittingPlots(ax, loadFile, drug1, drug2, df):
     """ Plots of additive interaction fit. """
     # Read model from saved pickle file
     M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=True)
 
+    df.iloc[:, :] = np.median(M.samples["conflResid"], axis=0).reshape(5, 7)
 
-    resid = np.median(M.samples["conflResid"], axis=0).reshape(5, 7)
-    sns.heatmap(resid, ax=ax[0], cmap="PiYG", vmin=-0.5, vmax=0.5, cbar=False, square=True)
+    sns.heatmap(df, ax=ax[0], cmap="PiYG", vmin=-0.5, vmax=0.5, cbar=False, square=True)
 
     df1 = pd.DataFrame({"drug": drug1, "rate": "Growth", "value": M.samples["IC50_growth"][:, 0]})
     df2 = pd.DataFrame({"drug": drug2, "rate": "Growth", "value": M.samples["IC50_growth"][:, 1]})
