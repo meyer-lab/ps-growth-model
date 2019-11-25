@@ -1,16 +1,17 @@
 """
 This module handles experimental data for drug interaction.
 """
+import numpy as np
 import pymc3 as pm
 import theano.tensor as T
 from .pymcGrowth import theanoCore, convSignal, conversionPriors, deathPriors
 from .interactionData import readCombo, filterDrugC, dataSplit
 
 
-def blissInteract(X1, X2, hill, IC50, justAdd=False):
+def blissInteract(X1, X2, hill, IC50, Emax, justAdd=False):
     """ Calculate Bliss additive interaction of two Hill curves. """
-    drug_one = T.pow(X1, hill[0]) / (T.pow(IC50[0], hill[0]) + T.pow(X1, hill[0]))
-    drug_two = T.pow(X2, hill[1]) / (T.pow(IC50[1], hill[1]) + T.pow(X2, hill[1]))
+    drug_one = Emax[0] * T.pow(X1, hill[0]) / (T.pow(IC50[0], hill[0]) + T.pow(X1, hill[0]))
+    drug_two = Emax[1] * T.pow(X2, hill[1]) / (T.pow(IC50[1], hill[1]) + T.pow(X2, hill[1]))
 
     if justAdd:
         return drug_one + drug_two
@@ -29,22 +30,21 @@ def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
         conversions = conversionPriors(conv0)
         d, apopfrac = deathPriors(1)
 
-        # hill coefs for drug 1, 2; assumed to be the same for both phenotype
-        hill_growth = pm.Lognormal("hill_growth", 0.0, 0.1, shape=2)
-        hill_death = pm.Lognormal("hill_death", 0.0, 0.1, shape=2)
-
-        # IL50 for drug 1, 2; assumed to be the same for both phenotype
-        IC50_growth = pm.Lognormal("IC50_growth", -1.0, 1.0, shape=2)
-        IC50_death = pm.Lognormal("IC50_death", -1.0, 1.0, shape=2)
+        # parameters for drug 1, 2; assumed to be the same for both phenotypes
+        hill = pm.Lognormal("hill", shape=2)
+        IC50 = pm.Lognormal("IC50", shape=2)
+        EmaxGrowth = pm.Beta("EmaxGrowth", 1.0, 1.0, shape=2)
+        EmaxDeath = pm.Lognormal("EmaxDeath", -2.0, 0.5, shape=2)
 
         # E_con values; first death then growth
-        E_con = pm.Lognormal("E_con", -1.0, 1.0, shape=2)
+        GrowthCon = pm.Lognormal("GrowthCon", np.log10(0.03), 0.1)
 
         # Calculate the death rate
-        death_rates = E_con[0] * blissInteract(X1, X2, hill_death, IC50_death, justAdd=True)  # pylint: disable=unsubscriptable-object
+        death_rates = blissInteract(X1, X2, hill, IC50, EmaxDeath, justAdd=True)  # pylint: disable=unsubscriptable-object
 
         # Calculate the growth rate
-        growth_rates = E_con[1] * (1 - blissInteract(X1, X2, hill_growth, IC50_growth))  # pylint: disable=unsubscriptable-object
+        growth_rates = GrowthCon * (1 - blissInteract(X1, X2, hill, IC50, EmaxGrowth))  # pylint: disable=unsubscriptable-object
+        pm.Deterministic("EmaxGrowthEffect", GrowthCon * EmaxGrowth)
 
         # Test the dimension of growth_rates
         growth_rates = T.opt.Assert("growth_rates did not match X1 size")(growth_rates, T.eq(growth_rates.size, X1.size))
@@ -98,4 +98,4 @@ class drugInteractionModel:
             self.model = build_model(self.X1, self.X2, self.timeV, 1.0, confl=self.phase, apop=self.green, dna=self.red)
 
             # Perform pymc fitting given actual data
-            self.samples = pm.sampling.sample(tune=1000, chains=2, model=self.model, progressbar=False)
+            self.samples = pm.sampling.sample(init="ADVI", chains=2, model=self.model, progressbar=False)
