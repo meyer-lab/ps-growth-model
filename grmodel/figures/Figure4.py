@@ -63,6 +63,7 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     confldf.iloc[:, :] = confl - additive
 
     sns.heatmap(confldf, ax=axes[1], cmap="PiYG", vmin=-0.5, vmax=0.5, square=True)
+    axes[1].set_title("Just Viability")
 
     return confldf
 
@@ -75,6 +76,7 @@ def fittingPlots(ax, loadFile, drug1, drug2, df):
     df.iloc[:, :] = np.median(M.samples["conflResid"], axis=0).reshape(5, 7)
 
     sns.heatmap(df, ax=ax[0], cmap="PiYG", vmin=-0.5, vmax=0.5, cbar=False, square=True)
+    ax[0].set_title("Full Model")
 
     df1 = pd.DataFrame({"drug": drug1, "param": "IC50 [mM]", "value": M.samples["IC50"][:, 0] / 1000.0})
     df2 = pd.DataFrame({"drug": drug2, "param": "IC50 [mM]", "value": M.samples["IC50"][:, 1] / 1000.0})
