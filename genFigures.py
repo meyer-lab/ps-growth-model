@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
+from grmodel.figures.FigureCommon import overlayCartoon
 import sys
 import matplotlib as plt
 
 plt.use("AGG")
-from grmodel.figures.FigureCommon import overlayCartoon
 
 fdir = "./output/"
 

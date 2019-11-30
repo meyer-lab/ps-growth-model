@@ -123,7 +123,7 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
 
         # add legends
         if quant == "confl":
-            if curDrug in ["Dox", "NVB", "Paclitaxel", "Erlotinib"]: # drugs with nM units
+            if curDrug in ["Dox", "NVB", "Paclitaxel", "Erlotinib"]:  # drugs with nM units
                 title = "Doses (nM)"
             else:
                 title = r"Doses ($\mu$M)"

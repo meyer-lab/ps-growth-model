@@ -24,7 +24,9 @@ def makeFigure():
     M = doseResponseModel()
     M.sample()
 
-    # Store the MCMC sampling priors to compute the lExp (fit celltiter quantitation), growthV (predicted growth rate) and deathV (predicted death rate) at each drug concentration.
+    # Store the MCMC sampling priors to compute the lExp (fit celltiter
+    # quantitation), growthV (predicted growth rate) and deathV (predicted
+    # death rate) at each drug concentration.
     df = pd.DataFrame(
         {
             "IC50s": M.trace["IC50s"],

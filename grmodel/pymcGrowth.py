@@ -118,6 +118,7 @@ def build_model(conv0, doses, timeV, expTable):
 
 class GrowthModel:
     """ Model for fitting data incorporating cell death response. """
+
     def performFit(self):
         """ Run NUTS sampling"""
         logging.info("Building the model")
@@ -154,7 +155,7 @@ class GrowthModel:
             try:
                 dataset = pandas.read_csv(pathcsv + value)
                 # Subtract control
-                dataset1 = dataset.iloc[:, 2 : len(dataset.columns)]
+                dataset1 = dataset.iloc[:, 2: len(dataset.columns)]
                 dataset1.sub(dataset1["Control"], axis=0)
                 data = pandas.concat([dataset.iloc[:, 0:2], dataset1], axis=1, sort=False)
 
