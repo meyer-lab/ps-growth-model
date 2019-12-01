@@ -228,5 +228,5 @@ def alphaFig(M, ax1):
     ax1.semilogx(alpha, deadCells, label="cum. # dead")
     ax1.set_xlabel(r"Growth/death effect ratio")
     ax1.set_ylabel("Quantity per starting cell")
-    ax1.semilogx(alpha, cellDiv, "r", label="avg. divisions")
+    ax1.semilogx(alpha, cellDiv, "r", label="avg. # divisions")
     ax1.legend(handlelength=0.5)

@@ -30,7 +30,7 @@ def makeFigure():
 
     ax[0].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
     ax[1].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
-    ax[0].set_ylim(top=0.03)
+    ax[0].set_ylim(bottom=-0.0015, top=0.03)
     ax[1].set_ylim(bottom=0.0, top=0.02)
     ax[2].set_ylim(bottom=0.0, top=0.02)
     ax[2].set_xlim(left=0.0, right=0.03)

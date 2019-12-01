@@ -47,8 +47,10 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     ddd = ddd.groupby([drug1, drug2, "time"]).mean().reset_index()
     confldf = ddd.pivot(drug1, drug2, "confl")
 
-    sns.heatmap(confldf, ax=axes[0], vmin=0.0, square=True)
-    sns.heatmap(ddd.pivot(drug1, drug2, "apop"), ax=axes[3], vmin=0.0, square=True)
+    sns.heatmap(confldf, ax=axes[0], vmin=0.0, square=True, xticklabels=1)
+    axes[0].set_title("Phase")
+    sns.heatmap(ddd.pivot(drug1, drug2, "apop"), ax=axes[3], vmin=0.0, square=True, xticklabels=1)
+    axes[3].set_title("Annexin V")
 
     confl = confldf.to_numpy()
     confl /= confl[0, 0]
@@ -62,7 +64,7 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
 
     confldf.iloc[:, :] = confl - additive
 
-    sns.heatmap(confldf, ax=axes[1], cmap="PiYG", vmin=-0.5, vmax=0.5, square=True)
+    sns.heatmap(confldf, ax=axes[1], cmap="PiYG", vmin=-0.5, vmax=0.5, square=True, xticklabels=1)
     axes[1].set_title("Just Viability")
 
     return confldf

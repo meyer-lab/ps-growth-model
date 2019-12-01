@@ -84,6 +84,8 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
 
         if curDrug == "Erl":
             curDrug = "Erlotinib"
+        if curDrug == "Dox":
+            curDrug = "DOX"
 
         # array of all doses for the drug
         doses = np.unique(dfcur["dose"])
@@ -123,7 +125,7 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
 
         # add legends
         if quant == "confl":
-            if curDrug in ["Dox", "NVB", "Paclitaxel", "Erlotinib"]:  # drugs with nM units
+            if curDrug in ["DOX", "NVB", "Paclitaxel", "Erlotinib"]:  # drugs with nM units
                 title = "Doses (nM)"
             else:
                 title = r"Doses ($\mu$M)"

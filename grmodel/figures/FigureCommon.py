@@ -8,7 +8,10 @@ rcParams["xtick.major.pad"] = 1.5
 rcParams["ytick.major.pad"] = 1.5
 rcParams["xtick.minor.pad"] = 1.5
 rcParams["ytick.minor.pad"] = 1.5
-rcParams["legend.labelspacing"] = 0.1
+rcParams["legend.labelspacing"] = 0.06
+rcParams["legend.handlelength"] = 1.0
+rcParams["legend.handletextpad"] = 0.6
+rcParams["legend.borderaxespad"] = 0.25
 
 
 def getSetup(figsize, gridd, multz=None, empts=None):

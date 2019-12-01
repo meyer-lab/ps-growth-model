@@ -64,7 +64,7 @@ def violinplot_split(filename, axis):
 
         axis[3 * j].set_ylabel("Division Rate (1/hr)")
         axis[3 * j + 1].set_ylabel("Death Rate (1/hr)")
-        axis[3 * j + 2].set_ylabel("Apoptosis Fraction")
+        axis[3 * j + 2].set_ylabel("Apopfrac")
 
     for i, ax in enumerate(axis):
         ax.set_ylim(bottom=0.0)
