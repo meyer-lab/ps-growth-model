@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+import logging
 from grmodel.figures.FigureCommon import overlayCartoon
 import sys
 import matplotlib as plt
 
 plt.use("AGG")
+logging.basicConfig(level=logging.WARNING)
 
 fdir = "./output/"
 
