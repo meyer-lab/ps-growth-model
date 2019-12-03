@@ -2,7 +2,7 @@ pipeline {
   agent { label 'docker' }
   stages {
     stage('Clean') { steps { sh 'make clean && git submodule update --init --recursive' } }
-    stage('Build/Test') { steps { sh 'make all -j 3' } }
+    stage('Build/Test') { steps { sh 'make all -j 2' } }
     stage('Report') {
       steps {
         recordIssues qualityGates: [[threshold: 90, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]

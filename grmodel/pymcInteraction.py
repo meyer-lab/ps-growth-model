@@ -99,4 +99,4 @@ class drugInteractionModel:
             self.model = build_model(self.X1, self.X2, self.timeV, 1.0, confl=self.phase, apop=self.green, dna=self.red)
 
             # Perform pymc fitting given actual data
-            self.samples = pm.sampling.sample(init="ADVI", chains=2, model=self.model, progressbar=False)
+            self.samples = pm.sampling.sample(tune=2000, chains=2, model=self.model, progressbar=False)

@@ -10,7 +10,7 @@ pylint==2.4.4
 xlrd==1.2.0
 pytest==5.3.1
 pytest-cov==2.8.1
-manubot==0.2.4
+manubot==0.3.0
 pandoc-fignos==2.2.0
 pandoc-eqnos==2.1.1
 pandoc-tablenos==2.1.1
