@@ -2,13 +2,13 @@ pipeline {
   agent { label 'docker' }
   stages {
     stage('Clean') { steps { sh 'make clean && git submodule update --init --recursive' } }
-    stage('Build/Test') { steps { sh 'make all -j 2' } }
+    stage('Build/Test') { steps { sh 'make all -j 12' } }
     stage('Report') {
       steps {
-        recordIssues qualityGates: [[threshold: 90, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
+        recordIssues qualityGates: [[threshold: 35, type: 'TOTAL', unstable: true]], tools: [pyLint(pattern: 'pylint.log')]
         junit allowEmptyResults: false, testResults: 'junit.xml'
         cobertura coberturaReportFile: 'coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
-        archiveArtifacts artifacts: 'output/*.pdf', onlyIfSuccessful: true
+        archiveArtifacts artifacts: 'output/*.pdf, output/*.svg, output/*.docx', onlyIfSuccessful: true
         publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'output', reportFiles: 'manuscript.html', reportName: 'Manuscript'])
       }
     }
