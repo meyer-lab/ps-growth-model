@@ -189,7 +189,7 @@ def violinPlots(axes, ff="101117_H1299", remm=None, swapDrugs=False):
                 # Set y label
                 axes[idx].set_ylabel(r"Rate (1/hr)")
                 # Set ylim
-                axes[idx].set_ylim(bottom=0)
+                axes[idx].set_ylim(bottom=0.0, top=0.07)
             elif param == "apopfrac":
                 # Make violin plots
                 sns.violinplot(x="dose", y=param, data=df2, ax=axes[idx], color=sns.color_palette("Set2")[2], linewidth=0.2)

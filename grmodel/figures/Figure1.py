@@ -198,6 +198,7 @@ def plot_sampling_data(df, ax3, ax4, ax5, ax6):
     plot_data_and_quantile(df2, "deathV", quantiles, ax5)
     ax5.set_xlabel(r"$\mathregular{Log_{10}}$[DOX(nM)]")
     ax5.set_ylabel("Predicted death rate (1/day)")
+    ax5.set_ylim(bottom=0.0, top=0.8)
     ax5.legend(loc=6)
 
     # Figure G: Plot growth rate vs. death rate
