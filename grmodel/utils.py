@@ -55,7 +55,6 @@ def violinplot(filename, swapDrugs=False):
     # Load model and dataset
     # Read in dataframe
     classM = GrowthModel(filename)
-    classM.importData()
     classM.performFit()
     df = classM.df
 

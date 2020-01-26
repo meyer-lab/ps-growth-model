@@ -50,8 +50,7 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
     """ Make plots of experimental data. """
 
     # Load model and dataset
-    classM = GrowthModel(loadFile=ff)
-    classM.importData()
+    classM = GrowthModel(ff)
 
     df = pd.DataFrame(classM.expTable)
 

@@ -30,15 +30,13 @@ def violinplot_split(filename, axis):
     analyses of kinetic data and endpoint data.
     """
     # Read in model and kinetic dataframe
-    classM = GrowthModel(loadFile=filename)
-    classM.importData()
+    classM = GrowthModel(filename)
     classM.performFit()
     df = classM.df
     df["Data Type"] = "Kinetic"
 
     # Read in dataframe for endpoint data
-    classM2 = GrowthModel(loadFile=filename)
-    classM2.importData(interval=False)
+    classM2 = GrowthModel(filename, interval=False)
     classM2.performFit()
     df2 = classM2.df
     df2["Data Type"] = "Endpoints"

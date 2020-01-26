@@ -1,6 +1,7 @@
 """
 This creates Figure 3.
 """
+from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -45,11 +46,16 @@ def ratePlots(axes):
     """ Create line plots of model posterior. """
     files = ["072718_PC9_BYL_PIM", "050719_PC9_PIM_OSI", "050719_PC9_LCL_OSI", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl"]
 
+    violRes = dict()
+    executor = ProcessPoolExecutor(max_workers=5)
+    for _, ff in enumerate(files):
+        # Load model and dataset
+        violRes[ff] = executor.submit(violinplot, ff)
+
     df = None
     for i, ff in enumerate(files):
-
         # Load model and dataset
-        dfdict, drugs, _ = violinplot(ff)
+        dfdict, drugs, _ = violRes[ff].result()
 
         # Plot params vs. drug dose
         for _, drug in enumerate(drugs):

@@ -7,6 +7,4 @@ class TestgrMethods(unittest.TestCase):
 
     def test_model(self):
         """ Test that we can build the growth model. """
-        GR = GrowthModel(loadFile="030317-2-R1_H1299")
-
-        GR.importData(2, comb="R")
+        GrowthModel("030317-2-R1_H1299", comb="R")

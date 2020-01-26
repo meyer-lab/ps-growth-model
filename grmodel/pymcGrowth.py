@@ -128,9 +128,9 @@ class GrowthModel:
         self.samples = pm.sample(model=model, progressbar=False, chains=2, init="advi+adapt_diag", tune=1000, target_accept=0.9)
         self.df = pm.backends.tracetab.trace_to_dataframe(self.samples)
 
-    # Directly import one column of data
-    def importData(self, firstCols=2, comb=None, interval=True):
+    def __init__(self, loadFile, firstCols=2, comb=None, interval=True):
         """Import experimental data"""
+        self.loadFile = loadFile
 
         # Property list
         properties = {"confl": "_confluence_phase.csv", "apop": "_confluence_green.csv", "dna": "_confluence_red.csv"}
@@ -247,10 +247,3 @@ class GrowthModel:
 
         # Record averge conv0 for confl prior
         self.conv0 = np.mean(selconv0)
-
-    def __init__(self, loadFile=None):
-        # If no filename is given use a default
-        if loadFile is None:
-            self.loadFile = "101117_H1299"
-        else:
-            self.loadFile = loadFile
