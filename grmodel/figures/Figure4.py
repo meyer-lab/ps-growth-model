@@ -80,20 +80,19 @@ def fittingPlots(ax, loadFile, drug1, drug2, df):
     sns.heatmap(df, ax=ax[0], cmap="PiYG", vmin=-0.5, vmax=0.5, cbar=False, square=True)
     ax[0].set_title("Full Model")
 
-    df1 = pd.DataFrame({"drug": drug1, "param": "IC50 [mM]", "value": M.samples["IC50"][:, 0] / 1000.0})
-    df2 = pd.DataFrame({"drug": drug2, "param": "IC50 [mM]", "value": M.samples["IC50"][:, 1] / 1000.0})
-    df3 = pd.DataFrame({"drug": drug1, "param": "Growth Emax [1/hr]", "value": M.samples["EmaxGrowthEffect"][:, 0]})
-    df4 = pd.DataFrame({"drug": drug2, "param": "Growth Emax [1/hr]", "value": M.samples["EmaxGrowthEffect"][:, 1]})
-    df5 = pd.DataFrame({"drug": drug1, "param": "Death Emax [1/hr]", "value": M.samples["EmaxDeath"][:, 0]})
-    df6 = pd.DataFrame({"drug": drug2, "param": "Death Emax [1/hr]", "value": M.samples["EmaxDeath"][:, 1]})
+    df3 = pd.DataFrame({"drug": drug1, "param": "Growth", "value": M.samples["EmaxGrowthEffect"][:, 0]})
+    df4 = pd.DataFrame({"drug": drug2, "param": "Growth", "value": M.samples["EmaxGrowthEffect"][:, 1]})
+    df5 = pd.DataFrame({"drug": drug1, "param": "Death", "value": M.samples["EmaxDeath"][:, 0]})
+    df6 = pd.DataFrame({"drug": drug2, "param": "Death", "value": M.samples["EmaxDeath"][:, 1]})
 
-    dfplot = pd.concat([df1, df2, df3, df4, df5, df6])
-    dfplot["value"] = np.log10(dfplot["value"])
+    dfplot = pd.concat([df3, df4, df5, df6])
+    dfplot["value"] = dfplot["value"]
 
+    # TODO: Report IC50 in the text.
     sns.violinplot(x="param", y="value", hue="drug", data=dfplot, ax=ax[1], linewidth=0.1)
     ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=25, horizontalalignment="right")
-    ax[1].set_ylabel(r"Log$_{10}$[Value]")
-    ax[1].set_ylim(-2.0, -0.5)
+    ax[1].set_ylabel("Emax [1/hr]")
+    ax[1].set_ylim(bottom=0.0)
     ax[1].set_xlabel("")
 
     # Remove legend title
