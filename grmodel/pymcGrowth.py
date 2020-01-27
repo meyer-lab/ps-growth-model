@@ -125,8 +125,8 @@ class GrowthModel:
         model = build_model(self.conv0, self.doses, self.timeV, self.expTable)
 
         logging.info("GrowthModel sampling")
-        self.samples = pm.sample(model=model, progressbar=False, chains=2, init="advi+adapt_diag", tune=1000, target_accept=0.9)
-        self.df = pm.backends.tracetab.trace_to_dataframe(self.samples)
+        samples = pm.sample(model=model, progressbar=False, chains=2, init="advi+adapt_diag", tune=1000, target_accept=0.9)
+        self.df = pm.backends.tracetab.trace_to_dataframe(samples)
 
     def __init__(self, loadFile, firstCols=2, comb=None, interval=True):
         """Import experimental data"""
@@ -175,12 +175,8 @@ class GrowthModel:
             # Set the time vector
             self.timeV = data.iloc[:, 1].values
 
-            if not hasattr(self, "totalCols"):
-                self.totalCols = len(data.columns)
-            if self.totalCols < firstCols + 2:
-                raise ValueError("Didn't find many columns.")
-
-            for col in list(range(firstCols, self.totalCols)):
+            assert len(data.columns) > firstCols + 1
+            for col in list(range(firstCols, len(data.columns))):
                 # Set the name of the condition we're considering
                 condName = data.columns.values[col]
 
@@ -190,26 +186,21 @@ class GrowthModel:
                     # If control
                     if "Control" in condName:
                         drug = "Control"
-                        dose1 = 0
-                        dose2 = 0
+                        dose = (0, 0)
                     # If only the combination drug
                     elif condName.split(" ")[0] == comb:
                         drug = comb
-                        dose1 = 0
-                        dose2 = float(condName.split(" ")[1])
+                        dose = (0, float(condName.split(" ")[1]))
                     # If contains drug besides the combination drug
                     elif "blank" not in condName.lower():
                         try:  # Both combination drug and another drug
                             drug1str = condName.split(", ")[0]
-                            dose1 = float(drug1str.split(" ")[1])
                             combstr = condName.split(", ")[1]
-                            dose2 = float(combstr.split(" ")[1])
+                            dose = (float(drug1str.split(" ")[1]), float(combstr.split(" ")[1]))
                             drug = drug1str.split(" ")[0] + "+" + combstr.split(" ")[0]
                         except IndexError:  # Only the other drug
                             drug = condName.split(" ")[0]
-                            dose1 = condName.split(" ")[1]
-                            dose2 = 0
-                    dose = (dose1, dose2)
+                            dose = (condName.split(" ")[1], 0)
 
                     # Add data to expTable
                     self.expTable.setdefault(key, []).append(data.iloc[:, col].values)
