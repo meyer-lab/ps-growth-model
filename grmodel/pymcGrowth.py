@@ -139,8 +139,6 @@ class GrowthModel:
         pathcsv = join(dirname(abspath(__file__)), "data/singles/" + self.loadFile)
 
         # Pull out selected column data
-        self.selCols = []
-        self.condNames = []
         self.doses = []
         self.drugs = []
         selconv0 = []
@@ -176,7 +174,7 @@ class GrowthModel:
             self.timeV = data.iloc[:, 1].values
 
             assert len(data.columns) > firstCols + 1
-            for col in list(range(firstCols, len(data.columns))):
+            for col in range(firstCols, len(data.columns)):
                 # Set the name of the condition we're considering
                 condName = data.columns.values[col]
 
@@ -209,8 +207,6 @@ class GrowthModel:
                     if key == "confl":
                         self.drugs.append(drug)
                         self.doses.append(dose)
-                        self.condNames.append(condName)
-                        self.selCols.append(col)
                         selconv0.append(conv0[col - firstCols])
 
                 else:  # For data without combinations
@@ -230,8 +226,6 @@ class GrowthModel:
                         if key == "confl":
                             self.drugs.append(drug)
                             self.doses.append(dose)
-                            self.condNames.append(condName)
-                            self.selCols.append(col)
                             selconv0.append(conv0[col - firstCols])
             # Reshape experimental data into 1D array
             self.expTable[key] = np.array(self.expTable[key]).reshape((-1,))
