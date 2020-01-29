@@ -128,13 +128,11 @@ class GrowthModel:
 
     def __init__(self, loadFile, firstCols=2, comb=None, interval=True):
         """Import experimental data"""
-        self.loadFile = loadFile
-
         # Property list
         properties = {"confl": "_confluence_phase.csv", "apop": "_confluence_green.csv", "dna": "_confluence_red.csv"}
 
         # Find path for csv files in the repository.
-        pathcsv = join(dirname(abspath(__file__)), "data/singles/" + self.loadFile)
+        pathcsv = join(dirname(abspath(__file__)), "data/singles/" + loadFile)
 
         # Pull out selected column data
         self.doses = []
@@ -148,25 +146,20 @@ class GrowthModel:
         # Data tables to be kept within class.
         for key, value in properties.items():
             # Read input file
-            try:
-                dataset = pandas.read_csv(pathcsv + value)
-                # Subtract control
-                dataset1 = dataset.iloc[:, 2: len(dataset.columns)]
-                dataset1.sub(dataset1["Control"], axis=0)
-                data = pandas.concat([dataset.iloc[:, 0:2], dataset1], axis=1, sort=False)
+            dataset = pandas.read_csv(pathcsv + value)
+            # Subtract control
+            dataset1 = dataset.iloc[:, 2: len(dataset.columns)]
+            dataset1.sub(dataset1["Control"], axis=0)
+            data = pandas.concat([dataset.iloc[:, 0:2], dataset1], axis=1, sort=False)
 
-                # If interval=False, filter for endpoint data
-                if not interval:
-                    # Keep data within an hour of the beginning or end
-                    data = data.loc[(data["Elapsed"] < 1.0) | (max(data["Elapsed"]) - data["Elapsed"] < 1.0)]
+            # If interval=False, filter for endpoint data
+            if not interval:
+                # Keep data within an hour of the beginning or end
+                data = data.loc[(data["Elapsed"] < 1.0) | (max(data["Elapsed"]) - data["Elapsed"] < 1.0)]
 
-                # Get phase confl was t=0 for confl_conv calculation
-                if key == "confl":
-                    data0 = data.loc[data["Elapsed"] == 0]
-                    conv0 = np.mean(data0.iloc[:, firstCols:])
-            except IOError:
-                print("No file for key: " + key)
-                continue
+            # Get phase confl was t=0 for confl_conv calculation
+            if key == "confl":
+                conv0 = np.mean(data.loc[data["Elapsed"] == 0].iloc[:, firstCols:])
 
             # Set the time vector
             self.timeV = data.iloc[:, 1].values
