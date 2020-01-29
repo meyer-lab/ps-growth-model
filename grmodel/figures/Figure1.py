@@ -21,7 +21,7 @@ def makeFigure():
     Returns: A figure
     """
     # Build and read the PyMC3 model for dose response sampling
-    M = doseResponseModel()
+    M = doseResponseModel("DOX")
     M.sample()
 
     # Store the MCMC sampling priors to compute the lExp (fit celltiter

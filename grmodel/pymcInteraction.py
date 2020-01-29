@@ -72,8 +72,6 @@ def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
             dna_obs = T.flatten(dna_exp - dna)
             pm.Normal("dna_fit", sd=T.std(dna_obs), observed=dna_obs)
 
-        pm.Deterministic("logp", M.logpt)
-
     return M
 
 

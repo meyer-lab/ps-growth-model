@@ -31,8 +31,7 @@ class doseResponseModel:
 
     def sample(self):
         """ Run sampling. """
-        with self.model:
-            self.trace = pm.sample(progressbar=False, chains=2, target_accept=0.9)
+        self.trace = pm.sample(progressbar=False, chains=2, target_accept=0.9, model=self.model)
 
     def build_model(self):
         """ Builds then returns the pyMC model. """
@@ -63,24 +62,15 @@ class doseResponseModel:
             lnum = T.exp(GR * self.time)
 
             # Normalize live cell data to control, as is similar to measurements
-            # _Should be index 0
-            lExp = lnum / lnum[0]
-
             # Residual between model prediction and measurement
-            residual = self.lObs - lExp
+            residual = self.lObs - (lnum / lnum[0])
 
             pm.Normal("dataFitlnum", sd=T.std(residual), observed=residual)
 
         return M
 
-    def __init__(self, Drug=None):
-        # If no filename is given use a default
-        if Drug is None:
-            self.drug = "DOX"
-        else:
-            self.drug = Drug
-
-        dataLoad = loadCellTiter(self.drug)
+    def __init__(self, Drug):
+        dataLoad = loadCellTiter(Drug)
 
         # Handle data import here
         self.drugCs = dataLoad["logDose"].values

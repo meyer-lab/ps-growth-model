@@ -111,8 +111,6 @@ def build_model(conv0, doses, timeV, expTable):
 
             pm.Normal("dataFitd", sd=T.std(dna_obs), observed=dna_obs)
 
-        pm.Deterministic("logp", growth_model.logpt)
-
     return growth_model
 
 

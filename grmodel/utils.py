@@ -56,7 +56,6 @@ def violinplot(filename, swapDrugs=False):
     # Read in dataframe
     classM = GrowthModel(filename)
     classM.performFit()
-    df = classM.df
 
     # Get a list of drugs
     drugs = list(OrderedDict.fromkeys(classM.drugs))
@@ -71,7 +70,6 @@ def violinplot(filename, swapDrugs=False):
 
     # Interate over each drug
     for drug in drugs:
-        dfplot = reformatData(df, classM.doses, classM.drugs, drug, params)
+        dfdict[drug] = reformatData(classM.df, classM.doses, classM.drugs, drug, params)
 
-        dfdict[drug] = dfplot
     return (dfdict, drugs, params)

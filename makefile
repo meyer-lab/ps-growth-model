@@ -1,4 +1,4 @@
-.PHONY: clean test all
+.PHONY: clean all
 
 flist = 1 2 3 4 S1 S2 S3 S4
 flistFull = $(patsubst %, output/Figure%.svg, $(flist))
@@ -7,7 +7,7 @@ pandocCommon = -f markdown \
 	--csl=style.csl -F pandoc-fignos -F pandoc-eqnos -F pandoc-tablenos \
 	--metadata link-citations=true
 
-all: coverage.xml pylint.log output/manuscript.pdf output/manuscript.docx output/manuscript.md
+all: pylint.log output/manuscript.pdf output/manuscript.docx output/manuscript.md
 
 venv: venv/bin/activate
 
@@ -44,12 +44,6 @@ clean:
 	rm -rf output venv style.csl
 	mkdir output
 	mv requests-cache.sqlite output/requests-cache.sqlite || true
-
-test: venv
-	. venv/bin/activate && pytest
-
-coverage.xml: venv
-	. venv/bin/activate && pytest --junitxml=junit.xml --cov-branch --cov=grmodel --cov-report xml:coverage.xml
 
 pylint.log: venv
 	. venv/bin/activate && (pylint --rcfile=./common/pylintrc grmodel > pylint.log || echo "pylint exited with $?")
