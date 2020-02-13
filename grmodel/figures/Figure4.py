@@ -56,11 +56,11 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     confl /= confl[0, 0]
     confl = 1.0 - confl
 
-    assert np.all(confl >= 0.0) and np.all(confl <= 1.0)
+    assert np.all(confl <= 1.0)
 
     additive = (confl[:, 0][:, None] + confl[0, :][None, :]) - np.outer(confl[:, 0], confl[0, :])
 
-    assert np.all(additive >= 0.0) and np.all(additive <= 1.0)
+    assert np.all(additive <= 1.0)
 
     confldf.iloc[:, :] = confl - additive
 
