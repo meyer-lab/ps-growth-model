@@ -32,8 +32,15 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     # Read model
     M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=False)
 
-    drug1 = drug1 + r" ($\mu$M)"
-    drug2 = drug2 + r" ($\mu$M)"
+    if drug1 == "LCL161":
+        drug1 += r" ($\mu$M)"
+    else:
+        drug1 += r" (nM)"
+
+    if drug2 == "LCL161":
+        drug2 += r" ($\mu$M)"
+    else:
+        drug2 += r" (nM)"
 
     dfplot = pd.DataFrame()
     dfplot["confl"] = M.phase.flatten()

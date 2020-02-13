@@ -18,7 +18,7 @@ venv/bin/activate: requirements.txt
 
 output/Figure%.svg: venv genFigures.py grmodel/figures/Figure%.py
 	mkdir -p ./output
-	. venv/bin/activate; THEANO_FLAGS=mode=FAST_RUN ./genFigures.py $*
+	. venv/bin/activate; ./genFigures.py $*
 
 output/manuscript.md: venv manuscript/*.md
 	. venv/bin/activate && manubot process --content-directory=./manuscript/ --output-directory=./output --log-level=INFO
