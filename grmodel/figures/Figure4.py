@@ -75,7 +75,7 @@ def fittingPlots(ax, loadFile, drug1, drug2, df):
     # Read model from saved pickle file
     M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=True)
 
-    df.iloc[:, :] = np.median(M.samples["conflResid"], axis=0).reshape(5, 7)
+    df.iloc[:, :] = np.median(M.samples["conflResid"], axis=0).reshape(df.shape)
 
     sns.heatmap(df, ax=ax[0], cmap="PiYG", vmin=-0.5, vmax=0.5, cbar=False, square=True)
     ax[0].set_title("Full Model")
