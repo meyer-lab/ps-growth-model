@@ -8,7 +8,7 @@ pipeline {
         lock ('manubot') {
           sh 'make output/manuscript.md'
         }
-        sh 'make all -j 6'
+        sh 'make all -j 3'
       }
     }
     stage('Report') {

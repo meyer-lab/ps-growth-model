@@ -21,11 +21,8 @@ def makeFigure():
     simulationPlots(axes=ax[9:12], ff="050719_PC9_LCL_OSI", swapDrugs=True)
     simulationPlots(axes=ax[12:15], ff="071318_PC9_OSI_Bin")
     simulationPlots(axes=ax[15:21], ff="090618_PC9_TXL_Erl")
+    simulationPlots(axes=ax[21:24], ff="020720_PC9_Erl_THZ1")
 
-    ax[21].axis("off")
-    ax[22].axis("off")
-    ax[23].axis("off")
-
-    subplotLabel(ax[:-3:3])
+    subplotLabel(ax)
 
     return f

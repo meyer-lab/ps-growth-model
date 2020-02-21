@@ -124,7 +124,7 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
 
         # add legends
         if quant == "confl":
-            if curDrug in ["DOX", "NVB", "Paclitaxel", "Erlotinib"]:  # drugs with nM units
+            if curDrug in ["DOX", "NVB", "Paclitaxel", "Erlotinib", "THZ1"]:  # drugs with nM units
                 title = "Doses (nM)"
             else:
                 title = r"Doses ($\mu$M)"
@@ -198,7 +198,7 @@ def violinPlots(axes, ff="101117_H1299", remm=None, swapDrugs=False):
                 axes[idx].set_ylim([0, 1])
 
             # Set x labels
-            if drug in ["Dox", "NVB", "Paclitaxel", "Erl"]:
+            if drug in ["Dox", "NVB", "Paclitaxel", "Erl", "THZ1"]:
                 if drug == "Erl":
                     drug = "Erlotinib"
 

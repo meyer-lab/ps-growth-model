@@ -44,7 +44,7 @@ def makeFigure():
 
 def ratePlots(axes):
     """ Create line plots of model posterior. """
-    files = ["072718_PC9_BYL_PIM", "050719_PC9_PIM_OSI", "050719_PC9_LCL_OSI", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl"]
+    files = ["072718_PC9_BYL_PIM", "050719_PC9_PIM_OSI", "050719_PC9_LCL_OSI", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl", "020720_PC9_Erl_THZ1"]
 
     violRes = dict()
     executor = ProcessPoolExecutor(max_workers=5)
@@ -65,7 +65,7 @@ def ratePlots(axes):
 
             # Change dose to the same unit muM (change nanoM to microM)
             dfplot["dose"] = dfplot["dose"].astype(float)
-            if drug in ["Paclitaxel", "Erl"]:
+            if drug in ["Paclitaxel", "Erl", "THZ1"]:
                 dfplot["dose"] /= 1000.0
 
             # Deal with duplicated drug for different drug combinations
@@ -99,6 +99,7 @@ def ratePlots(axes):
     df = df.loc[df["drugName"] != "OSI-90612"]
     df = df.loc[df["drugName"] != "OSI-9061"]
     df = df.loc[df["drugName"] != "PIM447"]
+    df = df.loc[df["drugName"] != "Erl1"]
     df.loc[df["drugName"] == "Erl", "drugName"] = "Erlotinib"
     df.loc[df["drugName"] == "PIM4471", "drugName"] = "PIM447"
 

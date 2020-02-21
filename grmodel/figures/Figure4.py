@@ -14,13 +14,15 @@ def makeFigure():
     not captured by the traditional cell number measurements. """
 
     # plot phase, green and red confl for three drug interactions
-    ax, f = getSetup((10, 4), (2, 5))
+    ax, f = getSetup((10, 6), (3, 5))
 
     A = simPlots_comb("050719_PC9_LCL_OSI", ax[0:4], "LCL161", "OSI-906")
     B = simPlots_comb("050719_PC9_PIM_OSI", ax[5:9], "PIM447", "OSI-906")
+    C = simPlots_comb("020720PC9_Erl_THZ1", ax[10:14], "THZ1", "Erl")
 
     fittingPlots([ax[2], ax[4]], "050719_PC9_LCL_OSI", "LCL161", "OSI-906", A)
     fittingPlots([ax[7], ax[9]], "050719_PC9_PIM_OSI", "PIM447", "OSI-906", B)
+    fittingPlots([ax[12], ax[14]], "020720PC9_Erl_THZ1", "THZ1", "Erl", C)
 
     subplotLabel(ax)
 
@@ -31,6 +33,11 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     """ Output raw data plotting for Bliss additivity. """
     # Read model
     M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=False)
+
+    if drug1 == "Erl":
+        drug1 = "Erlotinib"
+    if drug2 == "Erl":
+        drug2 = "Erlotinib"
 
     if drug1 == "LCL161":
         drug1 += r" ($\mu$M)"
@@ -44,8 +51,7 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
 
     dfplot = pd.DataFrame()
     dfplot["confl"] = M.phase.flatten()
-    dfplot["apop"] = M.green.flatten()
-    dfplot["dna"] = M.red.flatten()
+    dfplot["death"] = M.green.flatten()
     dfplot["time"] = np.tile(M.timeV, M.X1.size)
     dfplot[drug1] = np.round(np.repeat(M.X1, M.timeV.size), decimals=1)
     dfplot[drug2] = np.round(np.repeat(M.X2, M.timeV.size), decimals=1)
@@ -56,7 +62,7 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
 
     sns.heatmap(confldf, ax=axes[0], vmin=0.0, square=True, xticklabels=1)
     axes[0].set_title("Phase")
-    sns.heatmap(ddd.pivot(drug1, drug2, "apop"), ax=axes[3], vmin=0.0, square=True, xticklabels=1)
+    sns.heatmap(ddd.pivot(drug1, drug2, "death"), ax=axes[3], vmin=0.0, square=True, xticklabels=1)
     axes[3].set_title("Annexin V")
 
     confl = confldf.to_numpy()
