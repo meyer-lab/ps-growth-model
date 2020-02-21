@@ -8,30 +8,8 @@ import theano.tensor as T
 import pandas as pd
 
 
-def loadCellTiter(drug=None):
-    """ Load Dox and NVB cellTiter Glo data. """
-    filename = join(dirname(abspath(__file__)), "data/initial-data/2017.07.10-H1299-celltiter.csv")
-
-    data = pd.read_csv(filename)
-
-    # Response should be normalized to the control
-    data["response"] = data["CellTiter"] / np.mean(data.loc[data["Conc (nM)"] == 0.0, "CellTiter"])
-
-    # Put the dose on a log scale as well
-    data["logDose"] = np.log10(data["Conc (nM)"] + 0.1)
-
-    if drug is None:
-        return data
-
-    return data[data["Drug"] == drug]
-
-
 class doseResponseModel:
     """ pymc3 model of just using the live cell number. """
-
-    def sample(self):
-        """ Run sampling. """
-        self.trace = pm.sample(progressbar=False, chains=2, target_accept=0.9, model=self.model)
 
     def build_model(self):
         """ Builds then returns the pyMC model. """
@@ -70,7 +48,17 @@ class doseResponseModel:
         return M
 
     def __init__(self, Drug):
-        dataLoad = loadCellTiter(Drug)
+        """ Load data and setup. """
+        filename = join(dirname(abspath(__file__)), "data/initial-data/2017.07.10-H1299-celltiter.csv")
+        data = pd.read_csv(filename)
+
+        # Response should be normalized to the control
+        data["response"] = data["CellTiter"] / np.mean(data.loc[data["Conc (nM)"] == 0.0, "CellTiter"])
+
+        # Put the dose on a log scale as well
+        data["logDose"] = np.log10(data["Conc (nM)"] + 0.1)
+
+        dataLoad = data[data["Drug"] == Drug]
 
         # Handle data import here
         self.drugCs = dataLoad["logDose"].values
@@ -83,3 +71,4 @@ class doseResponseModel:
 
         # Build the model
         self.model = self.build_model()
+        self.trace = pm.sample(progressbar=False, chains=2, target_accept=0.9, model=self.model)

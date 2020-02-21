@@ -49,8 +49,8 @@ def conversionPriors(conv0):
     """ Sets the various fluorescence conversion priors. """
     # Set up conversion rates
     confl_conv = pm.Lognormal("confl_conv", np.log(conv0), 0.1)
-    apop_conv = pm.Lognormal("apop_conv", np.log(conv0) - 2.06, 0.2)
-    dna_conv = pm.Lognormal("dna_conv", np.log(conv0) - 1.85, 0.2)
+    apop_conv = pm.Lognormal("apop_conv", np.log(conv0) - 2.06, 0.1)
+    dna_conv = pm.Lognormal("dna_conv", np.log(conv0) - 1.85, 0.1)
 
     # Priors on conv factors
     pm.Lognormal("confl_apop", -2.06, 0.0647, observed=apop_conv / confl_conv)
