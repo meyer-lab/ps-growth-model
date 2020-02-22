@@ -16,14 +16,13 @@ def readCombo(name="072718_PC9_BYL_PIM"):
     del data["Conditions"]
 
     for key in data:
-
         data[key]["Well"] = np.repeat([1, 2, 3], 25)
         data[key] = pd.melt(data[key], id_vars=["Elapsed", "Well"], var_name="Condition", value_name="Measure")
         data[key].dropna(inplace=True)
 
     data = pd.concat(data).reset_index().drop(["level_1"], axis=1)
 
-    data["Type"], data["drug_amt"] = data["level_0"].str.split("_", 1).str
+    data[["Type", "drug_amt"]] = data["level_0"].str.split("_", 1, expand=True)
 
     data.drop(["level_0"], axis=1, inplace=True)
 

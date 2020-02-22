@@ -1,12 +1,14 @@
 """
 This module handles experimental data, by fitting a growth and death rate for each condition separately.
 """
-import logging
 from os.path import join, dirname, abspath
 import pandas
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
+
+
+fitKwargs = {"tune": 2000, "progressbar": False, "target_accept": 0.9}
 
 
 def theanoCore(timeV, div, deathRate, apopfrac, d):
@@ -119,11 +121,9 @@ class GrowthModel:
 
     def performFit(self):
         """ Run NUTS sampling"""
-        logging.info("Building the model")
         model = build_model(self.conv0, self.doses, self.timeV, self.expTable)
 
-        logging.info("GrowthModel sampling")
-        samples = pm.sample(model=model, progressbar=False, chains=2, init="advi+adapt_diag", tune=1000, target_accept=0.9)
+        samples = pm.sample(model=model, **fitKwargs)
         self.df = pm.backends.tracetab.trace_to_dataframe(samples)
 
     def __init__(self, loadFile, firstCols=2, comb=None, interval=True):

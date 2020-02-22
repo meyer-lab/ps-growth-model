@@ -1,6 +1,6 @@
 .PHONY: clean all
 
-flist = 1 2 3 4 S1 S2 S3 S4
+flist = 4 3 S3 1 2 S1 S2 S4
 flistFull = $(patsubst %, output/Figure%.svg, $(flist))
 pandocCommon = -f markdown \
 	--bibliography=output/references.json \
@@ -12,12 +12,12 @@ all: pylint.log output/manuscript.pdf output/manuscript.docx output/manuscript.m
 venv: venv/bin/activate
 
 venv/bin/activate: requirements.txt
-	test -d venv || virtualenv venv
+	@test -d venv || virtualenv venv
 	. venv/bin/activate; pip install -Uqr requirements.txt
-	touch venv/bin/activate
+	@touch venv/bin/activate
 
 output/Figure%.svg: venv genFigures.py grmodel/figures/Figure%.py
-	mkdir -p ./output
+	@mkdir -p ./output
 	. venv/bin/activate; ./genFigures.py $*
 
 output/manuscript.md: venv manuscript/*.md
@@ -37,13 +37,13 @@ output/manuscript.docx: venv output/manuscript.md $(flistFull) style.csl
 		-o $@ output/manuscript.md
 
 style.csl: 
-	curl -o $@ -L https://www.zotero.org/styles/nature?source=1
+	curl -so $@ -L https://www.zotero.org/styles/nature?source=1
 
 clean:
-	mv output/requests-cache.sqlite requests-cache.sqlite || true
+	@mv output/requests-cache.sqlite requests-cache.sqlite || true
 	rm -rf output venv style.csl
-	mkdir output
-	mv requests-cache.sqlite output/requests-cache.sqlite || true
+	@mkdir output
+	@mv requests-cache.sqlite output/requests-cache.sqlite || true
 
 pylint.log: venv
 	. venv/bin/activate && (pylint --rcfile=./common/pylintrc grmodel > pylint.log || echo "pylint exited with $?")

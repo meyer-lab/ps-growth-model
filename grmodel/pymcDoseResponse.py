@@ -6,6 +6,7 @@ import numpy as np
 import pymc3 as pm
 import theano.tensor as T
 import pandas as pd
+from .pymcGrowth import fitKwargs
 
 
 class doseResponseModel:
@@ -71,4 +72,4 @@ class doseResponseModel:
 
         # Build the model
         self.model = self.build_model()
-        self.trace = pm.sample(progressbar=False, chains=2, target_accept=0.9, model=self.model)
+        self.trace = pm.sample(model=self.model, **fitKwargs)

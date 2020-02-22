@@ -1,7 +1,6 @@
 """
 This creates Figure 3.
 """
-from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -32,8 +31,8 @@ def makeFigure():
     ax[0].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
     ax[1].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
     ax[0].set_ylim(bottom=-0.0015, top=0.03)
-    ax[1].set_ylim(bottom=0.0, top=0.02)
-    ax[2].set_ylim(bottom=0.0, top=0.02)
+    ax[1].set_ylim(bottom=0.0, top=0.025)
+    ax[2].set_ylim(bottom=0.0, top=0.025)
     ax[2].set_xlim(left=0.0, right=0.03)
 
     # Labels for each subplot
@@ -46,16 +45,10 @@ def ratePlots(axes):
     """ Create line plots of model posterior. """
     files = ["072718_PC9_BYL_PIM", "050719_PC9_PIM_OSI", "050719_PC9_LCL_OSI", "071318_PC9_OSI_Bin", "090618_PC9_TXL_Erl", "020720_PC9_Erl_THZ1"]
 
-    violRes = dict()
-    executor = ProcessPoolExecutor(max_workers=5)
-    for _, ff in enumerate(files):
-        # Load model and dataset
-        violRes[ff] = executor.submit(violinplot, ff)
-
     df = None
     for i, ff in enumerate(files):
         # Load model and dataset
-        dfdict, drugs, _ = violRes[ff].result()
+        dfdict, drugs, _ = violinplot(ff)
 
         # Plot params vs. drug dose
         for _, drug in enumerate(drugs):
@@ -96,12 +89,11 @@ def ratePlots(axes):
 
     # Make line plots
     # Remove the data for Pacitaxel and only keep the one for Pacitacel1
-    df = df.loc[df["drugName"] != "OSI-90612"]
-    df = df.loc[df["drugName"] != "OSI-9061"]
-    df = df.loc[df["drugName"] != "PIM447"]
-    df = df.loc[df["drugName"] != "Erl1"]
-    df.loc[df["drugName"] == "Erl", "drugName"] = "Erlotinib"
-    df.loc[df["drugName"] == "PIM4471", "drugName"] = "PIM447"
+    for ddd in ("OSI-90612", "OSI-9061", "PIM447", "Erl1"):
+        df = df.loc[df.drugName != ddd]
+
+    df.loc[df.drugName == "Erl", "drugName"] = "Erlotinib"
+    df.loc[df.drugName == "PIM4471", "drugName"] = "PIM447"
 
     # Division rate
     lineplot(x="dose", y="div", hue="drugName", marker="o", data=df, ax=axes[0], palette="muted")
@@ -127,6 +119,7 @@ def ratePlots(axes):
 
     axes[2].set_xlabel(r"Division Rate (1/hr)")
     axes[2].set_ylabel(r"Death Rate (1/hr)")
+    axes[2].plot(0.027, 0.001, 'ko')
     axes[2].set_ylim(bottom=-0.001)
     axes[2].set_xlim(left=-0.001)
     axes[2].get_legend().remove()

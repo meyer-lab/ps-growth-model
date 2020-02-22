@@ -6,6 +6,7 @@ import pymc3 as pm
 import theano.tensor as T
 from .pymcGrowth import theanoCore, convSignal, conversionPriors, deathPriors
 from .interactionData import readCombo, filterDrugC, dataSplit
+from .pymcGrowth import fitKwargs
 
 
 def blissInteract(X1, X2, hill, IC50, Emax, justAdd=False):
@@ -97,4 +98,4 @@ class drugInteractionModel:
             self.model = build_model(self.X1, self.X2, self.timeV, 1.0, confl=self.phase, apop=self.green, dna=self.red)
 
             # Perform pymc fitting given actual data
-            self.samples = pm.sampling.sample(init="advi+adapt_diag", tune=1000, chains=2, model=self.model, progressbar=False)
+            self.samples = pm.sampling.sample(model=self.model, **fitKwargs)
