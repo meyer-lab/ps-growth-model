@@ -8,7 +8,7 @@ import pymc3 as pm
 import theano.tensor as T
 
 
-fitKwargs = {"tune": 2000, "progressbar": False, "target_accept": 0.9}
+fitKwargs = {"tune": 3000, "progressbar": False, "target_accept": 0.9}
 
 
 def theanoCore(timeV, div, deathRate, apopfrac, d):
