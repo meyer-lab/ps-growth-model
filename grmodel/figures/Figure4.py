@@ -18,11 +18,11 @@ def makeFigure():
 
     A = simPlots_comb("050719_PC9_LCL_OSI", ax[0:4], "LCL161", "OSI-906")
     B = simPlots_comb("050719_PC9_PIM_OSI", ax[5:9], "PIM447", "OSI-906")
-    C = simPlots_comb("020720_PC9_Erl_THZ1", ax[10:14], "THZ1", "Erl")
+    C = simPlots_comb("071318_PC9_OSI_Bin", ax[10:14], "OSI-906", "Binimetinib")
 
     fittingPlots([ax[2], ax[4]], "050719_PC9_LCL_OSI", "LCL161", "OSI-906", A)
     fittingPlots([ax[7], ax[9]], "050719_PC9_PIM_OSI", "PIM447", "OSI-906", B)
-    fittingPlots([ax[12], ax[14]], "020720_PC9_Erl_THZ1", "THZ1", "Erl", C)
+    fittingPlots([ax[12], ax[14]], "071318_PC9_OSI_Bin", "OSI-906", "Binimetinib", C)
 
     subplotLabel(ax)
 
