@@ -30,21 +30,18 @@ def readCombo(name="072718_PC9_BYL_PIM"):
 
 
 def filterDrugC(df, drugAname, drugBname):
-    df["drugA"] = 0
+    df["drugA"] = 0.0
+    df["drugB"] = 0.0
 
     for index, row in df.iterrows():
         m = re.search(drugAname + r" (\d*\.?\d*)", row["Condition"])
+        mB = re.search(drugBname + r" (\d*\.?\d*)", row["Condition"])
 
         if m is not None:
             df.loc[index, "drugA"] = float(m.group(1))
 
-    df["drugB"] = 0
-
-    for index, row in df.iterrows():
-        m = re.search(drugBname + r" (\d*\.?\d*)", row["Condition"])
-
-        if m is not None:
-            df.loc[index, "drugB"] = float(m.group(1))
+        if mB is not None:
+            df.loc[index, "drugB"] = float(mB.group(1))
 
     df.loc[df["Condition"] == "blank", ["drugA", "drugB"]] = np.nan
     df.drop("Condition", axis=1, inplace=True)

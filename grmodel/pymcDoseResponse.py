@@ -28,7 +28,7 @@ class doseResponseModel:
             drugCs = T._shared(self.drugCs)
 
             # Drug term since we're using constant IC50 and hill slope
-            drugTerm = 1.0 / (1.0 + T.pow(10.0, (lIC50 - drugCs) * pm.Lognormal("hill", 1.0)))
+            drugTerm = 1.0 / (1.0 + T.pow(10.0, (lIC50 - drugCs) * pm.Lognormal("hill")))
 
             # Do actual conversion to parameters for each drug condition
             growthV = self.Emax_growth + (Emin_growth - self.Emax_growth) * drugTerm

@@ -68,7 +68,7 @@ def conversionPriors(conv0):
 def deathPriors(numApop):
     """ Setup priors for cell death parameters. """
     # Rate of moving from apoptosis to death, assumed invariant wrt. treatment
-    d = pm.Lognormal("d", np.log(0.001), 0.5)
+    d = pm.Lognormal("d", np.log(0.01), 0.5)
 
     # Fraction of dying cells that go through apoptosis
     apopfrac = pm.Beta("apopfrac", 1.0, 1.0, shape=numApop)
@@ -96,22 +96,17 @@ def build_model(conv0, doses, timeV, expTable):
         # Convert model calculations to experimental measurement units
         confl_exp, apop_exp, dna_exp = convSignal(lnum, eap, deadapop, deadnec, conversions)
 
-        # Fit model to confl, apop, dna, and overlap measurements
-        if "confl" in expTable.keys():
-            # Observed error values for confl
-            confl_obs = T.reshape(confl_exp, (-1,)) - expTable["confl"]
+        # Observed error values for confl
+        confl_obs = T.reshape(confl_exp, (-1,)) - expTable["confl"]
+        pm.Normal("dataFit", sd=T.std(confl_obs), observed=confl_obs)
 
-            pm.Normal("dataFit", sd=T.std(confl_obs), observed=confl_obs)
-        if "apop" in expTable.keys():
-            # Observed error values for apop
-            apop_obs = T.reshape(apop_exp, (-1,)) - expTable["apop"]
+        # Observed error values for apop
+        apop_obs = T.reshape(apop_exp, (-1,)) - expTable["apop"]
+        pm.Normal("dataFita", sd=T.std(apop_obs), observed=apop_obs)
 
-            pm.Normal("dataFita", sd=T.std(apop_obs), observed=apop_obs)
-        if "dna" in expTable.keys():
-            # Observed error values for dna
-            dna_obs = T.reshape(dna_exp, (-1,)) - expTable["dna"]
-
-            pm.Normal("dataFitd", sd=T.std(dna_obs), observed=dna_obs)
+        # Observed error values for dna
+        dna_obs = T.reshape(dna_exp, (-1,)) - expTable["dna"]
+        pm.Normal("dataFitd", sd=T.std(dna_obs), observed=dna_obs)
 
     return growth_model
 
@@ -126,7 +121,7 @@ class GrowthModel:
         samples = pm.sample(model=model, **fitKwargs)
         self.df = pm.backends.tracetab.trace_to_dataframe(samples)
 
-    def __init__(self, loadFile, firstCols=2, comb=None, interval=True):
+    def __init__(self, loadFile, comb=None, interval=True):
         """Import experimental data"""
         # Property list
         properties = {"confl": "_confluence_phase.csv", "apop": "_confluence_green.csv", "dna": "_confluence_red.csv"}
@@ -159,13 +154,13 @@ class GrowthModel:
 
             # Get phase confl was t=0 for confl_conv calculation
             if key == "confl":
-                conv0 = np.mean(data.loc[data["Elapsed"] == 0].iloc[:, firstCols:])
+                conv0 = np.mean(data.loc[data["Elapsed"] == 0].iloc[:, 2:])
 
             # Set the time vector
             self.timeV = data.iloc[:, 1].values
 
-            assert len(data.columns) > firstCols + 1
-            for col in range(firstCols, len(data.columns)):
+            assert len(data.columns) > 3
+            for col in range(2, len(data.columns)):
                 # Set the name of the condition we're considering
                 condName = data.columns.values[col]
 
@@ -198,7 +193,7 @@ class GrowthModel:
                     if key == "confl":
                         self.drugs.append(drug)
                         self.doses.append(dose)
-                        selconv0.append(conv0[col - firstCols])
+                        selconv0.append(conv0[col - 2])
 
                 else:  # For data without combinations
                     if "blank" not in condName.lower():
@@ -217,7 +212,7 @@ class GrowthModel:
                         if key == "confl":
                             self.drugs.append(drug)
                             self.doses.append(dose)
-                            selconv0.append(conv0[col - firstCols])
+                            selconv0.append(conv0[col - 2])
             # Reshape experimental data into 1D array
             self.expTable[key] = np.array(self.expTable[key]).reshape((-1,))
 

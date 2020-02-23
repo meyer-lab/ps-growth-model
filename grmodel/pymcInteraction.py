@@ -20,7 +20,7 @@ def blissInteract(X1, X2, hill, IC50, Emax, justAdd=False):
     return drug_one + drug_two - drug_one * drug_two
 
 
-def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
+def build_model(X1, X2, timeV, confl=None, apop=None, dna=None):
     """ Builds then returns the PyMC model. """
 
     assert X1.shape == X2.shape
@@ -28,7 +28,7 @@ def build_model(X1, X2, timeV, conv0=0.1, confl=None, apop=None, dna=None):
     M = pm.Model()
 
     with M:
-        conversions = conversionPriors(conv0)
+        conversions = conversionPriors(3.5) # TODO: Look into this.
         d, apopfrac = deathPriors(1)
 
         # parameters for drug 1, 2; assumed to be the same for both phenotypes
@@ -95,7 +95,7 @@ class drugInteractionModel:
 
         if fit:
             # Build pymc model
-            self.model = build_model(self.X1, self.X2, self.timeV, 1.0, confl=self.phase, apop=self.green, dna=self.red)
+            self.model = build_model(self.X1, self.X2, self.timeV, confl=self.phase, apop=self.green, dna=self.red)
 
             # Perform pymc fitting given actual data
             self.samples = pm.sampling.sample(model=self.model, **fitKwargs)
