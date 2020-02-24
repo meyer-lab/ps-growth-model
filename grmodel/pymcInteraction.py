@@ -38,7 +38,7 @@ def build_model(X1, X2, timeV, confl=None, apop=None, dna=None):
         EmaxDeath = pm.Lognormal("EmaxDeath", -2.0, 0.5, shape=2)
 
         # E_con values; first death then growth
-        GrowthCon = pm.Lognormal("GrowthCon", np.log10(0.03), 0.1)
+        GrowthCon = pm.Lognormal("GrowthCon", np.log(0.03), 0.1)
 
         # Calculate the death rate
         death_rates = blissInteract(X1, X2, hill, IC50, EmaxDeath, justAdd=True)  # pylint: disable=unsubscriptable-object

@@ -18,11 +18,11 @@ def makeFigure():
 
     A = simPlots_comb("050719_PC9_LCL_OSI", ax[0:4], "LCL161", "OSI-906")
     B = simPlots_comb("050719_PC9_PIM_OSI", ax[5:9], "PIM447", "OSI-906")
-    C = simPlots_comb("071318_PC9_OSI_Bin", ax[10:14], "OSI-906", "Binimetinib")
+    C = simPlots_comb("071318_PC9_OSI_Bin", ax[10:14], "Binimetinib", "OSI-906")
 
     fittingPlots([ax[2], ax[4]], "050719_PC9_LCL_OSI", "LCL161", "OSI-906", A)
     fittingPlots([ax[7], ax[9]], "050719_PC9_PIM_OSI", "PIM447", "OSI-906", B)
-    fittingPlots([ax[12], ax[14]], "071318_PC9_OSI_Bin", "OSI-906", "Binimetinib", C)
+    fittingPlots([ax[12], ax[14]], "071318_PC9_OSI_Bin", "Binimetinib", "OSI-906", C)
 
     subplotLabel(ax)
 
@@ -87,6 +87,11 @@ def fittingPlots(ax, loadFile, drug1, drug2, df):
     """ Plots of additive interaction fit. """
     # Read model from saved pickle file
     M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=True)
+
+    if drug1 == "Erl":
+        drug1 = "Erlotinib"
+    if drug2 == "Erl":
+        drug2 = "Erlotinib"
 
     df.iloc[:, :] = np.median(M.samples["conflResid"], axis=0).reshape(df.shape)
 
