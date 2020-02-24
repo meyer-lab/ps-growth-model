@@ -2,7 +2,6 @@
 This creates Figure 3.
 """
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 from seaborn import lineplot
@@ -48,18 +47,14 @@ def ratePlots(axes):
     df = None
     for i, ff in enumerate(files):
         # Load model and dataset
-        dfdict, drugs, _ = violinplot(ff)
+        dfdict = violinplot(ff)
 
         # Plot params vs. drug dose
-        for _, drug in enumerate(drugs):
-
-            # Get drug
-            dfplot = dfdict[drug]
-
-            # Change dose to the same unit muM (change nanoM to microM)
-            dfplot["dose"] = dfplot["dose"].astype(float)
-            if drug in ["Paclitaxel", "Erl", "THZ1"]:
-                dfplot["dose"] /= 1000.0
+        for drug, dfplot in dfdict.items():
+            # Change dose to the same unit uM (change nM to uM)
+            dfplot["dose"] = dfplot["dose"].astype(float).apply(np.log10)
+            if drug in ["Paclitaxel", "Erlotinib", "THZ1"]:
+                dfplot["dose"] -= 3.0
 
             # Deal with duplicated drug for different drug combinations
             if df is not None:
@@ -70,14 +65,8 @@ def ratePlots(axes):
 
             # Convert div and deathRate from log scale to linear;
             # Convert dose from linear to log scale
-            df_temp = pd.DataFrame(
-                {
-                    "div": np.array(dfplot["div"]),
-                    "deathRate": np.array(dfplot["deathRate"]),
-                    "drugName": np.repeat(drug, len(dfplot["div"])),
-                    "dose": dfplot["dose"].apply(np.log10),
-                }
-            )
+            df_temp = dfplot[["div", "deathRate", "dose"]]
+            df_temp["drugName"] = drug
 
             # Sort the data set by the value of doses
             df_temp.sort_values(by="dose", inplace=True)
@@ -89,10 +78,9 @@ def ratePlots(axes):
 
     # Make line plots
     # Remove the data for Pacitaxel and only keep the one for Pacitacel1
-    for ddd in ("OSI-90612", "OSI-9061", "PIM447", "Erl1"):
+    for ddd in ("OSI-90612", "OSI-9061", "PIM447", "Erlotinib1"):
         df = df.loc[df.drugName != ddd]
 
-    df.loc[df.drugName == "Erl", "drugName"] = "Erlotinib"
     df.loc[df.drugName == "PIM4471", "drugName"] = "PIM447"
 
     # Division rate

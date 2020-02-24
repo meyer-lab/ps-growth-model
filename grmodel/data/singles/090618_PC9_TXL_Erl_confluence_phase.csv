@@ -1,4 +1,4 @@
-Date,Elapsed,Control,Paclitaxel 0.8 nM,Paclitaxel 1.5 nM,Paclitaxel 3 nM,Paclitaxel 6 nM,Erl 37.04 nM,Erl 111.11 nM,Erl 333.33 nM,Erl 1.37 nM,Erl 4.12 nM,Erl 12.35 nM
+Date,Elapsed,Control,Paclitaxel 0.8 nM,Paclitaxel 1.5 nM,Paclitaxel 3 nM,Paclitaxel 6 nM,Erlotinib 37.04 nM,Erlotinib 111.11 nM,Erlotinib 333.33 nM,Erlotinib 1.37 nM,Erlotinib 4.12 nM,Erlotinib 12.35 nM
 ,0,8.994944,9.591858,8.384131,7.887619,8.799783,8.632077,8.990554,9.365524,10.64508,10.83438,11.89888
 ,3,10.68819,10.81056,9.51252,8.552196,9.456811,10.17752,10.92207,10.92869,12.72184,13.10591,14.40208
 ,6,12.49638,12.4314,10.79552,9.269677,9.739845,11.85991,13.33897,13.30561,15.2754,15.81809,17.92131

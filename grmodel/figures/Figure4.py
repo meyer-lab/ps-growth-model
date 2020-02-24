@@ -34,11 +34,6 @@ def simPlots_comb(loadFile, axes, drug1, drug2):
     # Read model
     M = drugInteractionModel(loadFile, drug1=drug1, drug2=drug2, fit=False)
 
-    if drug1 == "Erl":
-        drug1 = "Erlotinib"
-    if drug2 == "Erl":
-        drug2 = "Erlotinib"
-
     if drug1 == "LCL161":
         drug1 += r" ($\mu$M)"
     else:

@@ -72,4 +72,4 @@ def violinplot(filename, swapDrugs=False):
     for drug in drugs:
         dfdict[drug] = reformatData(classM.df, classM.doses, classM.drugs, drug, params)
 
-    return (dfdict, drugs, params)
+    return dfdict

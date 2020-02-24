@@ -81,11 +81,6 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
 
         dfcur = df.loc[np.logical_or(df["drug"] == curDrug, df["drug"] == "Control"), :]
 
-        if curDrug == "Erl":
-            curDrug = "Erlotinib"
-        if curDrug == "Dox":
-            curDrug = "DOX"
-
         # array of all doses for the drug
         doses = np.unique(dfcur["dose"])
 
@@ -150,16 +145,15 @@ def simulationPlots(axes, ff="101117_H1299", swapDrugs=False):
 def violinPlots(axes, ff="101117_H1299", remm=None, swapDrugs=False):
     """ Create violin plots of model posterior. """
     # Load model and dataset
-    dfdict, drugs, _ = violinplot(ff, swapDrugs=swapDrugs)
+    dfdict = violinplot(ff, swapDrugs=swapDrugs)
 
     if remm is not None:
-        drugs.remove(remm)
+        del dfdict[remm]
 
+    j = -1
     # Plot params vs. drug dose
-    for j, drug in enumerate(drugs):
-        # Get drug
-        dfplot = dfdict[drug]
-
+    for drug, dfplot in dfdict.items():
+        j += 1
         # Combine div and deathRate in one dataframe
         # Convert div and deathRate from log scale to linear
         dose = dfplot["dose"].to_numpy(dtype=np.float)
@@ -198,10 +192,7 @@ def violinPlots(axes, ff="101117_H1299", remm=None, swapDrugs=False):
                 axes[idx].set_ylim([0, 1])
 
             # Set x labels
-            if drug in ["Dox", "NVB", "Paclitaxel", "Erl", "THZ1"]:
-                if drug == "Erl":
-                    drug = "Erlotinib"
-
+            if drug in ["DOX", "NVB", "Paclitaxel", "Erlotinib", "THZ1"]:
                 axes[idx].set_xlabel(drug + " (nM)")
             else:
                 axes[idx].set_xlabel(drug + r" ($\mu$M)")
