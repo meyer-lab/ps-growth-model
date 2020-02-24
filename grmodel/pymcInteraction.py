@@ -28,7 +28,7 @@ def build_model(X1, X2, timeV, confl=None, apop=None, dna=None):
     M = pm.Model()
 
     with M:
-        conversions = conversionPriors(3.5) # TODO: Look into this.
+        conversions = conversionPriors(3.5)  # TODO: Look into this.
         d, apopfrac = deathPriors(1)
 
         # parameters for drug 1, 2; assumed to be the same for both phenotypes
