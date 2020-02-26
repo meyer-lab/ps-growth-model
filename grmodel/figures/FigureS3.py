@@ -21,6 +21,6 @@ def makeFigure():
     violinPlots(axes=ax[10:14], ff="090618_PC9_TXL_Erl")
     violinPlots(axes=ax[14:16], ff="020720_PC9_Erl_THZ1", remm="Erlotinib")
 
-    subplotLabel(ax)
+    subplotLabel(ax[::2])
 
     return f
