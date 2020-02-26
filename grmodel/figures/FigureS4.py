@@ -13,20 +13,22 @@ def makeFigure():
         each drug combinations """
 
     # Get list of axis objects
-    ax, f = getSetup((12, 12), (6, 6))
+    ax, f = getSetup((12, 16), (9, 6))
 
     for axis in ax[0:36]:
         axis.tick_params(axis="both", which="major", pad=-2)  # set ticks style
 
-    files = ["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI"]
+    files = ["050719_PC9_LCL_OSI", "050719_PC9_PIM_OSI", "071318_PC9_OSI_Bin"]
 
     # Show simulation plots (predicted vs experimental)
     simulationPlots(axes=ax[0:6], ff=files[0])
     simulationPlots(axes=ax[18:24], ff=files[1])
+    simulationPlots(axes=ax[36:42], ff=files[2])
     simulationPlots_comb(files[0], ax[6:18])
     simulationPlots_comb(files[1], ax[24:36])
+    simulationPlots_comb(files[2], ax[42:54])
 
-    subplotLabel([ax[0], ax[18]])
+    subplotLabel([ax[0], ax[18], ax[36]])
 
     return f
 
