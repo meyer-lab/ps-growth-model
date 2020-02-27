@@ -105,7 +105,7 @@ def fittingPlots(ax, loadFile, drug1, drug2, df):
     sns.violinplot(x="param", y="value", hue="drug", data=dfplot, ax=ax[1], linewidth=0.1)
     ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=25, horizontalalignment="right")
     ax[1].set_ylabel("Emax [1/hr]")
-    ax[1].set_ylim(bottom=0.0)
+    ax[1].set_ylim(bottom=0.0, top=0.10)
     ax[1].set_xlabel("")
 
     # Remove legend title
